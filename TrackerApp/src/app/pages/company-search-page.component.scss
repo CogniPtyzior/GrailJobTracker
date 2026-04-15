@@ -14,3 +14,13 @@
 .result-item--static {
   cursor: default;
 }
+
+.search-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.full-width {
+  flex: 1;
+}

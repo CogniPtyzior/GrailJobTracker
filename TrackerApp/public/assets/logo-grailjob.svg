@@ -1,8 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
-  <rect width="320" height="120" rx="24" fill="transparent"/>
-  <path d="M54 20h30c17 0 32 14 32 32v24c0 18-15 32-32 32H54V96h26c10 0 18-8 18-18V50c0-10-8-18-18-18H66v34h24v12H54V20Z" fill="#a56f52"/>
-  <path d="M132 54h18c8 0 14 6 14 14v0c0 8-6 14-14 14h-18V54Z" fill="#a56f52"/>
-  <circle cx="178" cy="44" r="8" fill="#c79a73"/>
-  <text x="194" y="55" fill="#a56f52" font-size="24" font-family="Georgia, serif">GrailJob</text>
-  <text x="194" y="84" fill="#7f6655" font-size="18" font-family="Arial, sans-serif">LE BON JOB</text>
+<svg aria-label="GrailJob" fill="none" viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(8 8)">
+    <path
+      d="M28 16H96C96 39 82 57 67 68V77H84C87 77 89 79 89 82C89 85 87 87 84 87H40C37 87 35 85 35 82C35 79 37 77 40 77H57V68C42 57 28 39 28 16Z"
+      fill="#9C6B4E"
+    />
+    <path
+      d="M40 26H84C81 40 72 49 62 55C52 49 43 40 40 26Z"
+      fill="#F6EFE9"
+    />
+    <path
+      d="M71 34C68 31 64 29 59 29C50 29 44 35 44 43C44 52 50 57 59 57C66 57 72 52 73 46H60C58 46 56 44 56 42C56 40 58 38 60 38H79C79 50 70 65 58 65C44 65 34 55 34 43C34 30 44 21 58 21C65 21 72 24 77 29L71 34Z"
+      fill="#9C6B4E"
+    />
+    <path
+      d="M94 18L97 24L103 27L97 30L94 36L91 30L85 27L91 24L94 18Z"
+      fill="#D2A36E"
+    />
+  </g>
+
+  <g transform="translate(116 18)">
+    <text
+      fill="#9C6B4E"
+      font-family="Inter, Segoe UI, Arial, sans-serif"
+      font-size="46"
+      font-weight="900"
+      lengthAdjust="spacingAndGlyphs"
+      letter-spacing="0.2"
+      textLength="96"
+      x="0"
+      y="36"
+    >
+      GrailJob
+    </text>
+    <text
+      fill="#7A675B"
+      font-family="Inter, Segoe UI, Arial, sans-serif"
+      font-size="12"
+      font-weight="800"
+      lengthAdjust="spacingAndGlyphs"
+      letter-spacing="1.2"
+      textLength="96"
+      x="0"
+      y="72"
+    >
+      LE BON JOB
+    </text>
+  </g>
 </svg>

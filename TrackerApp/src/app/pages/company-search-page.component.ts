@@ -13,15 +13,13 @@ import { TrackedJobService } from '../core/tracked-job.service';
   imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule],
   template: `
     <section class="hero-card search-hero">
-      <img src="assets/logo-grailjob.svg" alt="GrailJob logo" class="hero-logo hero-logo--wide">
       <h1 class="hero-title hero-title--search">Quel job voulez-vous suivre ?</h1>
       <p class="hero-description">
         Recherchez une entreprise existante ou démarrez une nouvelle candidature.
       </p>
 
       <div class="search-toolbar">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Nom de l'entreprise</mat-label>
+        <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">          <mat-label>Nom de l'entreprise</mat-label>
           <input matInput [formControl]="searchControl" placeholder="Ex. OpenAI, Alan, Back Market">
         </mat-form-field>
 
