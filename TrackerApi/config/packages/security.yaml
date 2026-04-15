@@ -1,0 +1,39 @@
+security:
+    password_hashers:
+        App\Security\Domain\Entity\User:
+            algorithm: auto
+
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Security\Domain\Entity\User
+                property: normalizedEmail
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        main:
+            lazy: true
+            provider: app_user_provider
+            entry_point: App\Security\Infrastructure\Security\JsonAuthenticationEntryPoint
+            access_denied_handler: App\Security\Infrastructure\Security\JsonAccessDeniedHandler
+            json_login:
+                check_path: /api/auth/login
+                username_path: email
+                password_path: password
+                success_handler: App\Security\Infrastructure\Security\JsonLoginSuccessHandler
+                failure_handler: App\Security\Infrastructure\Security\JsonLoginFailureHandler
+            logout:
+                path: /api/auth/logout
+                invalidate_session: true
+                
+    access_control:
+        - { path: ^/api/auth/login$, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/api/auth/me$, roles: IS_AUTHENTICATED_FULLY, methods: [GET] }
+        - { path: ^/api/auth/logout$, roles: IS_AUTHENTICATED_FULLY, methods: [POST] }
+        - { path: ^/api/access-requests$, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/api/doc, roles: PUBLIC_ACCESS }
+        - { path: ^/api/admin, roles: ROLE_ADMIN }
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

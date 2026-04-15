@@ -1,0 +1,47 @@
+:host {
+  display: block;
+}
+
+.tracked-jobs-section {
+  margin-top: 24px;
+}
+
+.tracked-jobs-toolbar {
+  margin-bottom: 16px;
+}
+
+.tracked-job-card {
+  margin-bottom: 16px;
+}
+
+.tracked-job-card:last-child {
+  margin-bottom: 0;
+}
+
+.tracked-job-details-grid {
+  margin-top: 16px;
+}
+
+.tracked-job-notes {
+  margin-top: 16px;
+}
+
+.notes-content {
+  margin: 8px 0 0;
+  color: #7d685a;
+}
+
+.tracked-jobs-pagination {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .tracked-jobs-pagination {
+    justify-content: stretch;
+  }
+
+  .tracked-jobs-pagination > * {
+    flex: 1 1 auto;
+  }
+}

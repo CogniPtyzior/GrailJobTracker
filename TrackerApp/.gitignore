@@ -1,0 +1,15 @@
+/.angular/
+/coverage/
+/dist/
+/node_modules/
+/.sass-cache/
+/.cache/
+/.eslintcache
+/tsconfig.tsbuildinfo
+
+.idea/
+
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json

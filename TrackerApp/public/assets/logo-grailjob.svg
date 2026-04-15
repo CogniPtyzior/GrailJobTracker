@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
+  <rect width="320" height="120" rx="24" fill="transparent"/>
+  <path d="M54 20h30c17 0 32 14 32 32v24c0 18-15 32-32 32H54V96h26c10 0 18-8 18-18V50c0-10-8-18-18-18H66v34h24v12H54V20Z" fill="#a56f52"/>
+  <path d="M132 54h18c8 0 14 6 14 14v0c0 8-6 14-14 14h-18V54Z" fill="#a56f52"/>
+  <circle cx="178" cy="44" r="8" fill="#c79a73"/>
+  <text x="194" y="55" fill="#a56f52" font-size="24" font-family="Georgia, serif">GrailJob</text>
+  <text x="194" y="84" fill="#7f6655" font-size="18" font-family="Arial, sans-serif">LE BON JOB</text>
+</svg>

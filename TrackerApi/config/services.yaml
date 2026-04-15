@@ -1,0 +1,28 @@
+parameters:
+    tracker.schema: '%env(TRACKER_SCHEMA)%'
+    app.timezone: '%env(APP_TIMEZONE)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+
+    App\Shared\Infrastructure\Clock\ClockInterface:
+        class: App\Shared\Infrastructure\Clock\SystemClock
+        arguments:
+            $timezone: '%app.timezone%'
+
+    App\Admin\Presentation\AdminUserController:
+        arguments:
+            $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
+
+    App\Security\Infrastructure\Console\BootstrapAdminCommand:
+        arguments:
+            $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
+            $adminBootstrapPasswordFile: '%env(ADMIN_BOOTSTRAP_PASSWORD_FILE)%'
+            $trackerSchema: '%tracker.schema%'

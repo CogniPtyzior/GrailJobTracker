@@ -1,52 +1,46 @@
-# Cache and logs (Symfony2)
-/app/cache/*
-/app/logs/*
-!app/cache/.gitkeep
-!app/logs/.gitkeep
+########################################
+# OS / Editor / Temp files
+########################################
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.bak
 
-# Email spool folder
-/app/spool/*
+########################################
+# Logs
+########################################
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Cache, session files and logs (Symfony3)
-/var/cache/*
-/var/logs/*
-/var/sessions/*
-!var/cache/.gitkeep
-!var/logs/.gitkeep
-!var/sessions/.gitkeep
+########################################
+# Root VS Code
+########################################
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
 
-# Logs (Symfony4)
-/var/log/*
-!var/log/.gitkeep
+########################################
+# Root local environment / secrets
+########################################
+.env.local
+.env.*.local
+.env.docker.local
 
-# Parameters
-/app/config/parameters.yml
-/app/config/parameters.ini
+########################################
+# Credentials
+########################################
+/credentials/*
+!/credentials/.gitkeep
 
-# Managed by Composer
-/app/bootstrap.php.cache
-/var/bootstrap.php.cache
-/bin/*
-!bin/console
-!bin/symfony_requirements
-/vendor/
-
-# Assets and user uploads
-/web/bundles/
-/web/uploads/
-
-# PHPUnit
-/app/phpunit.xml
-/phpunit.xml
-
-# Build data
-/build/
-
-# Composer PHAR
-/composer.phar
-
-# Backup entities generated with doctrine:generate:entities command
-**/Entity/*~
-
-# Embedded web-server pid file
-/.web-server-pid
+########################################
+# Docker runtime
+########################################
+docker-compose.override.yml

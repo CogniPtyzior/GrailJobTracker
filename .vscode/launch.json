@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Listen for Xdebug (TrackerApi)",
+      "type": "php",
+      "request": "launch",
+      "port": 9003,
+      "pathMappings": {
+        "/var/www/tracker-api": "${workspaceFolder}/TrackerApi"
+      },
+      "ignore": [
+        "**/vendor/**/*.php"
+      ],
+      "xdebugSettings": {
+        "max_data": 65536,
+        "show_hidden": 1,
+        "max_children": 128,
+        "max_depth": 5
+      }
+    }
+  ]
+}
