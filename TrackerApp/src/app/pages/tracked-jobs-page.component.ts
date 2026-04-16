@@ -73,13 +73,17 @@ export class TrackedJobsPageComponent {
     const filters = this.getFilters();
     const requestId = ++this.latestLoadRequestId;
     this.listLoading.set(true);
+    const currentCompany = this.route.snapshot.queryParamMap.get('company') ?? '';
+    const nextCompany = filters.company || '';
 
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { company: filters.company || null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true
-    });
+    if (currentCompany !== nextCompany) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { company: nextCompany || null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true
+      });
+    }
 
     this.service.list(filters, this.page(), this.pageSize).pipe(take(1)).subscribe({
       next: (response) => {

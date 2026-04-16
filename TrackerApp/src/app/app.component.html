@@ -18,16 +18,25 @@
               mat-button
               class="shell-nav__link"
               routerLink="/dashboard"
-              routerLinkActive="shell-nav__link--active"
-              [routerLinkActiveOptions]="{ exact: true }"
+              [class.shell-nav__link--active]="isDashboardActive()"
             >
               Accueil
             </a>
-            <a mat-button class="shell-nav__link" routerLink="/tracked-jobs" routerLinkActive="shell-nav__link--active">
+            <a
+              mat-button
+              class="shell-nav__link"
+              routerLink="/tracked-jobs"
+              [class.shell-nav__link--active]="isTrackedJobsActive()"
+            >
               Mes candidatures
             </a>
             @if (authService.isAdmin()) {
-              <a mat-button class="shell-nav__link" routerLink="/admin" routerLinkActive="shell-nav__link--active">
+              <a
+                mat-button
+                class="shell-nav__link"
+                routerLink="/admin"
+                [class.shell-nav__link--active]="isAdminActive()"
+              >
                 Admin
               </a>
             }
