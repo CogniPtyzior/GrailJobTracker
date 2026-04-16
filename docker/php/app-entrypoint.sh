@@ -8,6 +8,7 @@ COMPOSER_INSTALL_FLAGS="${COMPOSER_INSTALL_FLAGS:---prefer-dist --no-interaction
 AUTO_INIT_DB="${AUTO_INIT_DB:-1}"
 AUTO_MIGRATE="${AUTO_MIGRATE:-0}"
 AUTO_BOOTSTRAP_ADMIN="${AUTO_BOOTSTRAP_ADMIN:-1}"
+XDEBUG_RUNTIME_INI="/usr/local/etc/php/conf.d/zzz-xdebug-runtime.ini"
 
 log() {
   printf '%s\n' "[tracker-api] $*"
@@ -46,6 +47,17 @@ configure_mailer() {
   else
     export MAILER_DSN="smtps://${SMTP_USERNAME_ENCODED}:${SMTP_PASSWORD_ENCODED}@${SMTP_HOST}:${SMTP_PORT}"
   fi
+}
+
+configure_xdebug() {
+  if [ -z "${XDEBUG_CLIENT_HOST:-}" ]; then
+    rm -f "$XDEBUG_RUNTIME_INI"
+    return 0
+  fi
+
+  cat > "$XDEBUG_RUNTIME_INI" <<EOF
+xdebug.client_host=${XDEBUG_CLIENT_HOST}
+EOF
 }
 
 get_database_value() {
@@ -224,6 +236,7 @@ bootstrap_admin() {
 cd "$APP_DIR"
 
 configure_mailer
+configure_xdebug
 install_dependencies
 wait_for_database
 init_schema

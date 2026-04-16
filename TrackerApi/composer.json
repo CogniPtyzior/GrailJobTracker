@@ -27,8 +27,7 @@
         "symfony/yaml": "7.4.*"
     },
     "require-dev": {
-        "symfony/maker-bundle": "^1.64",
-        "symfony/web-profiler-bundle": "7.4.*"
+        "symfony/maker-bundle": "^1.64"
     },
     "autoload": {
         "psr-4": {
