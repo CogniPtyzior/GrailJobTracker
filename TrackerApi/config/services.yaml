@@ -1,6 +1,9 @@
 parameters:
     tracker.schema: '%env(TRACKER_SCHEMA)%'
     app.timezone: '%env(APP_TIMEZONE)%'
+    access_request.notification_to: '%env(ACCESS_REQUEST_NOTIFICATION_TO)%'
+    mailer.from_email: '%env(MAILER_FROM_EMAIL)%'
+    mailer.from_name: '%env(MAILER_FROM_NAME)%'
 
 services:
     _defaults:
@@ -26,3 +29,9 @@ services:
             $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
             $adminBootstrapPasswordFile: '%env(ADMIN_BOOTSTRAP_PASSWORD_FILE)%'
             $trackerSchema: '%tracker.schema%'
+
+    App\AccessRequest\Application\AccessRequestNotificationSender:
+        arguments:
+            $recipientEmail: '%access_request.notification_to%'
+            $fromEmail: '%mailer.from_email%'
+            $fromName: '%mailer.from_name%'

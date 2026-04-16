@@ -13,6 +13,41 @@ log() {
   printf '%s\n' "[tracker-api] $*"
 }
 
+urlencode() {
+  php -r 'echo rawurlencode($argv[1]);' "$1"
+}
+
+configure_mailer() {
+  if [ -n "${MAILER_DSN:-}" ]; then
+    return 0
+  fi
+
+  if [ -z "${SMTP_HOST:-}" ] || [ -z "${SMTP_PORT:-}" ] || [ -z "${SMTP_USERNAME:-}" ] || [ -z "${SMTP_PASSWORD_FILE:-}" ]; then
+    return 0
+  fi
+
+  if [ ! -f "$SMTP_PASSWORD_FILE" ]; then
+    log "SMTP password file not found: ${SMTP_PASSWORD_FILE}"
+    exit 1
+  fi
+
+  SMTP_PASSWORD="$(tr -d '\r\n' < "$SMTP_PASSWORD_FILE")"
+
+  if [ -z "$SMTP_PASSWORD" ]; then
+    log "SMTP password file is empty: ${SMTP_PASSWORD_FILE}"
+    exit 1
+  fi
+
+  SMTP_USERNAME_ENCODED="$(urlencode "$SMTP_USERNAME")"
+  SMTP_PASSWORD_ENCODED="$(urlencode "$SMTP_PASSWORD")"
+
+  if [ "${SMTP_USE_STARTTLS:-0}" = "1" ]; then
+    export MAILER_DSN="smtp://${SMTP_USERNAME_ENCODED}:${SMTP_PASSWORD_ENCODED}@${SMTP_HOST}:${SMTP_PORT}?encryption=tls"
+  else
+    export MAILER_DSN="smtps://${SMTP_USERNAME_ENCODED}:${SMTP_PASSWORD_ENCODED}@${SMTP_HOST}:${SMTP_PORT}"
+  fi
+}
+
 get_database_value() {
   key="$1"
 
@@ -188,6 +223,7 @@ bootstrap_admin() {
 
 cd "$APP_DIR"
 
+configure_mailer
 install_dependencies
 wait_for_database
 init_schema

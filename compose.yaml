@@ -13,6 +13,7 @@ services:
     volumes:
       - ./TrackerApi:/var/www/tracker-api
       - ./credentials/password.secret:/run/secrets/tracker_admin_password:ro
+      - ./credentials/smtp/password.secret:/run/secrets/smtp_password:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

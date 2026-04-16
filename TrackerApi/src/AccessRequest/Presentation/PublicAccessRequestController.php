@@ -2,6 +2,7 @@
 
 namespace App\AccessRequest\Presentation;
 
+use App\AccessRequest\Application\AccessRequestNotificationSender;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\Security\Application\EmailNormalizer;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
@@ -21,6 +22,7 @@ final class PublicAccessRequestController extends AbstractController
         private readonly PayloadValidator $payloadValidator,
         private readonly EmailNormalizer $emailNormalizer,
         private readonly EntityManagerInterface $entityManager,
+        private readonly AccessRequestNotificationSender $notificationSender,
     ) {
     }
 
@@ -52,6 +54,7 @@ final class PublicAccessRequestController extends AbstractController
 
         $this->entityManager->persist($accessRequest);
         $this->entityManager->flush();
+        $this->notificationSender->sendCreatedNotification($accessRequest);
 
         return ApiJsonResponse::success([], Response::HTTP_CREATED);
     }
