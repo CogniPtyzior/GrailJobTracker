@@ -59,7 +59,7 @@
 <section class="tracked-jobs-section loading-panel" [class.loading-panel--busy]="resultsBusy()">
   <div class="loading-panel__content">
     <div class="inline-actions tracked-jobs-toolbar">
-      <div class="status-chip">{{ total() }} fiche(s)</div>
+      <div class="status-chip">{{ items().length }} fiche(s) affichée(s)</div>
       <div class="status-chip">Page {{ page() }}</div>
     </div>
 
@@ -136,7 +136,7 @@
 
     <div class="inline-actions tracked-jobs-pagination">
       <button mat-stroked-button (click)="previousPage()" [disabled]="page() === 1 || resultsBusy()">Précédent</button>
-      <button mat-flat-button color="primary" (click)="nextPage()" [disabled]="page() * pageSize >= total() || resultsBusy()">Suivant</button>
+      <button mat-flat-button color="primary" (click)="nextPage()" [disabled]="!hasMore() || resultsBusy()">Suivant</button>
     </div>
   </div>
 

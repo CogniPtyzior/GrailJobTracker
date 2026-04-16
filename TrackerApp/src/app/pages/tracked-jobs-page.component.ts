@@ -30,7 +30,7 @@ export class TrackedJobsPageComponent {
   private readonly router = inject(Router);
 
   protected readonly items = signal<TrackedJob[]>([]);
-  protected readonly total = signal(0);
+  protected readonly hasMore = signal(false);
   protected readonly page = signal(1);
   protected readonly pageSize = 10;
   protected readonly expandedId = signal<string | null>(null);
@@ -84,7 +84,7 @@ export class TrackedJobsPageComponent {
     this.service.list(filters, this.page(), this.pageSize).pipe(take(1)).subscribe({
       next: (response) => {
         this.items.set(response.items);
-        this.total.set(response.total);
+        this.hasMore.set(response.hasMore);
       },
       complete: () => this.listLoading.set(false)
     });
@@ -98,7 +98,7 @@ export class TrackedJobsPageComponent {
   }
 
   protected nextPage(): void {
-    if (this.page() * this.pageSize < this.total() && !this.resultsBusy()) {
+    if (this.hasMore() && !this.resultsBusy()) {
       this.page.update((value) => value + 1);
       this.load();
     }

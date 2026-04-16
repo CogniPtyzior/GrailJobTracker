@@ -11,7 +11,7 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
-  return authService.initialize().pipe(
+  return authService.initializeOnce().pipe(
     map((user) => user ? true : router.createUrlTree(['/login'])),
     catchError(() => of(router.createUrlTree(['/login'])))
   );
@@ -25,7 +25,7 @@ export const adminGuard: CanActivateFn = () => {
     return true;
   }
 
-  return authService.initialize().pipe(
+  return authService.initializeOnce().pipe(
     map((user) => {
       if (user && authService.isAdmin()) {
         return true;

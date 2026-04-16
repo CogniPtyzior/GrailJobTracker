@@ -24,7 +24,7 @@ final class TrackedJobRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return array{items: list<TrackedJob>, total: int}
+     * @return array{items: list<TrackedJob>, hasMore: bool}
      */
     public function search(User $owner, array $filters, int $page, int $pageSize): array
     {
@@ -33,12 +33,6 @@ final class TrackedJobRepository extends ServiceEntityRepository
             ->setParameter('owner', $owner);
 
         $this->applyFilters($baseQb, $filters);
-
-        $countQb = clone $baseQb;
-        $total = (int) $countQb
-            ->select('COUNT(t.id)')
-            ->getQuery()
-            ->getSingleScalarResult();
 
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $finalStatuses = [
@@ -87,15 +81,18 @@ final class TrackedJobRepository extends ServiceEntityRepository
             ->addOrderBy('t.subjectiveRelevance', 'DESC')
             ->addOrderBy('t.updatedAt', 'DESC');
 
-        $items = $qb
+        $rows = $qb
             ->setFirstResult(($page - 1) * $pageSize)
-            ->setMaxResults($pageSize)
+            ->setMaxResults($pageSize + 1)
             ->getQuery()
             ->getResult();
 
+        $hasMore = count($rows) > $pageSize;
+        $items = $hasMore ? array_slice($rows, 0, $pageSize) : $rows;
+
         return [
             'items' => $items,
-            'total' => $total,
+            'hasMore' => $hasMore,
         ];
     }
 
@@ -130,13 +127,13 @@ final class TrackedJobRepository extends ServiceEntityRepository
     {
         if (($filters['company'] ?? null) !== null && $filters['company'] !== '') {
             $qb
-                ->andWhere('LOWER(COALESCE(t.company, \'\')) LIKE :company')
+                ->andWhere('LOWER(t.company) LIKE :company')
                 ->setParameter('company', '%'.mb_strtolower(trim($filters['company'])).'%');
         }
 
         if (($filters['search'] ?? null) !== null && $filters['search'] !== '') {
             $qb
-                ->andWhere('LOWER(COALESCE(t.title, \'\')) LIKE :search OR LOWER(COALESCE(t.company, \'\')) LIKE :search')
+                ->andWhere('LOWER(t.title) LIKE :search OR LOWER(t.company) LIKE :search')
                 ->setParameter('search', '%'.mb_strtolower(trim($filters['search'])).'%');
         }
 

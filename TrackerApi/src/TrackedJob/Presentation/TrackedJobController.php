@@ -57,7 +57,7 @@ final class TrackedJobController extends AbstractController
             'items' => array_map($this->presenter->present(...), $result['items']),
             'page' => $page,
             'pageSize' => $pageSize,
-            'total' => $result['total'],
+            'hasMore' => $result['hasMore'],
         ]);
     }
 

@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { take } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap, take } from 'rxjs';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -47,6 +48,7 @@ export class TrackedJobFormPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly pendingInitialLoads = signal(0);
 
   protected readonly saving = signal(false);
@@ -105,13 +107,22 @@ export class TrackedJobFormPageComponent {
       this.patchDraftTemplate(draftTemplate);
     }
 
-    this.form.controls.company.valueChanges.subscribe((value) => {
-      if ((value?.length ?? 0) >= 3) {
-        this.service.searchCompanies(value ?? '').pipe(take(1)).subscribe((response) => this.companySuggestions.set(response.items));
-      } else {
-        this.companySuggestions.set([]);
-      }
-    });
+    this.form.controls.company.valueChanges.pipe(
+      debounceTime(250),
+      map((value) => (value ?? '').trim()),
+      distinctUntilChanged(),
+      switchMap((value) => {
+        if (value.length < 3) {
+          return of([] as string[]);
+        }
+
+        return this.service.searchCompanies(value).pipe(
+          map((response) => response.items),
+          catchError(() => of([] as string[]))
+        );
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((items) => this.companySuggestions.set(items));
   }
 
   protected createAnotherApplication(): void {
