@@ -1,0 +1,51 @@
+<section class="hero-card search-hero">
+  <h1 class="hero-title hero-title--search">Quel job voulez-vous suivre ?</h1>
+  <p class="hero-description">
+    Recherchez une entreprise existante ou démarrez une nouvelle candidature.
+  </p>
+
+  <div class="search-toolbar">
+    <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+      <mat-label>Nom de l'entreprise</mat-label>
+      <input matInput [formControl]="searchControl" placeholder="Ex. OpenAI, Alan, Back Market">
+    </mat-form-field>
+
+    <button mat-flat-button color="primary" (click)="createNew()">
+      Nouvelle candidature
+    </button>
+
+    <button mat-button (click)="goToList()">
+      Voir tout
+    </button>
+  </div>
+
+  @if (showResultsPanel()) {
+    <div class="search-results-shell loading-panel" [class.loading-panel--busy]="searching()">
+      <div class="loading-panel__content">
+        @if (results().length > 0) {
+          <div class="results-list">
+            @for (company of results(); track company) {
+              <button type="button" class="result-item" (click)="openCompany(company)">
+                <span>{{ company }}</span>
+                <span class="result-item-link-hint">Voir les candidatures</span>
+              </button>
+            }
+          </div>
+        } @else if (!searching() && searchControl.value.length >= 3) {
+          <div class="results-list">
+            <div class="result-item result-item--static">
+              <span>Aucun résultat. Vous pouvez créer une nouvelle fiche.</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (searching()) {
+        <div class="loading-overlay loading-overlay--soft" aria-live="polite">
+          <mat-spinner diameter="34"></mat-spinner>
+          <div class="loading-overlay__label">Recherche des entreprises…</div>
+        </div>
+      }
+    </div>
+  }
+</section>

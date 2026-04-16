@@ -5,76 +5,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { take } from 'rxjs';
 import { AccessRequestService } from '../core/access-request.service';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule],
-  template: `
-    <div class="auth-columns">
-      <div class="hero-card">
-        <div class="logo-lockup">
-          <img src="assets/logo-grailjob.svg" alt="GrailJob logo" class="hero-logo hero-logo--compact">
-          <div>
-            <h1 class="hero-title auth-title">Demande d'accès</h1>
-            <p class="hero-description">
-              Décrivez votre besoin. Un administrateur pourra créer votre compte après validation.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <mat-card class="surface-card">
-        <h2 class="section-title">Créer une demande</h2>
-        <p class="section-subtitle">Le formulaire est public.</p>
-
-        <form [formGroup]="form" (ngSubmit)="submit()" class="form-section">
-          <div class="grid-2">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Prénom</mat-label>
-              <input matInput formControlName="firstName">
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Nom</mat-label>
-              <input matInput formControlName="lastName">
-            </mat-form-field>
-          </div>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Email professionnel</mat-label>
-            <input matInput type="email" formControlName="email">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Entreprise</mat-label>
-            <input matInput formControlName="companyName">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Motif</mat-label>
-            <textarea matInput rows="5" formControlName="reason"></textarea>
-          </mat-form-field>
-
-          @if (successMessage()) {
-            <p class="feedback-message feedback-message--success">{{ successMessage() }}</p>
-          }
-
-          @if (errorMessage()) {
-            <p class="feedback-message feedback-message--error">{{ errorMessage() }}</p>
-          }
-
-          <div class="inline-actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || loading()">
-              Envoyer
-            </button>
-            <a mat-button routerLink="/login">Retour à la connexion</a>
-          </div>
-        </form>
-      </mat-card>
-    </div>
-  `,
+  imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule],
+  templateUrl: './access-request-page.component.html',
   styleUrls: ['./access-request-page.component.scss']
 })
 export class AccessRequestPageComponent {

@@ -1,0 +1,50 @@
+<div class="auth-columns">
+  <div class="hero-card">
+    <div class="logo-lockup">
+      <img src="assets/logo-grailjob.svg" alt="GrailJob logo" class="hero-logo hero-logo--compact">
+      <div>
+        <h1 class="hero-title auth-title">Connectez-vous</h1>
+        <p class="hero-description">
+          Retrouvez vos candidatures, vos relances et vos entretiens dans un tableau unique.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <mat-card class="surface-card loading-panel" [class.loading-panel--busy]="loading()">
+    <div class="loading-panel__content">
+      <h2 class="section-title">Connexion</h2>
+      <p class="section-subtitle">Utilisez vos identifiants GrailJob.</p>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form-section" [attr.aria-busy]="loading()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Mot de passe</mat-label>
+          <input matInput type="password" formControlName="password">
+        </mat-form-field>
+
+        @if (errorMessage()) {
+          <p class="feedback-message feedback-message--error">{{ errorMessage() }}</p>
+        }
+
+        <div class="inline-actions login-actions">
+          <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || loading()">
+            Se connecter
+          </button>
+          <a mat-button routerLink="/access-request" class="login-request-link">Demander un accès</a>
+        </div>
+      </form>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-overlay" aria-live="polite">
+        <mat-spinner diameter="38"></mat-spinner>
+        <div class="loading-overlay__label">Connexion en cours…</div>
+      </div>
+    }
+  </mat-card>
+</div>

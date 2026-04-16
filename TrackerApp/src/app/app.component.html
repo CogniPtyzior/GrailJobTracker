@@ -1,0 +1,51 @@
+@if (ready()) {
+  <div class="page-shell">
+    <div class="content-frame">
+      @if (shouldShowShell()) {
+        <div class="app-shell-toolbar">
+          <div class="brand">
+            <img class="brand-logo" src="assets/logo-grailjob.svg" alt="GrailJob logo">
+            <div>
+              <div class="app-brand-title">GrailJob Tracker</div>
+              <div class="app-brand-subtitle">Suivi des candidatures</div>
+            </div>
+          </div>
+
+          <div class="spacer"></div>
+
+          <nav class="shell-nav" aria-label="Navigation principale">
+            <a
+              mat-button
+              class="shell-nav__link"
+              routerLink="/dashboard"
+              routerLinkActive="shell-nav__link--active"
+              [routerLinkActiveOptions]="{ exact: true }"
+            >
+              Accueil
+            </a>
+            <a mat-button class="shell-nav__link" routerLink="/tracked-jobs" routerLinkActive="shell-nav__link--active">
+              Mes candidatures
+            </a>
+            @if (authService.isAdmin()) {
+              <a mat-button class="shell-nav__link" routerLink="/admin" routerLinkActive="shell-nav__link--active">
+                Admin
+              </a>
+            }
+          </nav>
+
+          @if (authService.isAuthenticated()) {
+            <button mat-flat-button class="avatar-button" (click)="logout()" aria-label="Se déconnecter">
+              <img src="assets/avatar-placeholder.svg" alt="Avatar">
+            </button>
+          }
+        </div>
+      }
+
+      <router-outlet />
+    </div>
+  </div>
+} @else {
+  <div class="page-shell page-shell--centered">
+    <mat-spinner diameter="52"></mat-spinner>
+  </div>
+}

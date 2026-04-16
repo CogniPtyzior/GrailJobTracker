@@ -1,0 +1,149 @@
+<section class="surface-card">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">Mes candidatures</h1>
+      <p class="section-subtitle">Vue priorisée par relances et avancée du pipeline.</p>
+    </div>
+    <div class="spacer"></div>
+    <button mat-flat-button color="primary" routerLink="/tracked-jobs/new">Nouvelle fiche</button>
+    <button mat-button (click)="exportCsv()" [disabled]="exportingCsv()">
+      {{ exportingCsv() ? 'Export en cours…' : 'Exporter CSV' }}
+    </button>
+  </div>
+
+  <div class="filters-shell" [class.filters-shell--busy]="filtersBusy()">
+    <form [formGroup]="filtersForm" class="grid-3 form-section">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Recherche</mat-label>
+        <input matInput formControlName="search">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Entreprise</mat-label>
+        <input matInput formControlName="company">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Statut</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="">Tous</mat-option>
+          @for (status of referenceData()?.trackedJobStatuses ?? []; track status) {
+            <mat-option [value]="status">{{ statusLabel(status) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Type de contrat</mat-label>
+        <mat-select formControlName="contractType">
+          <mat-option value="">Tous</mat-option>
+          @for (type of referenceData()?.contractTypes ?? []; track type) {
+            <mat-option [value]="type">{{ contractTypeLabel(type) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Télétravail</mat-label>
+        <mat-select formControlName="remoteMode">
+          <mat-option value="">Tous</mat-option>
+          @for (mode of referenceData()?.remoteModes ?? []; track mode) {
+            <mat-option [value]="mode">{{ remoteModeLabel(mode) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </form>
+  </div>
+</section>
+
+<section class="tracked-jobs-section loading-panel" [class.loading-panel--busy]="resultsBusy()">
+  <div class="loading-panel__content">
+    <div class="inline-actions tracked-jobs-toolbar">
+      <div class="status-chip">{{ total() }} fiche(s)</div>
+      <div class="status-chip">Page {{ page() }}</div>
+    </div>
+
+    @for (job of items(); track job.id) {
+      <article class="table-row-card tracked-job-card">
+        <div
+          class="row-summary row-summary--clickable"
+          role="button"
+          tabindex="0"
+          (click)="toggleExpanded(job.id)"
+          (keydown.enter)="toggleExpanded(job.id)"
+          (keydown.space)="$event.preventDefault(); toggleExpanded(job.id)"
+        >
+          <div>
+            <div class="summary-title">{{ job.company || 'Entreprise à compléter' }}</div>
+            <div class="summary-muted">{{ job.title || 'Poste à compléter' }}</div>
+          </div>
+
+          <div>
+            <div class="status-chip">{{ statusLabel(job.status) }}</div>
+          </div>
+
+          <div>
+            <div class="summary-value">Relance prévue</div>
+            <div class="summary-muted">{{ formatDate(job.plannedFollowUpDate) }}</div>
+          </div>
+
+          <div class="inline-actions row-actions" (click)="$event.stopPropagation()">
+            <button mat-flat-button color="primary" [routerLink]="['/tracked-jobs', job.id]" [disabled]="resultsBusy()">Éditer</button>
+          </div>
+        </div>
+
+        @if (expandedId() === job.id) {
+          <div class="row-details">
+            <div class="metric-grid">
+              <div class="metric-card">
+                <div class="metric-label">Contrat</div>
+                <div>{{ job.contractType ? contractTypeLabel(job.contractType) : '—' }}</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Télétravail</div>
+                <div>{{ job.remoteMode ? remoteModeLabel(job.remoteMode) : '—' }}</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Pertinence</div>
+                <div>{{ job.subjectiveRelevance ?? '—' }}/10</div>
+              </div>
+            </div>
+
+            <div class="grid-3 tracked-job-details-grid">
+              <div><strong>Candidature</strong><br>{{ formatDate(job.applicationDate) }}</div>
+              <div><strong>Relance faite</strong><br>{{ formatDate(job.effectiveFollowUpDate) }}</div>
+              <div><strong>Premier contact</strong><br>{{ formatDate(job.firstContactDate) }}</div>
+              <div><strong>Entretien préliminaire</strong><br>{{ formatDate(job.preliminaryInterviewDate) }}</div>
+              <div><strong>Deuxième entretien</strong><br>{{ formatDate(job.secondInterviewDate) }}</div>
+              <div><strong>Lieu</strong><br>{{ job.location || '—' }}</div>
+            </div>
+
+            <div class="tracked-job-notes">
+              <strong>Notes</strong>
+              <p class="notes-content">{{ job.notes || 'Aucune note' }}</p>
+            </div>
+          </div>
+        }
+      </article>
+    } @empty {
+      @if (!resultsBusy()) {
+        <div class="surface-card">
+          <h2 class="section-title">Aucune candidature</h2>
+          <p class="section-subtitle">Créez votre première fiche pour commencer.</p>
+        </div>
+      }
+    }
+
+    <div class="inline-actions tracked-jobs-pagination">
+      <button mat-stroked-button (click)="previousPage()" [disabled]="page() === 1 || resultsBusy()">Précédent</button>
+      <button mat-flat-button color="primary" (click)="nextPage()" [disabled]="page() * pageSize >= total() || resultsBusy()">Suivant</button>
+    </div>
+  </div>
+
+  @if (resultsBusy()) {
+    <div class="loading-overlay" aria-live="polite">
+      <mat-spinner diameter="40"></mat-spinner>
+      <div class="loading-overlay__label">Chargement des candidatures…</div>
+    </div>
+  }
+</section>

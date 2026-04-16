@@ -3,10 +3,36 @@
 }
 
 .app-brand-title {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .app-brand-subtitle {
-  color: #8b7464;
+  color: #7d685a;
+  font-size: 0.92rem;
+}
+
+.shell-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shell-nav__link {
+  border-radius: 999px;
+  min-width: 0;
+  padding-inline: 18px;
+}
+
+.shell-nav__link--active {
+  background: #b56300;
+  color: #fff7f0 !important;
+}
+
+@media (max-width: 960px) {
+  .shell-nav {
+    width: 100%;
+  }
 }

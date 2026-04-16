@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReferenceDataService } from '../core/reference-data.service';
 import { TrackedJobService } from '../core/tracked-job.service';
 import { CONTRACT_TYPE_LABELS, REMOTE_MODE_LABELS, TRACKED_JOB_STATUS_LABELS } from '../core/label-dictionary';
@@ -16,139 +17,8 @@ import { TrackedJob, TrackedJobFilters } from '../models/tracked-job.models';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule],
-  template: `
-    <section class="surface-card">
-      <div class="section-header">
-        <div>
-          <h1 class="section-title">Mes candidatures</h1>
-          <p class="section-subtitle">Vue priorisée par relances et avancée du pipeline.</p>
-        </div>
-        <div class="spacer"></div>
-        <button mat-flat-button color="primary" routerLink="/tracked-jobs/new">Nouvelle fiche</button>
-        <button mat-button (click)="exportCsv()">Exporter CSV</button>
-      </div>
-
-      <form [formGroup]="filtersForm" class="grid-3 form-section">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Recherche</mat-label>
-          <input matInput formControlName="search">
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Entreprise</mat-label>
-          <input matInput formControlName="company">
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Statut</mat-label>
-          <mat-select formControlName="status">
-            <mat-option value="">Tous</mat-option>
-            @for (status of referenceData()?.trackedJobStatuses ?? []; track status) {
-              <mat-option [value]="status">{{ statusLabel(status) }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Type de contrat</mat-label>
-          <mat-select formControlName="contractType">
-            <mat-option value="">Tous</mat-option>
-            @for (type of referenceData()?.contractTypes ?? []; track type) {
-              <mat-option [value]="type">{{ contractTypeLabel(type) }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Télétravail</mat-label>
-          <mat-select formControlName="remoteMode">
-            <mat-option value="">Tous</mat-option>
-            @for (mode of referenceData()?.remoteModes ?? []; track mode) {
-              <mat-option [value]="mode">{{ remoteModeLabel(mode) }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-      </form>
-    </section>
-
-    <section class="tracked-jobs-section">
-      <div class="inline-actions tracked-jobs-toolbar">
-        <div class="status-chip">{{ total() }} fiche(s)</div>
-        <div class="status-chip">Page {{ page() }}</div>
-      </div>
-
-      @for (job of items(); track job.id) {
-        <article class="table-row-card tracked-job-card">
-          <div class="row-summary">
-            <div>
-              <div class="summary-title">{{ job.company || 'Entreprise à compléter' }}</div>
-              <div class="summary-muted">{{ job.title || 'Poste à compléter' }}</div>
-            </div>
-
-            <div>
-              <div class="status-chip">{{ statusLabel(job.status) }}</div>
-            </div>
-
-            <div>
-              <div class="summary-value">Relance prévue</div>
-              <div class="summary-muted">{{ formatDate(job.plannedFollowUpDate) }}</div>
-            </div>
-
-            <div class="inline-actions row-actions">
-              <button mat-stroked-button (click)="toggleExpanded(job.id)">
-                {{ expandedId() === job.id ? 'Masquer' : 'Voir' }}
-              </button>
-              <button mat-flat-button color="primary" [routerLink]="['/tracked-jobs', job.id]">Éditer</button>
-            </div>
-          </div>
-
-          @if (expandedId() === job.id) {
-            <div class="row-details">
-              <div class="metric-grid">
-                <div class="metric-card">
-                  <div class="metric-label">Contrat</div>
-                  <div>{{ job.contractType ? contractTypeLabel(job.contractType) : '—' }}</div>
-                </div>
-                <div class="metric-card">
-                  <div class="metric-label">Télétravail</div>
-                  <div>{{ job.remoteMode ? remoteModeLabel(job.remoteMode) : '—' }}</div>
-                </div>
-                <div class="metric-card">
-                  <div class="metric-label">Pertinence</div>
-                  <div>{{ job.subjectiveRelevance ?? '—' }}/10</div>
-                </div>
-              </div>
-
-              <div class="grid-3 tracked-job-details-grid">
-                <div><strong>Candidature</strong><br>{{ formatDate(job.applicationDate) }}</div>
-                <div><strong>Relance faite</strong><br>{{ formatDate(job.effectiveFollowUpDate) }}</div>
-                <div><strong>Premier contact</strong><br>{{ formatDate(job.firstContactDate) }}</div>
-                <div><strong>Entretien préliminaire</strong><br>{{ formatDate(job.preliminaryInterviewDate) }}</div>
-                <div><strong>Deuxième entretien</strong><br>{{ formatDate(job.secondInterviewDate) }}</div>
-                <div><strong>Lieu</strong><br>{{ job.location || '—' }}</div>
-              </div>
-
-              <div class="tracked-job-notes">
-                <strong>Notes</strong>
-                <p class="notes-content">{{ job.notes || 'Aucune note' }}</p>
-              </div>
-            </div>
-          }
-        </article>
-      } @empty {
-        <div class="surface-card">
-          <h2 class="section-title">Aucune candidature</h2>
-          <p class="section-subtitle">Créez votre première fiche pour commencer.</p>
-        </div>
-      }
-
-      <div class="inline-actions tracked-jobs-pagination">
-        <button mat-stroked-button (click)="previousPage()" [disabled]="page() === 1">Précédent</button>
-        <button mat-flat-button color="primary" (click)="nextPage()" [disabled]="page() * pageSize >= total()">Suivant</button>
-      </div>
-    </section>
-  `,
+  imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule],
+  templateUrl: './tracked-jobs-page.component.html',
   styleUrls: ['./tracked-jobs-page.component.scss']
 })
 export class TrackedJobsPageComponent {
@@ -165,6 +35,11 @@ export class TrackedJobsPageComponent {
   protected readonly pageSize = 10;
   protected readonly expandedId = signal<string | null>(null);
   protected readonly referenceData = signal<ReferenceData | null>(null);
+  protected readonly listLoading = signal(false);
+  protected readonly referenceDataLoading = signal(false);
+  protected readonly exportingCsv = signal(false);
+  protected readonly filtersBusy = computed(() => this.listLoading() || this.referenceDataLoading());
+  protected readonly resultsBusy = computed(() => this.listLoading());
 
   protected readonly filtersForm = this.fb.nonNullable.group({
     search: [''],
@@ -177,7 +52,11 @@ export class TrackedJobsPageComponent {
   protected readonly filters = computed<TrackedJobFilters>(() => this.filtersForm.getRawValue() as TrackedJobFilters);
 
   public constructor() {
-    this.referenceDataService.getReferenceData().pipe(take(1)).subscribe((data) => this.referenceData.set(data));
+    this.referenceDataLoading.set(true);
+    this.referenceDataService.getReferenceData().pipe(take(1)).subscribe({
+      next: (data) => this.referenceData.set(data),
+      complete: () => this.referenceDataLoading.set(false)
+    });
 
     this.filtersForm.valueChanges.pipe(
       debounceTime(250),
@@ -193,6 +72,8 @@ export class TrackedJobsPageComponent {
 
   protected load(): void {
     const filters = this.filters();
+    this.listLoading.set(true);
+
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { company: filters.company || null },
@@ -200,38 +81,53 @@ export class TrackedJobsPageComponent {
       replaceUrl: true
     });
 
-    this.service.list(filters, this.page(), this.pageSize).pipe(take(1)).subscribe((response) => {
-      this.items.set(response.items);
-      this.total.set(response.total);
+    this.service.list(filters, this.page(), this.pageSize).pipe(take(1)).subscribe({
+      next: (response) => {
+        this.items.set(response.items);
+        this.total.set(response.total);
+      },
+      complete: () => this.listLoading.set(false)
     });
   }
 
   protected previousPage(): void {
-    if (this.page() > 1) {
+    if (this.page() > 1 && !this.resultsBusy()) {
       this.page.update((value) => value - 1);
       this.load();
     }
   }
 
   protected nextPage(): void {
-    if (this.page() * this.pageSize < this.total()) {
+    if (this.page() * this.pageSize < this.total() && !this.resultsBusy()) {
       this.page.update((value) => value + 1);
       this.load();
     }
   }
 
   protected toggleExpanded(id: string): void {
+    if (this.resultsBusy()) {
+      return;
+    }
+
     this.expandedId.set(this.expandedId() === id ? null : id);
   }
 
   protected exportCsv(): void {
-    this.service.exportCsv(this.filters()).pipe(take(1)).subscribe((blob) => {
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = 'tracked-jobs.csv';
-      anchor.click();
-      URL.revokeObjectURL(url);
+    if (this.exportingCsv()) {
+      return;
+    }
+
+    this.exportingCsv.set(true);
+    this.service.exportCsv(this.filters()).pipe(take(1)).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'tracked-jobs.csv';
+        anchor.click();
+        URL.revokeObjectURL(url);
+      },
+      complete: () => this.exportingCsv.set(false)
     });
   }
 

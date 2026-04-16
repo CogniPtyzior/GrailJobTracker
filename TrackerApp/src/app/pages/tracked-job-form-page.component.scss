@@ -1,3 +1,28 @@
 :host {
   display: block;
 }
+
+.form-actions-sticky {
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.form-actions-sticky__disabled {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.button--success {
+  background: linear-gradient(180deg, #2f8f5b 0%, #257549 100%);
+  color: #ffffff !important;
+  border-radius: 999px;
+}
+
+.button--success:hover {
+  filter: brightness(1.04);
+}
+
+.button--success:disabled {
+  opacity: 0.7;
+}

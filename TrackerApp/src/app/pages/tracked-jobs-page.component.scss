@@ -4,6 +4,7 @@
 
 .tracked-jobs-section {
   margin-top: 24px;
+  min-height: 220px;
 }
 
 .tracked-jobs-toolbar {
@@ -34,6 +35,26 @@
 .tracked-jobs-pagination {
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+.filters-shell {
+  margin-top: 20px;
+  transition: opacity 0.2s ease;
+}
+
+.filters-shell--busy {
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.52;
+}
+
+.row-summary--clickable {
+  cursor: pointer;
+}
+
+.row-summary--clickable:focus-visible {
+  outline: 2px solid #b56300;
+  outline-offset: 3px;
 }
 
 @media (max-width: 768px) {

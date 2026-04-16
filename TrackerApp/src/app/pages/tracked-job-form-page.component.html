@@ -1,0 +1,179 @@
+<section class="surface-card loading-panel" [class.loading-panel--busy]="loading()">
+  <div class="loading-panel__content">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">{{ isEditMode() ? 'Éditer une candidature' : 'Nouvelle candidature' }}</h1>
+        <p class="section-subtitle">Les statuts intermédiaires sont recalculés automatiquement selon les dates.</p>
+      </div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="form-section" [attr.aria-busy]="loading()">
+      <div class="grid-2">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Entreprise</mat-label>
+          <input matInput formControlName="company" [matAutocomplete]="companyAuto">
+          <mat-autocomplete #companyAuto="matAutocomplete">
+            @for (company of companySuggestions(); track company) {
+              <mat-option [value]="company">{{ company }}</mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Poste</mat-label>
+          <input matInput formControlName="title">
+        </mat-form-field>
+      </div>
+
+      <div class="grid-3">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Type de contrat</mat-label>
+          <mat-select formControlName="contractType">
+            @for (type of referenceData()?.contractTypes ?? []; track type) {
+              <mat-option [value]="type">{{ contractTypeLabel(type) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Télétravail</mat-label>
+          <mat-select formControlName="remoteMode">
+            <mat-option [value]="''">Non renseigné</mat-option>
+            @for (mode of referenceData()?.remoteModes ?? []; track mode) {
+              <mat-option [value]="mode">{{ remoteModeLabel(mode) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Pertinence</mat-label>
+          <input matInput type="number" min="1" max="10" formControlName="subjectiveRelevance">
+        </mat-form-field>
+      </div>
+
+      <div class="grid-3">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Lieu</mat-label>
+          <input matInput formControlName="location">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Rémunération</mat-label>
+          <input matInput formControlName="remuneration">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>URL de l'offre</mat-label>
+          <input matInput formControlName="offerUrl">
+        </mat-form-field>
+      </div>
+
+      <div class="grid-3">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Date de candidature</mat-label>
+          <input matInput [matDatepicker]="applicationDatePicker" formControlName="applicationDate" placeholder="jj/mm/aaaa">
+          <mat-datepicker-toggle matSuffix [for]="applicationDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #applicationDatePicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Relance planifiée</mat-label>
+          <input matInput [value]="plannedFollowUpDateDisplay()" readonly>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Relance effectuée</mat-label>
+          <input matInput [matDatepicker]="effectiveFollowUpDatePicker" formControlName="effectiveFollowUpDate" placeholder="jj/mm/aaaa">
+          <mat-datepicker-toggle matSuffix [for]="effectiveFollowUpDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #effectiveFollowUpDatePicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <div class="grid-3">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Premier contact</mat-label>
+          <input matInput [matDatepicker]="firstContactDatePicker" formControlName="firstContactDate" placeholder="jj/mm/aaaa">
+          <mat-datepicker-toggle matSuffix [for]="firstContactDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #firstContactDatePicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Entretien préliminaire</mat-label>
+          <input matInput [matDatepicker]="preliminaryInterviewDatePicker" formControlName="preliminaryInterviewDate" placeholder="jj/mm/aaaa">
+          <mat-datepicker-toggle matSuffix [for]="preliminaryInterviewDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #preliminaryInterviewDatePicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Deuxième entretien</mat-label>
+          <input matInput [matDatepicker]="secondInterviewDatePicker" formControlName="secondInterviewDate" placeholder="jj/mm/aaaa">
+          <mat-datepicker-toggle matSuffix [for]="secondInterviewDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #secondInterviewDatePicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <div class="grid-3">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Contact RH</mat-label>
+          <input matInput formControlName="hrContactName">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Contact métier</mat-label>
+          <input matInput formControlName="businessContactName">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Statut final manuel</mat-label>
+          <mat-select formControlName="status">
+            <mat-option [value]="''">Aucun</mat-option>
+            @for (status of finalStatuses; track status) {
+              <mat-option [value]="status">{{ statusLabel(status) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Notes</mat-label>
+        <textarea matInput rows="7" formControlName="notes"></textarea>
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <p class="feedback-message feedback-message--error">{{ errorMessage() }}</p>
+      }
+
+      <div class="inline-actions form-actions-sticky">
+        <a mat-button routerLink="/tracked-jobs" [class.form-actions-sticky__disabled]="loading()">Retour</a>
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || loading()">
+          Enregistrer
+        </button>
+
+        @if (isEditMode()) {
+          <button mat-stroked-button type="button" (click)="remove()" [disabled]="loading()">
+            Supprimer
+          </button>
+
+          <button
+            mat-flat-button
+            type="button"
+            class="button--success"
+            (click)="createAnotherApplication()"
+            [disabled]="loading()"
+          >
+            Nouvelle candidature
+          </button>
+        }
+      </div>
+      
+    </form>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-overlay" aria-live="polite">
+      <mat-spinner diameter="40"></mat-spinner>
+      <div class="loading-overlay__label">{{ loadingMessage() }}</div>
+    </div>
+  }
+</section>

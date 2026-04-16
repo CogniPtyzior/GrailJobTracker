@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { take } from 'rxjs';
 import { AccessRequestService } from '../core/access-request.service';
@@ -10,191 +10,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../core/auth.service';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatCheckboxModule, MatFormFieldModule, MatInputModule],
-  template: `
-    <div class="admin-layout">
-      <section class="surface-card">
-        <h1 class="section-title">Administration</h1>
-        <p class="section-subtitle">Gérez les comptes utilisateurs et les demandes d'accès.</p>
-      </section>
-
-      <section class="surface-card">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title">Utilisateurs</h2>
-            <p class="section-subtitle">Création, activation et droits administrateur.</p>
-          </div>
-          <div class="spacer"></div>
-          <button mat-button (click)="loadUsers()">Rafraîchir</button>
-        </div>
-
-        <form [formGroup]="createUserForm" (ngSubmit)="createUser()" class="grid-3 form-section">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Email</mat-label>
-            <input matInput formControlName="email">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Mot de passe</mat-label>
-            <input matInput formControlName="password">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Prénom</mat-label>
-            <input matInput formControlName="firstName">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Nom</mat-label>
-            <input matInput formControlName="lastName">
-          </mat-form-field>
-
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="isActive">
-            Compte actif
-          </label>
-
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="isAdmin">
-            Admin
-          </label>
-
-          <div class="inline-actions admin-form-actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="createUserForm.invalid">Créer l'utilisateur</button>
-          </div>
-        </form>
-
-        @if (userMessage()) {
-          <p class="feedback-message admin-message">{{ userMessage() }}</p>
-        }
-
-        <div class="results-list results-list--spaced">
-          @for (user of users(); track user.id) {
-            <div class="table-row-card">
-              <div class="row-summary user-summary-grid">
-                <div>
-                  <div class="summary-title">{{ user.email }}</div>
-                  <div class="summary-muted">{{ user.firstName || '—' }} {{ user.lastName || '' }}</div>
-                </div>
-                <div>
-                  <div>{{ user.roles.join(', ') }}</div>
-                  <div class="summary-muted">Dernière connexion : {{ user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Jamais' }}</div>
-                </div>
-                <div class="inline-actions row-actions">
-                  <button mat-stroked-button (click)="toggleUserEditor(user.id)">Éditer</button>
-                  <button mat-button (click)="deleteUser(user)" [disabled]="authService.user()?.id === user.id">Supprimer</button>
-                </div>
-              </div>
-
-              @if (editingUserId() === user.id) {
-                <div class="row-details">
-                  <form class="grid-3" [formGroup]="editUserForm">
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Prénom</mat-label>
-                      <input matInput formControlName="firstName">
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Nom</mat-label>
-                      <input matInput formControlName="lastName">
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Nouveau mot de passe</mat-label>
-                      <input matInput formControlName="password">
-                    </mat-form-field>
-
-                    <label class="checkbox-label">
-                      <input type="checkbox" formControlName="isActive">
-                      Actif
-                    </label>
-
-                    <label class="checkbox-label">
-                      <input type="checkbox" formControlName="isAdmin">
-                      Admin
-                    </label>
-
-                    <div class="inline-actions">
-                      <button mat-flat-button color="primary" type="button" (click)="saveUser(user)">Enregistrer</button>
-                    </div>
-                  </form>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </section>
-
-      <section class="surface-card">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title">Demandes d'accès</h2>
-            <p class="section-subtitle">Validation manuelle avec attribution d'un mot de passe initial.</p>
-          </div>
-          <div class="spacer"></div>
-          <button mat-button (click)="loadRequests()">Rafraîchir</button>
-        </div>
-
-        @if (requestMessage()) {
-          <p class="feedback-message admin-message">{{ requestMessage() }}</p>
-        }
-
-        <div class="results-list results-list--spaced">
-          @for (request of requests(); track request.id) {
-            <div class="table-row-card">
-              <div class="row-summary request-summary-grid">
-                <div>
-                  <div class="summary-title">{{ request.email }}</div>
-                  <div class="summary-muted">{{ request.companyName }} · {{ request.firstName || '—' }} {{ request.lastName || '' }}</div>
-                </div>
-                <div>
-                  <div>{{ formatDate(request.createdAt) }}</div>
-                  <div class="summary-muted">{{ request.reason }}</div>
-                </div>
-                <div class="inline-actions row-actions">
-                  <button mat-stroked-button (click)="toggleRequestEditor(request.id)">Approuver</button>
-                  <button mat-button (click)="deleteRequest(request.id)">Supprimer</button>
-                </div>
-              </div>
-
-              @if (editingRequestId() === request.id) {
-                <div class="row-details">
-                  <form [formGroup]="approveRequestForm" class="grid-3">
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Prénom</mat-label>
-                      <input matInput formControlName="firstName">
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Nom</mat-label>
-                      <input matInput formControlName="lastName">
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Mot de passe initial</mat-label>
-                      <input matInput formControlName="password">
-                    </mat-form-field>
-                  </form>
-
-                  <div class="inline-actions">
-                    <button mat-flat-button color="primary" (click)="approveRequest(request)">Valider la demande</button>
-                  </div>
-                </div>
-              }
-            </div>
-          } @empty {
-            <div class="surface-card">
-              <p class="section-subtitle">Aucune demande en attente.</p>
-            </div>
-          }
-        </div>
-      </section>
-    </div>
-  `,
+  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule],
+  templateUrl: './admin-page.component.html',
   styleUrls: ['./admin-page.component.scss']
 })
 export class AdminPageComponent {
@@ -209,6 +31,12 @@ export class AdminPageComponent {
   protected readonly requestMessage = signal('');
   protected readonly editingUserId = signal<string | null>(null);
   protected readonly editingRequestId = signal<string | null>(null);
+  protected readonly usersLoading = signal(false);
+  protected readonly requestsLoading = signal(false);
+  protected readonly userActionLoading = signal(false);
+  protected readonly requestActionLoading = signal(false);
+  protected readonly usersBusy = computed(() => this.usersLoading() || this.userActionLoading());
+  protected readonly requestsBusy = computed(() => this.requestsLoading() || this.requestActionLoading());
 
   protected readonly createUserForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -239,26 +67,44 @@ export class AdminPageComponent {
   }
 
   protected loadUsers(): void {
-    this.userService.list('', '', 1, 100).pipe(take(1)).subscribe((response) => this.users.set(response.items));
+    this.usersLoading.set(true);
+
+    this.userService.list('', '', 1, 100).pipe(take(1)).subscribe({
+      next: (response) => this.users.set(response.items),
+      error: () => this.userMessage.set('Chargement des utilisateurs impossible.'),
+      complete: () => this.usersLoading.set(false)
+    });
   }
 
   protected loadRequests(): void {
-    this.accessRequestService.list('', 1, 100).pipe(take(1)).subscribe((response) => this.requests.set(response.items));
+    this.requestsLoading.set(true);
+
+    this.accessRequestService.list('', 1, 100).pipe(take(1)).subscribe({
+      next: (response) => this.requests.set(response.items),
+      error: () => this.requestMessage.set('Chargement des demandes impossible.'),
+      complete: () => this.requestsLoading.set(false)
+    });
   }
 
   protected createUser(): void {
-    if (this.createUserForm.invalid) {
+    if (this.createUserForm.invalid || this.usersBusy()) {
       return;
     }
 
     const payload = this.createUserForm.getRawValue();
+    this.userActionLoading.set(true);
+
     this.userService.create(payload).pipe(take(1)).subscribe({
       next: () => {
+        this.userActionLoading.set(false);
         this.userMessage.set('Utilisateur créé.');
         this.createUserForm.reset({ email: '', password: '', firstName: '', lastName: '', isActive: true, isAdmin: false });
         this.loadUsers();
       },
-      error: () => this.userMessage.set('Création impossible.')
+      error: () => {
+        this.userActionLoading.set(false);
+        this.userMessage.set('Création impossible.');
+      }
     });
   }
 
@@ -280,6 +126,10 @@ export class AdminPageComponent {
   }
 
   protected saveUser(user: User): void {
+    if (this.usersBusy()) {
+      return;
+    }
+
     const raw = this.editUserForm.getRawValue();
     const payload: AdminUserPayload = {
       firstName: raw.firstName || null,
@@ -292,27 +142,37 @@ export class AdminPageComponent {
       payload.password = raw.password;
     }
 
+    this.userActionLoading.set(true);
     this.userService.update(user.id, payload).pipe(take(1)).subscribe({
       next: () => {
+        this.userActionLoading.set(false);
         this.userMessage.set('Utilisateur mis à jour.');
         this.editingUserId.set(null);
         this.loadUsers();
       },
-      error: () => this.userMessage.set('Mise à jour impossible.')
+      error: () => {
+        this.userActionLoading.set(false);
+        this.userMessage.set('Mise à jour impossible.');
+      }
     });
   }
 
   protected deleteUser(user: User): void {
-    if (!confirm(`Supprimer ${user.email} ?`)) {
+    if (this.usersBusy() || !confirm(`Supprimer ${user.email} ?`)) {
       return;
     }
 
+    this.userActionLoading.set(true);
     this.userService.remove(user.id).pipe(take(1)).subscribe({
       next: () => {
+        this.userActionLoading.set(false);
         this.userMessage.set('Utilisateur supprimé.');
         this.loadUsers();
       },
-      error: () => this.userMessage.set('Suppression impossible.')
+      error: () => {
+        this.userActionLoading.set(false);
+        this.userMessage.set('Suppression impossible.');
+      }
     });
   }
 
@@ -332,32 +192,42 @@ export class AdminPageComponent {
   }
 
   protected approveRequest(request: AccessRequestItem): void {
-    if (this.approveRequestForm.invalid) {
+    if (this.approveRequestForm.invalid || this.requestsBusy()) {
       return;
     }
 
+    this.requestActionLoading.set(true);
     this.accessRequestService.approve(request.id, this.approveRequestForm.getRawValue()).pipe(take(1)).subscribe({
       next: () => {
+        this.requestActionLoading.set(false);
         this.requestMessage.set('Demande approuvée.');
         this.editingRequestId.set(null);
         this.loadRequests();
         this.loadUsers();
       },
-      error: () => this.requestMessage.set('Approbation impossible.')
+      error: () => {
+        this.requestActionLoading.set(false);
+        this.requestMessage.set('Approbation impossible.');
+      }
     });
   }
 
   protected deleteRequest(id: string): void {
-    if (!confirm('Supprimer cette demande ?')) {
+    if (this.requestsBusy() || !confirm('Supprimer cette demande ?')) {
       return;
     }
 
+    this.requestActionLoading.set(true);
     this.accessRequestService.remove(id).pipe(take(1)).subscribe({
       next: () => {
+        this.requestActionLoading.set(false);
         this.requestMessage.set('Demande supprimée.');
         this.loadRequests();
       },
-      error: () => this.requestMessage.set('Suppression impossible.')
+      error: () => {
+        this.requestActionLoading.set(false);
+        this.requestMessage.set('Suppression impossible.');
+      }
     });
   }
 
