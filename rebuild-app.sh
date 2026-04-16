@@ -93,7 +93,7 @@ npm run build
 
 log "===== Rebuild Docker de la nouvelle application ====="
 cd "$ROOT_DIR"
-docker compose -f compose.yaml up -d --build
+docker compose -f compose.production.yaml up -d --build --force-recreate
 
 log "===== État de la stack ====="
 docker compose -f compose.yaml ps
