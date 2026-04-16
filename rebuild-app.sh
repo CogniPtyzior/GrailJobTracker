@@ -3,7 +3,6 @@ set -Eeuo pipefail
 
 ROOT_DIR="/app/grailjobtracker"
 TRACKER_APP_DIR="$ROOT_DIR/TrackerApp"
-TRACKER_API_DIR="$ROOT_DIR/TrackerApi"
 GITHUB_USERNAME="CogniPtyzior"
 
 log() {
@@ -23,9 +22,8 @@ require_cmd git
 require_cmd npm
 require_cmd docker
 
-[[ -d "$ROOT_DIR" ]] || abort "Répertoire introuvable: $ROOT_DIR"
-[[ -d "$TRACKER_APP_DIR/.git" ]] || abort "Dépôt git introuvable: $TRACKER_APP_DIR"
-[[ -d "$TRACKER_API_DIR/.git" ]] || abort "Dépôt git introuvable: $TRACKER_API_DIR"
+[[ -d "$ROOT_DIR/.git" ]] || abort "Dépôt git introuvable: $ROOT_DIR"
+[[ -d "$TRACKER_APP_DIR" ]] || abort "Répertoire introuvable: $TRACKER_APP_DIR"
 [[ -f "$ROOT_DIR/compose.yaml" ]] || abort "Fichier compose.yaml introuvable"
 [[ -f "$ROOT_DIR/.env.docker.local" ]] || abort "Fichier .env.docker.local introuvable"
 [[ -f "$ROOT_DIR/credentials/password.secret" ]] || abort "Secret admin manquant"
@@ -59,45 +57,32 @@ export GITHUB_TOKEN
 export GIT_ASKPASS="$ASKPASS_FILE"
 export GIT_TERMINAL_PROMPT=0
 
-pull_repo() {
-  local repo_dir="$1"
+log "===== Contrôle de l'état git du dépôt racine ====="
 
-  log "Contrôle de l'état git: $repo_dir"
+if [[ -n "$(git -C "$ROOT_DIR" status --porcelain)" ]]; then
+  abort "Le dépôt $ROOT_DIR contient des modifications locales non commit. Abandon."
+fi
 
-  if [[ -n "$(git -C "$repo_dir" status --porcelain)" ]]; then
-    abort "Le dépôt $repo_dir contient des modifications locales non commit. Abandon."
+BRANCH="$(git -C "$ROOT_DIR" rev-parse --abbrev-ref HEAD)"
+[[ "$BRANCH" != "HEAD" ]] || abort "Le dépôt $ROOT_DIR est en detached HEAD. Abandon."
+
+log "git fetch origin $BRANCH"
+git -C "$ROOT_DIR" fetch origin "$BRANCH"
+
+LOCAL_SHA="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+REMOTE_SHA="$(git -C "$ROOT_DIR" rev-parse FETCH_HEAD)"
+BASE_SHA="$(git -C "$ROOT_DIR" merge-base HEAD FETCH_HEAD)"
+
+if [[ "$LOCAL_SHA" = "$REMOTE_SHA" ]]; then
+  log "Aucune mise à jour distante sur $BRANCH"
+else
+  if [[ "$LOCAL_SHA" != "$BASE_SHA" ]]; then
+    abort "Le dépôt $ROOT_DIR diverge du remote. Aucun forçage n'est appliqué."
   fi
 
-  local branch
-  branch="$(git -C "$repo_dir" rev-parse --abbrev-ref HEAD)"
-  [[ "$branch" != "HEAD" ]] || abort "Le dépôt $repo_dir est en detached HEAD. Abandon."
-
-  log "git fetch origin $branch"
-  git -C "$repo_dir" fetch origin "$branch"
-
-  local local_sha remote_sha base_sha
-  local_sha="$(git -C "$repo_dir" rev-parse HEAD)"
-  remote_sha="$(git -C "$repo_dir" rev-parse FETCH_HEAD)"
-  base_sha="$(git -C "$repo_dir" merge-base HEAD FETCH_HEAD)"
-
-  if [[ "$local_sha" = "$remote_sha" ]]; then
-    log "Aucune mise à jour distante pour $repo_dir"
-    return 0
-  fi
-
-  if [[ "$local_sha" != "$base_sha" ]]; then
-    abort "Le dépôt $repo_dir diverge du remote. Aucun forçage n'est appliqué."
-  fi
-
-  log "git pull --ff-only origin $branch"
-  git -C "$repo_dir" pull --ff-only origin "$branch"
-}
-
-log "===== Mise à jour Git de TrackerApp ====="
-pull_repo "$TRACKER_APP_DIR"
-
-log "===== Mise à jour Git de TrackerApi ====="
-pull_repo "$TRACKER_API_DIR"
+  log "git pull --ff-only origin $BRANCH"
+  git -C "$ROOT_DIR" pull --ff-only origin "$BRANCH"
+fi
 
 log "===== npm install dans TrackerApp ====="
 cd "$TRACKER_APP_DIR"
