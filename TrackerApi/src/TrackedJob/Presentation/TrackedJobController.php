@@ -42,13 +42,23 @@ final class TrackedJobController extends AbstractController
     {
         $page = max((int) $request->query->get('page', 1), 1);
         $pageSize = min(max((int) $request->query->get('pageSize', 10), 1), 100);
+        $statusRaw = trim((string) $request->query->get('status', ''));
+        $contractTypeRaw = trim((string) $request->query->get('contractType', ''));
+        $remoteModeRaw = trim((string) $request->query->get('remoteMode', ''));
+
+        $status = TrackedJobStatus::tryFrom($statusRaw);
+        $contractType = ContractType::tryFrom($contractTypeRaw);
+        $remoteMode = RemoteMode::tryFrom($remoteModeRaw);
 
         $filters = [
             'search' => $request->query->get('search'),
             'company' => $request->query->get('company'),
-            'status' => TrackedJobStatus::tryFrom((string) $request->query->get('status', '')),
-            'contractType' => ContractType::tryFrom((string) $request->query->get('contractType', '')),
-            'remoteMode' => RemoteMode::tryFrom((string) $request->query->get('remoteMode', '')),
+            'status' => $status,
+            'contractType' => $contractType,
+            'remoteMode' => $remoteMode,
+            'statusInvalid' => $statusRaw !== '' && $status === null,
+            'contractTypeInvalid' => $contractTypeRaw !== '' && $contractType === null,
+            'remoteModeInvalid' => $remoteModeRaw !== '' && $remoteMode === null,
         ];
 
         $result = $this->trackedJobRepository->search($user, $filters, $page, $pageSize);

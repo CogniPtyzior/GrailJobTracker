@@ -125,6 +125,11 @@ final class TrackedJobRepository extends ServiceEntityRepository
 
     private function applyFilters(\Doctrine\ORM\QueryBuilder $qb, array $filters): void
     {
+        if (($filters['statusInvalid'] ?? false) || ($filters['contractTypeInvalid'] ?? false) || ($filters['remoteModeInvalid'] ?? false)) {
+            $qb->andWhere('1 = 0');
+            return;
+        }
+
         if (($filters['company'] ?? null) !== null && $filters['company'] !== '') {
             $qb
                 ->andWhere('LOWER(t.company) LIKE :company')
@@ -133,20 +138,20 @@ final class TrackedJobRepository extends ServiceEntityRepository
 
         if (($filters['search'] ?? null) !== null && $filters['search'] !== '') {
             $qb
-                ->andWhere('LOWER(t.title) LIKE :search OR LOWER(t.company) LIKE :search')
+                ->andWhere('(LOWER(t.title) LIKE :search OR LOWER(t.company) LIKE :search)')
                 ->setParameter('search', '%'.mb_strtolower(trim($filters['search'])).'%');
         }
 
         if (($filters['status'] ?? null) instanceof TrackedJobStatus) {
-            $qb->andWhere('t.status = :status')->setParameter('status', $filters['status']);
+            $qb->andWhere('t.status = :status')->setParameter('status', $filters['status']->value);
         }
 
         if (($filters['contractType'] ?? null) instanceof ContractType) {
-            $qb->andWhere('t.contractType = :contractType')->setParameter('contractType', $filters['contractType']);
+            $qb->andWhere('t.contractType = :contractType')->setParameter('contractType', $filters['contractType']->value);
         }
 
         if (($filters['remoteMode'] ?? null) instanceof RemoteMode) {
-            $qb->andWhere('t.remoteMode = :remoteMode')->setParameter('remoteMode', $filters['remoteMode']);
+            $qb->andWhere('t.remoteMode = :remoteMode')->setParameter('remoteMode', $filters['remoteMode']->value);
         }
     }
 }

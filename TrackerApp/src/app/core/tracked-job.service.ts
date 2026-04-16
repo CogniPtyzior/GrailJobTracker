@@ -45,8 +45,14 @@ export class TrackedJobService {
   }
 
   exportCsv(filters: TrackedJobFilters): Observable<Blob> {
-    return this.http.post(`${API_BASE_URL}/tracked-jobs/export-csv`, filters, {
+    return this.http.post(`${API_BASE_URL}/tracked-jobs/export-csv`, this.toFilterPayload(filters), {
       responseType: 'blob'
     });
+  }
+
+  private toFilterPayload(filters: TrackedJobFilters): Partial<TrackedJobFilters> {
+    return Object.fromEntries(
+      Object.entries(filters).filter(([, value]) => value !== '')
+    ) as Partial<TrackedJobFilters>;
   }
 }

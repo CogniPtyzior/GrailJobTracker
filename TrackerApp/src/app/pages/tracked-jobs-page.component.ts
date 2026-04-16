@@ -13,7 +13,7 @@ import { ReferenceDataService } from '../core/reference-data.service';
 import { TrackedJobService } from '../core/tracked-job.service';
 import { CONTRACT_TYPE_LABELS, REMOTE_MODE_LABELS, TRACKED_JOB_STATUS_LABELS } from '../core/label-dictionary';
 import { ReferenceData } from '../models/reference-data.models';
-import { TrackedJob, TrackedJobFilters } from '../models/tracked-job.models';
+import { ContractType, RemoteMode, TrackedJob, TrackedJobFilters, TrackedJobStatus } from '../models/tracked-job.models';
 
 @Component({
   standalone: true,
@@ -28,6 +28,7 @@ export class TrackedJobsPageComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private latestLoadRequestId = 0;
 
   protected readonly items = signal<TrackedJob[]>([]);
   protected readonly hasMore = signal(false);
@@ -49,8 +50,6 @@ export class TrackedJobsPageComponent {
     remoteMode: ['']
   });
 
-  protected readonly filters = computed<TrackedJobFilters>(() => this.filtersForm.getRawValue() as TrackedJobFilters);
-
   public constructor() {
     this.referenceDataLoading.set(true);
     this.referenceDataService.getReferenceData().pipe(take(1)).subscribe({
@@ -71,7 +70,8 @@ export class TrackedJobsPageComponent {
   }
 
   protected load(): void {
-    const filters = this.filters();
+    const filters = this.getFilters();
+    const requestId = ++this.latestLoadRequestId;
     this.listLoading.set(true);
 
     void this.router.navigate([], {
@@ -83,10 +83,18 @@ export class TrackedJobsPageComponent {
 
     this.service.list(filters, this.page(), this.pageSize).pipe(take(1)).subscribe({
       next: (response) => {
+        if (requestId !== this.latestLoadRequestId) {
+          return;
+        }
+
         this.items.set(response.items);
         this.hasMore.set(response.hasMore);
       },
-      complete: () => this.listLoading.set(false)
+      complete: () => {
+        if (requestId === this.latestLoadRequestId) {
+          this.listLoading.set(false);
+        }
+      }
     });
   }
 
@@ -118,7 +126,7 @@ export class TrackedJobsPageComponent {
     }
 
     this.exportingCsv.set(true);
-    this.service.exportCsv(this.filters()).pipe(take(1)).subscribe({
+    this.service.exportCsv(this.getFilters()).pipe(take(1)).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
@@ -149,5 +157,32 @@ export class TrackedJobsPageComponent {
     }
 
     return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(value));
+  }
+
+  private getFilters(): TrackedJobFilters {
+    const raw = this.filtersForm.getRawValue();
+
+    return {
+      search: raw.search,
+      company: raw.company,
+      status: this.normalizeEnumFilter(raw.status, TRACKED_JOB_STATUS_LABELS),
+      contractType: this.normalizeEnumFilter(raw.contractType, CONTRACT_TYPE_LABELS),
+      remoteMode: this.normalizeEnumFilter(raw.remoteMode, REMOTE_MODE_LABELS),
+    };
+  }
+
+  private normalizeEnumFilter<T extends string>(value: string, labels: Record<T, string>): T | '' {
+    const normalized = value.trim();
+
+    if (!normalized) {
+      return '';
+    }
+
+    if (Object.prototype.hasOwnProperty.call(labels, normalized)) {
+      return normalized as T;
+    }
+
+    const entry = Object.entries(labels).find(([, label]) => label === normalized);
+    return (entry?.[0] ?? normalized) as T;
   }
 }
