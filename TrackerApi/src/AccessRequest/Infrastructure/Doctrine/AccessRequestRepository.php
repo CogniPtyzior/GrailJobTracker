@@ -37,6 +37,7 @@ final class AccessRequestRepository extends ServiceEntityRepository
             ->orderBy('r.createdAt', 'DESC');
 
         $countQb = clone $qb;
+        $countQb->resetDQLPart('orderBy');
         $total = (int) $countQb
             ->select('COUNT(r.id)')
             ->getQuery()
