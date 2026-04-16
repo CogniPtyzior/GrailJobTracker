@@ -44,3 +44,4 @@ pnpm-debug.log*
 # Docker runtime
 ########################################
 docker-compose.override.yml
+env.docker.production
