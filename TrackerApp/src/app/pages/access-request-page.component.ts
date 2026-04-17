@@ -16,6 +16,7 @@ import { AccessRequestService } from '../core/access-request.service';
   styleUrls: ['./access-request-page.component.scss']
 })
 export class AccessRequestPageComponent {
+  protected readonly reasonMinLength = 20;
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(AccessRequestService);
 
@@ -28,11 +29,20 @@ export class AccessRequestPageComponent {
     lastName: [''],
     email: ['', [Validators.required, Validators.email]],
     companyName: ['', [Validators.required]],
-    reason: ['', [Validators.required, Validators.minLength(20)]]
+    reason: ['', [Validators.required, Validators.minLength(this.reasonMinLength)]]
   });
+
+  protected get reasonLength(): number {
+    return this.form.controls.reason.value.trim().length;
+  }
+
+  protected get remainingReasonCharacters(): number {
+    return Math.max(this.reasonMinLength - this.reasonLength, 0);
+  }
 
   protected submit(): void {
     if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 

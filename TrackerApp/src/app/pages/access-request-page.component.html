@@ -42,6 +42,18 @@
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Motif</mat-label>
           <textarea matInput rows="5" formControlName="reason"></textarea>
+          <mat-hint>
+            Minimum {{ reasonMinLength }} caractères pour décrire votre besoin.
+            @if (remainingReasonCharacters > 0) {
+              Il en manque encore {{ remainingReasonCharacters }}.
+            }
+          </mat-hint>
+          @if (form.controls.reason.hasError('required') && form.controls.reason.touched) {
+            <mat-error>Le motif est obligatoire.</mat-error>
+          }
+          @if (form.controls.reason.hasError('minlength') && form.controls.reason.touched) {
+            <mat-error>Décrivez un peu plus votre besoin : {{ reasonMinLength }} caractères minimum.</mat-error>
+          }
         </mat-form-field>
 
         @if (successMessage()) {
