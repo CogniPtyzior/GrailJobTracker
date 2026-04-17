@@ -29,6 +29,8 @@ html, body {
 body {
   margin: 0;
   font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
   background: #efe7e1;
   color: #2f241c;
 }
@@ -70,12 +72,15 @@ a {
 
 .section-title {
   margin: 0 0 8px;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .section-subtitle {
   margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
   color: #7d685a;
 }
 
@@ -114,7 +119,7 @@ a {
   background: #e9f5ec;
   color: #2d7a4c;
   border: 1px solid #b9ddc6;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -153,10 +158,20 @@ a {
 
 .metric-label {
   color: #8b7464;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 6px;
+}
+
+.mat-mdc-form-field {
+  font-size: 0.95rem;
+}
+
+.mat-mdc-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-outlined-button {
+  font-size: 0.95rem;
 }
 
 .hero-card {
@@ -279,10 +294,14 @@ a {
 
 .hero-title {
   margin: 0 0 10px;
+  font-size: 1.7rem;
+  line-height: 1.15;
 }
 
 .hero-description {
   margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
   color: #7d685a;
 }
 
