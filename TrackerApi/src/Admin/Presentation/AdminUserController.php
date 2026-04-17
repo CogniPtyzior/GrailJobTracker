@@ -5,7 +5,7 @@ namespace App\Admin\Presentation;
 use App\Admin\Application\UserPresenter;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
-use App\Security\Infrastructure\Doctrine\UserRepository;
+use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,7 +23,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class AdminUserController extends AbstractController
 {
     public function __construct(
-        private readonly UserRepository $userRepository,
+        private readonly UserRepositoryInterface $userRepository,
         private readonly UserPresenter $presenter,
         private readonly PayloadValidator $payloadValidator,
         private readonly EmailNormalizer $emailNormalizer,
@@ -63,8 +63,8 @@ final class AdminUserController extends AbstractController
     #[Route('', name: 'api_admin_users_create', methods: ['POST'])]
     public function create(Request $request): Response
     {
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection([
-            'fields' => [
+        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection(
+            fields: [
                 'email' => [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 180)],
                 'password' => $this->passwordConstraint(),
                 'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
@@ -72,9 +72,9 @@ final class AdminUserController extends AbstractController
                 'isActive' => new Assert\Optional([new Assert\Type('bool')]),
                 'isAdmin' => new Assert\Optional([new Assert\Type('bool')]),
             ],
-            'allowMissingFields' => false,
-            'allowExtraFields' => false,
-        ]));
+            allowMissingFields: false,
+            allowExtraFields: false,
+        ));
 
         $normalizedEmail = $this->emailNormalizer->normalize($payload['email']);
 
@@ -105,17 +105,17 @@ final class AdminUserController extends AbstractController
             return ApiJsonResponse::error('User not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection([
-            'fields' => [
+        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection(
+            fields: [
                 'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
                 'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
                 'isActive' => new Assert\Optional([new Assert\Type('bool')]),
                 'isAdmin' => new Assert\Optional([new Assert\Type('bool')]),
                 'password' => new Assert\Optional([$this->passwordConstraint()]),
             ],
-            'allowMissingFields' => true,
-            'allowExtraFields' => false,
-        ]));
+            allowMissingFields: true,
+            allowExtraFields: false,
+        ));
 
         $bootstrapAdmin = $user->isBootstrapAdmin($this->adminBootstrapEmail);
 

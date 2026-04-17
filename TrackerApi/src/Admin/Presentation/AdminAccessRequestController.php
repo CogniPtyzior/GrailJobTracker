@@ -4,10 +4,10 @@ namespace App\Admin\Presentation;
 
 use App\AccessRequest\Application\AccessRequestPresenter;
 use App\AccessRequest\Domain\Entity\AccessRequest;
-use App\AccessRequest\Infrastructure\Doctrine\AccessRequestRepository;
+use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
-use App\Security\Infrastructure\Doctrine\UserRepository;
+use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,10 +24,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class AdminAccessRequestController extends AbstractController
 {
     public function __construct(
-        private readonly AccessRequestRepository $accessRequestRepository,
+        private readonly AccessRequestRepositoryInterface $accessRequestRepository,
         private readonly AccessRequestPresenter $presenter,
         private readonly PayloadValidator $payloadValidator,
-        private readonly UserRepository $userRepository,
+        private readonly UserRepositoryInterface $userRepository,
         private readonly EmailNormalizer $emailNormalizer,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly EntityManagerInterface $entityManager,
@@ -61,8 +61,8 @@ final class AdminAccessRequestController extends AbstractController
             return ApiJsonResponse::error('Access request not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection([
-            'fields' => [
+        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection(
+            fields: [
                 'password' => new Assert\Sequentially([
                     new Assert\NotBlank(),
                     new Assert\Length(min: 8),
@@ -72,9 +72,9 @@ final class AdminAccessRequestController extends AbstractController
                 'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
                 'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
             ],
-            'allowMissingFields' => false,
-            'allowExtraFields' => false,
-        ]));
+            allowMissingFields: false,
+            allowExtraFields: false,
+        ));
 
         $normalizedEmail = $this->emailNormalizer->normalize($accessRequest->getEmail());
         $user = $this->userRepository->findOneByNormalizedEmail($normalizedEmail);

@@ -3,11 +3,12 @@
 namespace App\Security\Infrastructure\Doctrine;
 
 use App\Security\Domain\Entity\User;
+use App\Security\Domain\Repository\UserRepositoryInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
-final class UserRepository extends ServiceEntityRepository
+final class UserRepository extends ServiceEntityRepository implements UserRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
     {

@@ -10,6 +10,12 @@ services:
         autowire: true
         autoconfigure: true
 
+    App\Security\Domain\Repository\UserRepositoryInterface:
+        alias: App\Security\Infrastructure\Doctrine\UserRepository
+
+    App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface:
+        alias: App\AccessRequest\Infrastructure\Doctrine\AccessRequestRepository
+
     App\:
         resource: '../src/'
         exclude:

@@ -3,11 +3,12 @@
 namespace App\AccessRequest\Infrastructure\Doctrine;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
+use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
-final class AccessRequestRepository extends ServiceEntityRepository
+final class AccessRequestRepository extends ServiceEntityRepository implements AccessRequestRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
     {

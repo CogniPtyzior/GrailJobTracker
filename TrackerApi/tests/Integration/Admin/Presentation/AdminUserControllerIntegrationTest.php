@@ -1,0 +1,203 @@
+<?php
+
+namespace App\Tests\Integration\Admin\Presentation;
+
+use App\Admin\Application\UserPresenter;
+use App\Admin\Presentation\AdminUserController;
+use App\Security\Application\EmailNormalizer;
+use App\Security\Domain\Entity\User;
+use App\Shared\Infrastructure\Validation\PayloadValidator;
+use App\Tests\Support\Builder\UserBuilder;
+use App\Tests\Support\Fake\InMemoryUserRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Validator\Validation;
+
+final class AdminUserControllerIntegrationTest extends TestCase
+{
+    public function testCreatePersistsRegularUserAndReturnsCreatedPayload(): void
+    {
+        $userRepository = new InMemoryUserRepository();
+        $entityManager = $this->createEntityManager($userRepository);
+
+        $controller = $this->createController($userRepository, $entityManager);
+        $request = $this->jsonRequest([
+            'email' => 'New.User@example.com',
+            'password' => 'Password1!',
+            'firstName' => '  New ',
+            'lastName' => ' User  ',
+            'isAdmin' => false,
+        ]);
+
+        $response = $controller->create($request);
+        $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(201, $response->getStatusCode());
+        self::assertCount(1, $userRepository->all());
+
+        $createdUser = $userRepository->all()[0];
+    self::assertSame('New.User@example.com', $createdUser->getEmail());
+        self::assertSame('new.user@example.com', $createdUser->getNormalizedEmail());
+        self::assertSame('New', $createdUser->getFirstName());
+        self::assertSame('User', $createdUser->getLastName());
+        self::assertSame(['ROLE_USER'], $createdUser->getRoles());
+        self::assertSame('hashed::Password1!', $createdUser->getPassword());
+        self::assertSame($createdUser->getId()->toRfc4122(), $payload['item']['id']);
+    }
+
+    public function testCreateRejectsDuplicateNormalizedEmail(): void
+    {
+        $existingUser = UserBuilder::aUser()->withEmail('existing@example.com')->build();
+        $userRepository = new InMemoryUserRepository([$existingUser]);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::never())->method('persist');
+        $entityManager->expects(self::never())->method('flush');
+
+        $controller = $this->createController($userRepository, $entityManager);
+        $request = $this->jsonRequest([
+            'email' => 'Existing@example.com',
+            'password' => 'Password1!',
+        ]);
+
+        $response = $controller->create($request);
+        $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertSame('A user with this email already exists.', $payload['message']);
+        self::assertCount(1, $userRepository->all());
+    }
+
+    public function testUpdateKeepsBootstrapAdminActiveAndAdminWhenSelfEditing(): void
+    {
+        $bootstrapAdmin = UserBuilder::aUser()
+            ->withEmail('admin@example.com')
+            ->withRoles(['ROLE_ADMIN', 'ROLE_USER'])
+            ->build();
+        $userRepository = new InMemoryUserRepository([$bootstrapAdmin]);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())->method('flush');
+
+        $controller = $this->createController($userRepository, $entityManager, 'admin@example.com');
+        $request = $this->jsonRequest([
+            'isActive' => false,
+            'isAdmin' => false,
+            'firstName' => '  Updated ',
+        ], 'PUT');
+
+        $response = $controller->update($bootstrapAdmin->getId()->toRfc4122(), $request, $bootstrapAdmin);
+        $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertTrue($bootstrapAdmin->isActive());
+        self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $bootstrapAdmin->getRoles());
+        self::assertSame('Updated', $bootstrapAdmin->getFirstName());
+        self::assertSame($bootstrapAdmin->getId()->toRfc4122(), $payload['item']['id']);
+    }
+
+    public function testDeleteRejectsSelfDeletion(): void
+    {
+        $currentUser = UserBuilder::aUser()->withEmail('self@example.com')->build();
+        $userRepository = new InMemoryUserRepository([$currentUser]);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::never())->method('remove');
+        $entityManager->expects(self::never())->method('flush');
+
+        $controller = $this->createController($userRepository, $entityManager);
+
+        $response = $controller->delete($currentUser->getId()->toRfc4122(), $currentUser);
+        $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(400, $response->getStatusCode());
+        self::assertSame('The bootstrap admin cannot be deleted.', $payload['message']);
+        self::assertCount(1, $userRepository->all());
+    }
+
+    public function testDeleteRejectsBootstrapAdminDeletion(): void
+    {
+        $bootstrapAdmin = UserBuilder::aUser()
+            ->withEmail('admin@example.com')
+            ->withRoles(['ROLE_ADMIN', 'ROLE_USER'])
+            ->build();
+        $otherUser = UserBuilder::aUser()->withEmail('other@example.com')->build();
+        $userRepository = new InMemoryUserRepository([$bootstrapAdmin, $otherUser]);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::never())->method('remove');
+        $entityManager->expects(self::never())->method('flush');
+
+        $controller = $this->createController($userRepository, $entityManager, 'admin@example.com');
+
+        $response = $controller->delete($bootstrapAdmin->getId()->toRfc4122(), $otherUser);
+        $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(400, $response->getStatusCode());
+        self::assertSame('The bootstrap admin cannot be deleted.', $payload['message']);
+        self::assertCount(2, $userRepository->all());
+    }
+
+    private function createController(
+        InMemoryUserRepository $userRepository,
+        EntityManagerInterface $entityManager,
+        string $adminBootstrapEmail = 'bootstrap@example.com',
+    ): AdminUserController {
+        return new AdminUserController(
+            $userRepository,
+            new UserPresenter(),
+            new PayloadValidator(Validation::createValidator()),
+            new EmailNormalizer(),
+            $this->passwordHasherStub(),
+            $entityManager,
+            $adminBootstrapEmail,
+        );
+    }
+
+    /** @return MockObject&EntityManagerInterface */
+    private function createEntityManager(InMemoryUserRepository $userRepository): EntityManagerInterface
+    {
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())
+            ->method('persist')
+            ->willReturnCallback(static function (object $entity) use ($userRepository): void {
+                if ($entity instanceof User) {
+                    $userRepository->save($entity);
+                }
+            });
+        $entityManager->expects(self::once())->method('flush');
+
+        return $entityManager;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function jsonRequest(array $payload, string $method = 'POST'): Request
+    {
+        return Request::create(
+            '/',
+            $method,
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode($payload, JSON_THROW_ON_ERROR),
+        );
+    }
+
+    private function passwordHasherStub(): UserPasswordHasherInterface
+    {
+        return new class implements UserPasswordHasherInterface {
+            public function hashPassword(PasswordAuthenticatedUserInterface $user, string $plainPassword): string
+            {
+                return 'hashed::'.$plainPassword;
+            }
+
+            public function isPasswordValid(PasswordAuthenticatedUserInterface $user, string $plainPassword): bool
+            {
+                return $user->getPassword() === 'hashed::'.$plainPassword;
+            }
+
+            public function needsRehash(PasswordAuthenticatedUserInterface $user): bool
+            {
+                return false;
+            }
+        };
+    }
+}
