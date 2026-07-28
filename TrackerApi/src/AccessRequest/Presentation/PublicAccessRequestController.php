@@ -39,7 +39,7 @@ final class PublicAccessRequestController extends AbstractController
             fields: [
                 'email' => [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 180)],
                 'companyName' => [new Assert\NotBlank(), new Assert\Type('string'), new Assert\Length(max: 255)],
-                'reason' => [new Assert\NotBlank(), new Assert\Type('string')],
+                'reason' => [new Assert\NotBlank(), new Assert\Type('string'), new Assert\Length(max: 5000)],
                 'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
                 'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
             ],

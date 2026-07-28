@@ -113,10 +113,6 @@ final class TrackedJobFactory
 
     private function dateOrNull(mixed $value): ?\DateTimeImmutable
     {
-        if (!is_string($value) || trim($value) === '') {
-            return null;
-        }
-
-        return new \DateTimeImmutable($value, new \DateTimeZone('UTC'));
+        return TrackedJobDateParser::parseNullable($value);
     }
 }
