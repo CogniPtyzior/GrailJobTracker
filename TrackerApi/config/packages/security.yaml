@@ -26,6 +26,9 @@ security:
                 password_path: password
                 success_handler: App\Security\Infrastructure\Security\JsonLoginSuccessHandler
                 failure_handler: App\Security\Infrastructure\Security\JsonLoginFailureHandler
+            login_throttling:
+                max_attempts: 5
+                interval: '1 minute'
             logout:
                 path: /api/auth/logout
                 invalidate_session: true

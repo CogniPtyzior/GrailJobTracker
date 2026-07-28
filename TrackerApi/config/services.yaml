@@ -41,3 +41,7 @@ services:
             $recipientEmail: '%access_request.notification_to%'
             $fromEmail: '%mailer.from_email%'
             $fromName: '%mailer.from_name%'
+
+    App\AccessRequest\Presentation\PublicAccessRequestController:
+        arguments:
+            $accessRequestSubmissionLimiter: '@limiter.access_request_submission'

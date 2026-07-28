@@ -12,6 +12,8 @@ use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -23,6 +25,7 @@ final class PublicAccessRequestController extends AbstractController
         private readonly EmailNormalizer $emailNormalizer,
         private readonly EntityManagerInterface $entityManager,
         private readonly AccessRequestNotificationSender $notificationSender,
+        private readonly RateLimiterFactoryInterface $accessRequestSubmissionLimiter,
     ) {
     }
 
@@ -30,17 +33,19 @@ final class PublicAccessRequestController extends AbstractController
     #[Route('', name: 'api_access_requests_create', methods: ['POST'])]
     public function create(Request $request): Response
     {
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection([
-            'fields' => [
+        $this->enforceRateLimit($request);
+
+        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection(
+            fields: [
                 'email' => [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 180)],
                 'companyName' => [new Assert\NotBlank(), new Assert\Type('string'), new Assert\Length(max: 255)],
                 'reason' => [new Assert\NotBlank(), new Assert\Type('string')],
                 'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
                 'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
             ],
-            'allowMissingFields' => false,
-            'allowExtraFields' => false,
-        ]));
+            allowMissingFields: false,
+            allowExtraFields: false,
+        ));
 
         $accessRequest = new AccessRequest(
             $payload['email'],
@@ -57,5 +62,22 @@ final class PublicAccessRequestController extends AbstractController
         $this->notificationSender->sendCreatedNotification($accessRequest);
 
         return ApiJsonResponse::success([], Response::HTTP_CREATED);
+    }
+
+    private function enforceRateLimit(Request $request): void
+    {
+        $key = hash('sha256', (string) $request->getClientIp());
+        $limit = $this->accessRequestSubmissionLimiter->create($key)->consume();
+
+        if ($limit->isAccepted()) {
+            return;
+        }
+
+        $retryAfter = max(1, $limit->getRetryAfter()->getTimestamp() - time());
+
+        throw new TooManyRequestsHttpException(
+            $retryAfter,
+            'Too many access request submissions. Please retry later.',
+        );
     }
 }
