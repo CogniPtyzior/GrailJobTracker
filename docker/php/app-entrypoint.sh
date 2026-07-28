@@ -2,7 +2,10 @@
 set -eu
 
 APP_DIR="/var/www/tracker-api"
+APP_RUNTIME_MODE="${APP_RUNTIME_MODE:-php-fpm}"
+BACKEND_READY_FILE="${BACKEND_READY_FILE:-var/runtime/backend-ready}"
 WAIT_FOR_DB_TIMEOUT="${WAIT_FOR_DB_TIMEOUT:-60}"
+WAIT_FOR_BACKEND_TIMEOUT="${WAIT_FOR_BACKEND_TIMEOUT:-120}"
 AUTO_COMPOSER_INSTALL="${AUTO_COMPOSER_INSTALL:-1}"
 COMPOSER_INSTALL_FLAGS="${COMPOSER_INSTALL_FLAGS:---prefer-dist --no-interaction}"
 AUTO_INIT_DB="${AUTO_INIT_DB:-1}"
@@ -58,6 +61,53 @@ configure_xdebug() {
   cat > "$XDEBUG_RUNTIME_INI" <<EOF
 xdebug.client_host=${XDEBUG_CLIENT_HOST}
 EOF
+}
+
+# The worker waits for a fresh marker so stale files cannot bypass backend bootstrap.
+reset_backend_ready_marker() {
+  if [ "$APP_RUNTIME_MODE" != "php-fpm" ]; then
+    return 0
+  fi
+
+  rm -f "$BACKEND_READY_FILE"
+}
+
+mark_backend_ready() {
+  if [ "$APP_RUNTIME_MODE" != "php-fpm" ]; then
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$BACKEND_READY_FILE")"
+  touch "$BACKEND_READY_FILE"
+  log "Backend readiness marker created at ${BACKEND_READY_FILE}."
+}
+
+backend_ready_marker_is_fresh() {
+  marker_mtime="$(stat -c %Y "$BACKEND_READY_FILE" 2>/dev/null || echo 0)"
+
+  [ "$marker_mtime" -ge "$1" ]
+}
+
+wait_for_backend_ready() {
+  if [ "$APP_RUNTIME_MODE" != "worker" ]; then
+    return 0
+  fi
+
+  elapsed=0
+  worker_started_at="$(date +%s)"
+  log "Waiting for fresh backend readiness marker at ${BACKEND_READY_FILE}..."
+
+  until [ -f "$BACKEND_READY_FILE" ] && backend_ready_marker_is_fresh "$worker_started_at"; do
+    if [ "$elapsed" -ge "$WAIT_FOR_BACKEND_TIMEOUT" ]; then
+      log "Backend did not become ready within ${WAIT_FOR_BACKEND_TIMEOUT} seconds."
+      exit 1
+    fi
+
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+
+  log "Backend is ready."
 }
 
 get_database_value() {
@@ -235,6 +285,7 @@ bootstrap_admin() {
 
 cd "$APP_DIR"
 
+reset_backend_ready_marker
 configure_mailer
 configure_xdebug
 install_dependencies
@@ -242,6 +293,13 @@ wait_for_database
 init_schema
 run_migrations
 bootstrap_admin
+mark_backend_ready
+
+if [ "$APP_RUNTIME_MODE" = "worker" ]; then
+  wait_for_backend_ready
+  log "Starting Messenger worker..."
+  exec php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M
+fi
 
 echo "[tracker-api] Preparing PHP session directory..."
 mkdir -p /tmp/sessions

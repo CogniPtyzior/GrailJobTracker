@@ -2,7 +2,7 @@
 
 namespace App\AccessRequest\Presentation;
 
-use App\AccessRequest\Application\AccessRequestNotificationSender;
+use App\AccessRequest\Application\AccessRequestNotificationDispatcher;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\Security\Application\EmailNormalizer;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
@@ -17,6 +17,9 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Public HTTP entry point for access request submissions.
+ */
 #[Route('/api/access-requests')]
 final class PublicAccessRequestController extends AbstractController
 {
@@ -24,7 +27,7 @@ final class PublicAccessRequestController extends AbstractController
         private readonly PayloadValidator $payloadValidator,
         private readonly EmailNormalizer $emailNormalizer,
         private readonly EntityManagerInterface $entityManager,
-        private readonly AccessRequestNotificationSender $notificationSender,
+        private readonly AccessRequestNotificationDispatcher $notificationDispatcher,
         private readonly RateLimiterFactoryInterface $accessRequestSubmissionLimiter,
     ) {
     }
@@ -59,7 +62,7 @@ final class PublicAccessRequestController extends AbstractController
 
         $this->entityManager->persist($accessRequest);
         $this->entityManager->flush();
-        $this->notificationSender->sendCreatedNotification($accessRequest);
+        $this->notificationDispatcher->dispatchCreated($accessRequest);
 
         return ApiJsonResponse::success([], Response::HTTP_CREATED);
     }

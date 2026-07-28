@@ -88,6 +88,7 @@ Admins can review, approve or delete access requests.
 - Symfony Mailer
 - Symfony Serializer
 - Symfony Validator
+- Symfony Messenger (for Access Requests)
 - Twig
 - Nelmio API Doc
 - PostgreSQL

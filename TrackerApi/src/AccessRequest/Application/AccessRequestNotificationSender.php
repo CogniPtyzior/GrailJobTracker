@@ -9,6 +9,9 @@ use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 
+/**
+ * Builds and sends the access request notification email.
+ */
 final class AccessRequestNotificationSender
 {
     public function __construct(
@@ -22,14 +25,8 @@ final class AccessRequestNotificationSender
 
     public function sendCreatedNotification(AccessRequest $accessRequest): void
     {
-        $email = (new Email())
-            ->from(new Address($this->fromEmail, $this->fromName))
-            ->to($this->recipientEmail)
-            ->subject('Nouvelle demande d\'accès GrailJob Tracker')
-            ->text($this->buildMessage($accessRequest));
-
         try {
-            $this->mailer->send($email);
+            $this->sendCreatedNotificationOrFail($accessRequest);
         } catch (TransportExceptionInterface $exception) {
             $this->logger->error('Failed to send access request notification email.', [
                 'exception' => $exception,
@@ -37,6 +34,17 @@ final class AccessRequestNotificationSender
                 'recipientEmail' => $this->recipientEmail,
             ]);
         }
+    }
+
+    public function sendCreatedNotificationOrFail(AccessRequest $accessRequest): void
+    {
+        $email = (new Email())
+            ->from(new Address($this->fromEmail, $this->fromName))
+            ->to($this->recipientEmail)
+            ->subject('Nouvelle demande d\'accès GrailJob Tracker')
+            ->text($this->buildMessage($accessRequest));
+
+        $this->mailer->send($email);
     }
 
     private function buildMessage(AccessRequest $accessRequest): string
