@@ -17,6 +17,7 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            user_checker: App\Security\Infrastructure\Security\ActiveUserChecker
             entry_point: App\Security\Infrastructure\Security\JsonAuthenticationEntryPoint
             access_denied_handler: App\Security\Infrastructure\Security\JsonAccessDeniedHandler
             json_login:

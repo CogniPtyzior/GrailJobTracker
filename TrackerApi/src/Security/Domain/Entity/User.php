@@ -5,6 +5,7 @@ namespace App\Security\Domain\Entity;
 use App\Security\Infrastructure\Doctrine\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Uuid;
@@ -14,7 +15,7 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Table(name: 'users', schema: 'trackers')]
 #[ORM\Index(columns: ['normalized_email'], name: 'idx_users_normalized_email')]
 #[ORM\Index(columns: ['is_active'], name: 'idx_users_is_active')]
-final class User implements UserInterface, PasswordAuthenticatedUserInterface
+final class User implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
@@ -149,6 +150,18 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function eraseCredentials(): void
     {
+    }
+
+    public function isEqualTo(UserInterface $user): bool
+    {
+        if (!$user instanceof self) {
+            return false;
+        }
+
+        return $this->normalizedEmail === $user->normalizedEmail
+            && $this->passwordHash === $user->passwordHash
+            && $this->isActive === $user->isActive
+            && $this->getRoles() === $user->getRoles();
     }
 
     public function getUserIdentifier(): string
