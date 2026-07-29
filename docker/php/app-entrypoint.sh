@@ -63,6 +63,13 @@ xdebug.client_host=${XDEBUG_CLIENT_HOST}
 EOF
 }
 
+prepare_writable_dirs() {
+  mkdir -p var/cache var/log var/sessions var/runtime /tmp/sessions
+  chown -R www-data:www-data var /tmp/sessions
+  chmod -R ug+rwX var
+  chmod 1733 /tmp/sessions
+}
+
 # The worker waits for a fresh marker so stale files cannot bypass backend bootstrap.
 reset_backend_ready_marker() {
   if [ "$APP_RUNTIME_MODE" != "php-fpm" ]; then
@@ -285,6 +292,7 @@ bootstrap_admin() {
 
 cd "$APP_DIR"
 
+prepare_writable_dirs
 reset_backend_ready_marker
 configure_mailer
 configure_xdebug
@@ -293,6 +301,7 @@ wait_for_database
 init_schema
 run_migrations
 bootstrap_admin
+prepare_writable_dirs
 mark_backend_ready
 
 if [ "$APP_RUNTIME_MODE" = "worker" ]; then
@@ -302,9 +311,7 @@ if [ "$APP_RUNTIME_MODE" = "worker" ]; then
 fi
 
 echo "[tracker-api] Preparing PHP session directory..."
-mkdir -p /tmp/sessions
-chown -R www-data:www-data /tmp/sessions
-chmod 1733 /tmp/sessions
+prepare_writable_dirs
 
 log "Starting PHP-FPM..."
 exec php-fpm -F

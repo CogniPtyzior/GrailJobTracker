@@ -21,11 +21,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-COPY conf.d/app.dev.ini /usr/local/etc/php/conf.d/zz-app.dev.ini
-COPY conf.d/xdebug.ini /usr/local/etc/php/conf.d/zz-xdebug.ini
-COPY fpm.d/zz-app.conf /usr/local/etc/php-fpm.d/zz-app.conf
-COPY app-entrypoint.sh /usr/local/bin/app-entrypoint.sh
+COPY docker/php/conf.d/app.dev.ini /usr/local/etc/php/conf.d/zz-app.dev.ini
+COPY docker/php/conf.d/xdebug.ini /usr/local/etc/php/conf.d/zz-xdebug.ini
+COPY docker/php/fpm.d/zz-app.conf /usr/local/etc/php-fpm.d/zz-app.conf
+COPY docker/php/app-entrypoint.sh /usr/local/bin/app-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/app-entrypoint.sh
 
 WORKDIR /var/www/tracker-api
+
+COPY TrackerApi/composer.json TrackerApi/composer.lock ./
+
+RUN composer install --prefer-dist --no-interaction --no-scripts
+
+COPY TrackerApi/ ./
+
+RUN mkdir -p var/cache var/log var/sessions var/runtime \
+    && chown -R www-data:www-data var public \
+    && chmod -R ug+rwX var

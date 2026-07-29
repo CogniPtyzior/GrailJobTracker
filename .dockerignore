@@ -1,0 +1,17 @@
+.git
+.vscode
+.agents
+.codex
+credentials
+TrackerApp/node_modules
+TrackerApp/.angular
+TrackerApp/dist
+TrackerApi/vendor
+TrackerApi/var/cache
+TrackerApi/var/log
+TrackerApi/var/sessions
+TrackerApi/var/runtime
+TrackerApi/.env.local
+TrackerApi/.env.*.local
+TrackerApi/phpunit.result.cache
+**/.DS_Store
