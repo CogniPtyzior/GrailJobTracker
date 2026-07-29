@@ -5,18 +5,15 @@ namespace App\Admin\Presentation;
 use App\AccessRequest\Application\AccessRequestPresenter;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
+use App\Admin\Application\ApproveAccessRequest;
+use App\Admin\Application\DeleteAccessRequest;
 use App\Admin\Presentation\Payload\ApproveAccessRequestPayload;
-use App\Security\Application\EmailNormalizer;
-use App\Security\Domain\Entity\User;
-use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
-use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 
@@ -27,10 +24,8 @@ final class AdminAccessRequestController extends AbstractController
         private readonly AccessRequestRepositoryInterface $accessRequestRepository,
         private readonly AccessRequestPresenter $presenter,
         private readonly PayloadValidator $payloadValidator,
-        private readonly UserRepositoryInterface $userRepository,
-        private readonly EmailNormalizer $emailNormalizer,
-        private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly ApproveAccessRequest $approveAccessRequest,
+        private readonly DeleteAccessRequest $deleteAccessRequest,
     ) {
     }
 
@@ -66,23 +61,7 @@ final class AdminAccessRequestController extends AbstractController
         }
 
         $payload = $this->payloadValidator->validateRequest($request, ApproveAccessRequestPayload::constraint());
-
-        $normalizedEmail = $this->emailNormalizer->normalize($accessRequest->getEmail());
-        $user = $this->userRepository->findOneByNormalizedEmail($normalizedEmail);
-
-        if (!$user instanceof User) {
-            $user = new User($accessRequest->getEmail(), $normalizedEmail);
-            $this->entityManager->persist($user);
-        }
-
-        $user->setFirstName($payload['firstName'] ?? $accessRequest->getFirstName());
-        $user->setLastName($payload['lastName'] ?? $accessRequest->getLastName());
-        $user->setIsActive(true);
-        $user->setRoles(['ROLE_USER']);
-        $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload['password']));
-
-        $this->entityManager->remove($accessRequest);
-        $this->entityManager->flush();
+        $user = $this->approveAccessRequest->handle($accessRequest, $payload);
 
         return ApiJsonResponse::success([
             'item' => [
@@ -102,8 +81,7 @@ final class AdminAccessRequestController extends AbstractController
             return ApiJsonResponse::error('Access request not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $this->entityManager->remove($accessRequest);
-        $this->entityManager->flush();
+        $this->deleteAccessRequest->handle($accessRequest);
 
         return ApiJsonResponse::success(status: Response::HTTP_NO_CONTENT);
     }

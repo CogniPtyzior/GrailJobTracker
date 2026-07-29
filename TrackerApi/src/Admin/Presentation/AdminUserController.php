@@ -2,6 +2,9 @@
 
 namespace App\Admin\Presentation;
 
+use App\Admin\Application\CreateAdminUser;
+use App\Admin\Application\DeleteAdminUser;
+use App\Admin\Application\UpdateAdminUser;
 use App\Admin\Application\UserPresenter;
 use App\Admin\Presentation\Payload\CreateAdminUserPayload;
 use App\Admin\Presentation\Payload\UpdateAdminUserPayload;
@@ -10,12 +13,10 @@ use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
-use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Uid\Uuid;
@@ -28,8 +29,9 @@ final class AdminUserController extends AbstractController
         private readonly UserPresenter $presenter,
         private readonly PayloadValidator $payloadValidator,
         private readonly EmailNormalizer $emailNormalizer,
-        private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly CreateAdminUser $createAdminUser,
+        private readonly UpdateAdminUser $updateAdminUser,
+        private readonly DeleteAdminUser $deleteAdminUser,
         private readonly string $adminBootstrapEmail,
     ) {
     }
@@ -65,22 +67,13 @@ final class AdminUserController extends AbstractController
     public function create(Request $request): Response
     {
         $payload = $this->payloadValidator->validateRequest($request, CreateAdminUserPayload::constraint());
-
-        $normalizedEmail = $this->emailNormalizer->normalize($payload['email']);
+        $normalizedEmail = $this->emailNormalizer->normalize((string) $payload['email']);
 
         if ($this->userRepository->findOneByNormalizedEmail($normalizedEmail) instanceof User) {
             return ApiJsonResponse::error('A user with this email already exists.', Response::HTTP_CONFLICT);
         }
 
-        $user = new User($payload['email'], $normalizedEmail);
-        $user->setFirstName($payload['firstName'] ?? null);
-        $user->setLastName($payload['lastName'] ?? null);
-        $user->setIsActive($payload['isActive'] ?? true);
-        $user->setRoles(($payload['isAdmin'] ?? false) ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER']);
-        $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload['password']));
-
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
+        $user = $this->createAdminUser->handle($payload);
 
         return ApiJsonResponse::success(['item' => $this->presenter->present($user)], Response::HTTP_CREATED);
     }
@@ -96,34 +89,7 @@ final class AdminUserController extends AbstractController
         }
 
         $payload = $this->payloadValidator->validateRequest($request, UpdateAdminUserPayload::constraint());
-
-        $bootstrapAdmin = $user->isBootstrapAdmin($this->adminBootstrapEmail);
-
-        $user->setFirstName($payload['firstName'] ?? $user->getFirstName());
-        $user->setLastName($payload['lastName'] ?? $user->getLastName());
-
-        if (
-            array_key_exists('isActive', $payload)
-            && !($bootstrapAdmin && $currentUser->getId()->equals($user->getId()) && $payload['isActive'] === false)
-        ) {
-            if (!$bootstrapAdmin || $payload['isActive'] === true) {
-                $user->setIsActive($payload['isActive']);
-            }
-        }
-
-        if (array_key_exists('isAdmin', $payload)) {
-            if ($bootstrapAdmin) {
-                $user->setRoles(['ROLE_ADMIN', 'ROLE_USER']);
-            } else {
-                $user->setRoles($payload['isAdmin'] ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER']);
-            }
-        }
-
-        if (isset($payload['password']) && is_string($payload['password'])) {
-            $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload['password']));
-        }
-
-        $this->entityManager->flush();
+        $this->updateAdminUser->handle($user, $currentUser, $payload);
 
         return ApiJsonResponse::success(['item' => $this->presenter->present($user)]);
     }
@@ -142,8 +108,7 @@ final class AdminUserController extends AbstractController
             return ApiJsonResponse::error('The bootstrap admin cannot be deleted.', Response::HTTP_BAD_REQUEST);
         }
 
-        $this->entityManager->remove($user);
-        $this->entityManager->flush();
+        $this->deleteAdminUser->handle($user);
 
         return ApiJsonResponse::success(status: Response::HTTP_NO_CONTENT);
     }
@@ -156,5 +121,4 @@ final class AdminUserController extends AbstractController
 
         return $this->userRepository->getById(Uuid::fromString($id));
     }
-
 }

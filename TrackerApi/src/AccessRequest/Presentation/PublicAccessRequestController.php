@@ -2,13 +2,10 @@
 
 namespace App\AccessRequest\Presentation;
 
-use App\AccessRequest\Application\AccessRequestNotificationDispatcher;
-use App\AccessRequest\Domain\Entity\AccessRequest;
+use App\AccessRequest\Application\CreateAccessRequest;
 use App\AccessRequest\Presentation\Payload\CreateAccessRequestPayload;
-use App\Security\Application\EmailNormalizer;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
-use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,9 +22,7 @@ final class PublicAccessRequestController extends AbstractController
 {
     public function __construct(
         private readonly PayloadValidator $payloadValidator,
-        private readonly EmailNormalizer $emailNormalizer,
-        private readonly EntityManagerInterface $entityManager,
-        private readonly AccessRequestNotificationDispatcher $notificationDispatcher,
+        private readonly CreateAccessRequest $createAccessRequest,
         private readonly RateLimiterFactoryInterface $accessRequestSubmissionLimiter,
     ) {
     }
@@ -39,20 +34,7 @@ final class PublicAccessRequestController extends AbstractController
         $this->enforceRateLimit($request);
 
         $payload = $this->payloadValidator->validateRequest($request, CreateAccessRequestPayload::constraint());
-
-        $accessRequest = new AccessRequest(
-            $payload['email'],
-            $this->emailNormalizer->normalize($payload['email']),
-            trim($payload['companyName']),
-            trim($payload['reason']),
-        );
-
-        $accessRequest->setFirstName($payload['firstName'] ?? null);
-        $accessRequest->setLastName($payload['lastName'] ?? null);
-
-        $this->entityManager->persist($accessRequest);
-        $this->entityManager->flush();
-        $this->notificationDispatcher->dispatchCreated($accessRequest);
+        $this->createAccessRequest->handle($payload);
 
         return ApiJsonResponse::success([], Response::HTTP_CREATED);
     }

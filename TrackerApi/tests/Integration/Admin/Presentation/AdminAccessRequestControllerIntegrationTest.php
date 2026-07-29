@@ -3,6 +3,8 @@
 namespace App\Tests\Integration\Admin\Presentation;
 
 use App\AccessRequest\Application\AccessRequestPresenter;
+use App\Admin\Application\ApproveAccessRequest;
+use App\Admin\Application\DeleteAccessRequest;
 use App\Admin\Presentation\AdminAccessRequestController;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
@@ -102,10 +104,13 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
             $accessRequestRepository,
             new AccessRequestPresenter(),
             new PayloadValidator(Validation::createValidator()),
-            $userRepository,
-            new EmailNormalizer(),
-            $this->passwordHasherStub(),
-            $entityManager,
+            new ApproveAccessRequest(
+                $userRepository,
+                new EmailNormalizer(),
+                $this->passwordHasherStub(),
+                $entityManager,
+            ),
+            new DeleteAccessRequest($entityManager),
         );
     }
 

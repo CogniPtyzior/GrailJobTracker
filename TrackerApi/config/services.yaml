@@ -30,6 +30,10 @@ services:
         arguments:
             $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
 
+    App\Admin\Application\UpdateAdminUser:
+        arguments:
+            $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
+
     App\Security\Infrastructure\Console\BootstrapAdminCommand:
         arguments:
             $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'

@@ -2,6 +2,9 @@
 
 namespace App\Tests\Integration\Admin\Presentation;
 
+use App\Admin\Application\CreateAdminUser;
+use App\Admin\Application\DeleteAdminUser;
+use App\Admin\Application\UpdateAdminUser;
 use App\Admin\Application\UserPresenter;
 use App\Admin\Presentation\AdminUserController;
 use App\Security\Application\EmailNormalizer;
@@ -40,7 +43,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
         self::assertCount(1, $userRepository->all());
 
         $createdUser = $userRepository->all()[0];
-    self::assertSame('New.User@example.com', $createdUser->getEmail());
+        self::assertSame('New.User@example.com', $createdUser->getEmail());
         self::assertSame('new.user@example.com', $createdUser->getNormalizedEmail());
         self::assertSame('New', $createdUser->getFirstName());
         self::assertSame('User', $createdUser->getLastName());
@@ -143,13 +146,16 @@ final class AdminUserControllerIntegrationTest extends TestCase
         EntityManagerInterface $entityManager,
         string $adminBootstrapEmail = 'bootstrap@example.com',
     ): AdminUserController {
+        $passwordHasher = $this->passwordHasherStub();
+
         return new AdminUserController(
             $userRepository,
             new UserPresenter(),
             new PayloadValidator(Validation::createValidator()),
             new EmailNormalizer(),
-            $this->passwordHasherStub(),
-            $entityManager,
+            new CreateAdminUser(new EmailNormalizer(), $passwordHasher, $entityManager),
+            new UpdateAdminUser($passwordHasher, $entityManager, $adminBootstrapEmail),
+            new DeleteAdminUser($entityManager),
             $adminBootstrapEmail,
         );
     }

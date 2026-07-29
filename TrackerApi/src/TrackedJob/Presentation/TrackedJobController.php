@@ -5,9 +5,11 @@ namespace App\TrackedJob\Presentation;
 use App\Security\Domain\Entity\User;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
+use App\TrackedJob\Application\CreateTrackedJob;
+use App\TrackedJob\Application\DeleteTrackedJob;
 use App\TrackedJob\Application\TrackedJobCsvExporter;
-use App\TrackedJob\Application\TrackedJobFactory;
 use App\TrackedJob\Application\TrackedJobPresenter;
+use App\TrackedJob\Application\UpdateTrackedJob;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
@@ -15,7 +17,6 @@ use App\TrackedJob\Domain\Enum\TrackedJobStatus;
 use App\TrackedJob\Infrastructure\Doctrine\TrackedJobRepository;
 use App\TrackedJob\Presentation\Payload\ExportTrackedJobsPayload;
 use App\TrackedJob\Presentation\Payload\TrackedJobPayload;
-use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,11 +30,12 @@ final class TrackedJobController extends AbstractController
 {
     public function __construct(
         private readonly PayloadValidator $payloadValidator,
-        private readonly TrackedJobFactory $trackedJobFactory,
         private readonly TrackedJobPresenter $presenter,
         private readonly TrackedJobRepository $trackedJobRepository,
-        private readonly EntityManagerInterface $entityManager,
         private readonly TrackedJobCsvExporter $csvExporter,
+        private readonly CreateTrackedJob $createTrackedJob,
+        private readonly UpdateTrackedJob $updateTrackedJob,
+        private readonly DeleteTrackedJob $deleteTrackedJob,
     ) {
     }
 
@@ -107,10 +109,7 @@ final class TrackedJobController extends AbstractController
     public function create(Request $request, #[CurrentUser] User $user): Response
     {
         $payload = $this->payloadValidator->validateRequest($request, TrackedJobPayload::constraint());
-
-        $trackedJob = $this->trackedJobFactory->create($user, $payload);
-        $this->entityManager->persist($trackedJob);
-        $this->entityManager->flush();
+        $trackedJob = $this->createTrackedJob->handle($user, $payload);
 
         return ApiJsonResponse::success([
             'item' => $this->presenter->present($trackedJob),
@@ -128,8 +127,7 @@ final class TrackedJobController extends AbstractController
         }
 
         $payload = $this->payloadValidator->validateRequest($request, TrackedJobPayload::constraint());
-        $this->trackedJobFactory->hydrate($trackedJob, $payload);
-        $this->entityManager->flush();
+        $this->updateTrackedJob->handle($trackedJob, $payload);
 
         return ApiJsonResponse::success([
             'item' => $this->presenter->present($trackedJob),
@@ -146,8 +144,7 @@ final class TrackedJobController extends AbstractController
             return ApiJsonResponse::error('Tracked job not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $this->trackedJobRepository->delete($trackedJob);
-        $this->entityManager->flush();
+        $this->deleteTrackedJob->handle($trackedJob);
 
         return ApiJsonResponse::success(status: Response::HTTP_NO_CONTENT);
     }
@@ -183,6 +180,4 @@ final class TrackedJobController extends AbstractController
 
         return $this->trackedJobRepository->getByIdForOwner(Uuid::fromString($id), $user);
     }
-
-
 }
