@@ -31,6 +31,8 @@ final class BootstrapAdminCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        // This command is part of container startup. Missing bootstrap prerequisites should skip seeding,
+        // not prevent the backend from starting; successful execution does not guarantee an admin was created.
         $passwordFile = trim($this->adminBootstrapPasswordFile);
 
         if ($passwordFile === '' || !is_readable($passwordFile)) {
