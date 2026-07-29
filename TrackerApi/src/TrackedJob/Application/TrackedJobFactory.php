@@ -85,11 +85,11 @@ final class TrackedJobFactory
     }
 
     /**
-     * @template T of \UnitEnum
+     * @template T of \BackedEnum
      * @param class-string<T> $enumClass
      * @return T|null
      */
-    private function enumOrNull(string $enumClass, mixed $value): ?\UnitEnum
+    private function enumOrNull(string $enumClass, mixed $value): ?\BackedEnum
     {
         if (!is_string($value) || $value === '') {
             return null;
@@ -99,12 +99,12 @@ final class TrackedJobFactory
     }
 
     /**
-     * @template T of \UnitEnum
+     * @template T of \BackedEnum
      * @param class-string<T> $enumClass
      * @param T $default
      * @return T
      */
-    private function enumOrDefault(string $enumClass, mixed $value, \UnitEnum $default): \UnitEnum
+    private function enumOrDefault(string $enumClass, mixed $value, \BackedEnum $default): \BackedEnum
     {
         $enum = $this->enumOrNull($enumClass, $value);
 
