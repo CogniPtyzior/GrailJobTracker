@@ -7,11 +7,12 @@ use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
+use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
-final class TrackedJobRepository extends ServiceEntityRepository
+final class TrackedJobRepository extends ServiceEntityRepository implements TrackedJobRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
     {

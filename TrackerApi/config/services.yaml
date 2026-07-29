@@ -16,6 +16,9 @@ services:
     App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface:
         alias: App\AccessRequest\Infrastructure\Doctrine\AccessRequestRepository
 
+    App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface:
+        alias: App\TrackedJob\Infrastructure\Doctrine\TrackedJobRepository
+
     App\:
         resource: '../src/'
         exclude:

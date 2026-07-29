@@ -3,7 +3,7 @@
 namespace App\TrackedJob\Application;
 
 use App\TrackedJob\Domain\Entity\TrackedJob;
-use App\TrackedJob\Infrastructure\Doctrine\TrackedJobRepository;
+use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -12,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 final class DeleteTrackedJob
 {
     public function __construct(
-        private readonly TrackedJobRepository $trackedJobRepository,
+        private readonly TrackedJobRepositoryInterface $trackedJobRepository,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }

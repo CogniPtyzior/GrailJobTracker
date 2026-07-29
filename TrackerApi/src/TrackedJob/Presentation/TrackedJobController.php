@@ -7,14 +7,16 @@ use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
 use App\TrackedJob\Application\CreateTrackedJob;
 use App\TrackedJob\Application\DeleteTrackedJob;
-use App\TrackedJob\Application\TrackedJobCsvExporter;
+use App\TrackedJob\Application\ExportTrackedJobsCsv;
+use App\TrackedJob\Application\GetTrackedJob;
+use App\TrackedJob\Application\SearchTrackedJobs;
+use App\TrackedJob\Application\SuggestTrackedJobCompanies;
 use App\TrackedJob\Application\TrackedJobPresenter;
 use App\TrackedJob\Application\UpdateTrackedJob;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
-use App\TrackedJob\Infrastructure\Doctrine\TrackedJobRepository;
 use App\TrackedJob\Presentation\Payload\ExportTrackedJobsPayload;
 use App\TrackedJob\Presentation\Payload\TrackedJobPayload;
 use OpenApi\Attributes as OA;
@@ -23,7 +25,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\Uid\Uuid;
 
 #[Route('/api/tracked-jobs')]
 final class TrackedJobController extends AbstractController
@@ -31,8 +32,10 @@ final class TrackedJobController extends AbstractController
     public function __construct(
         private readonly PayloadValidator $payloadValidator,
         private readonly TrackedJobPresenter $presenter,
-        private readonly TrackedJobRepository $trackedJobRepository,
-        private readonly TrackedJobCsvExporter $csvExporter,
+        private readonly SearchTrackedJobs $searchTrackedJobs,
+        private readonly SuggestTrackedJobCompanies $suggestTrackedJobCompanies,
+        private readonly GetTrackedJob $getTrackedJob,
+        private readonly ExportTrackedJobsCsv $exportTrackedJobsCsv,
         private readonly CreateTrackedJob $createTrackedJob,
         private readonly UpdateTrackedJob $updateTrackedJob,
         private readonly DeleteTrackedJob $deleteTrackedJob,
@@ -64,7 +67,7 @@ final class TrackedJobController extends AbstractController
             'remoteModeInvalid' => $remoteModeRaw !== '' && $remoteMode === null,
         ];
 
-        $result = $this->trackedJobRepository->search($user, $filters, $page, $pageSize);
+        $result = $this->searchTrackedJobs->handle($user, $filters, $page, $pageSize);
 
         return ApiJsonResponse::success([
             'items' => array_map($this->presenter->present(...), $result['items']),
@@ -85,7 +88,7 @@ final class TrackedJobController extends AbstractController
         }
 
         return ApiJsonResponse::success([
-            'items' => $this->trackedJobRepository->searchDistinctCompanies($user, $query),
+            'items' => $this->suggestTrackedJobCompanies->handle($user, $query),
         ]);
     }
 
@@ -163,8 +166,7 @@ final class TrackedJobController extends AbstractController
             'remoteMode' => isset($payload['remoteMode']) ? RemoteMode::tryFrom((string) $payload['remoteMode']) : null,
         ];
 
-        $result = $this->trackedJobRepository->search($user, $filters, 1, 5000);
-        $csv = $this->csvExporter->export($result['items']);
+        $csv = $this->exportTrackedJobsCsv->handle($user, $filters);
 
         return new Response($csv, Response::HTTP_OK, [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -174,10 +176,6 @@ final class TrackedJobController extends AbstractController
 
     private function findTrackedJob(string $id, User $user): ?TrackedJob
     {
-        if (!Uuid::isValid($id)) {
-            return null;
-        }
-
-        return $this->trackedJobRepository->getByIdForOwner(Uuid::fromString($id), $user);
+        return $this->getTrackedJob->handle($id, $user);
     }
 }
