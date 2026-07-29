@@ -19,6 +19,11 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - tracker-api
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   # Runs Messenger messages in a dedicated container using the backend PHP image.
   tracker-api-worker:
@@ -48,6 +53,11 @@ services:
     networks:
       - tracker-api
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   tracker-api-nginx:
     image: grailjobtracker-tracker-api-nginx
@@ -61,6 +71,11 @@ services:
       - "127.0.0.1:8081:80"
     networks:
       - tracker-api
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
 
 volumes:
   tracker-api-runtime:
