@@ -4,6 +4,7 @@ namespace App\AccessRequest\Presentation;
 
 use App\AccessRequest\Application\AccessRequestNotificationDispatcher;
 use App\AccessRequest\Domain\Entity\AccessRequest;
+use App\AccessRequest\Presentation\Payload\CreateAccessRequestPayload;
 use App\Security\Application\EmailNormalizer;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
@@ -15,7 +16,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Public HTTP entry point for access request submissions.
@@ -38,17 +38,7 @@ final class PublicAccessRequestController extends AbstractController
     {
         $this->enforceRateLimit($request);
 
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection(
-            fields: [
-                'email' => [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 180)],
-                'companyName' => [new Assert\NotBlank(), new Assert\Type('string'), new Assert\Length(max: 255)],
-                'reason' => [new Assert\NotBlank(), new Assert\Type('string'), new Assert\Length(max: 5000)],
-                'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-                'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-            ],
-            allowMissingFields: false,
-            allowExtraFields: false,
-        ));
+        $payload = $this->payloadValidator->validateRequest($request, CreateAccessRequestPayload::constraint());
 
         $accessRequest = new AccessRequest(
             $payload['email'],

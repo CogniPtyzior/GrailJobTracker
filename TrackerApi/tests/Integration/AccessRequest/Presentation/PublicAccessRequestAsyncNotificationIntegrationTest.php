@@ -49,7 +49,7 @@ final class PublicAccessRequestAsyncNotificationIntegrationTest extends WebTestC
             '/api/access-requests',
             server: [
                 'CONTENT_TYPE' => 'application/json',
-                'REMOTE_ADDR' => '198.51.100.9',
+                'REMOTE_ADDR' => '198.51.100.'.random_int(1, 254),
             ],
             content: json_encode([
                 'email' => $email,

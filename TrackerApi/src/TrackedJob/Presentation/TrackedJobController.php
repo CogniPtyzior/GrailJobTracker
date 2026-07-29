@@ -6,7 +6,6 @@ use App\Security\Domain\Entity\User;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\PayloadValidator;
 use App\TrackedJob\Application\TrackedJobCsvExporter;
-use App\TrackedJob\Application\TrackedJobDateParser;
 use App\TrackedJob\Application\TrackedJobFactory;
 use App\TrackedJob\Application\TrackedJobPresenter;
 use App\TrackedJob\Domain\Entity\TrackedJob;
@@ -14,6 +13,8 @@ use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
 use App\TrackedJob\Infrastructure\Doctrine\TrackedJobRepository;
+use App\TrackedJob\Presentation\Payload\ExportTrackedJobsPayload;
+use App\TrackedJob\Presentation\Payload\TrackedJobPayload;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,8 +23,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[Route('/api/tracked-jobs')]
 final class TrackedJobController extends AbstractController
@@ -107,7 +106,7 @@ final class TrackedJobController extends AbstractController
     #[Route('', name: 'api_tracked_jobs_create', methods: ['POST'])]
     public function create(Request $request, #[CurrentUser] User $user): Response
     {
-        $payload = $this->payloadValidator->validateRequest($request, $this->trackedJobConstraint());
+        $payload = $this->payloadValidator->validateRequest($request, TrackedJobPayload::constraint());
 
         $trackedJob = $this->trackedJobFactory->create($user, $payload);
         $this->entityManager->persist($trackedJob);
@@ -128,7 +127,7 @@ final class TrackedJobController extends AbstractController
             return ApiJsonResponse::error('Tracked job not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $payload = $this->payloadValidator->validateRequest($request, $this->trackedJobConstraint());
+        $payload = $this->payloadValidator->validateRequest($request, TrackedJobPayload::constraint());
         $this->trackedJobFactory->hydrate($trackedJob, $payload);
         $this->entityManager->flush();
 
@@ -157,17 +156,7 @@ final class TrackedJobController extends AbstractController
     #[Route('/export-csv', name: 'api_tracked_jobs_export_csv', methods: ['POST'])]
     public function exportCsv(Request $request, #[CurrentUser] User $user): Response
     {
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection([
-            'fields' => [
-                'search' => new Assert\Optional([new Assert\Type('string')]),
-                'company' => new Assert\Optional([new Assert\Type('string')]),
-                'status' => new Assert\Optional([$this->enumChoiceConstraint(TrackedJobStatus::class)]),
-                'contractType' => new Assert\Optional([$this->enumChoiceConstraint(ContractType::class)]),
-                'remoteMode' => new Assert\Optional([$this->enumChoiceConstraint(RemoteMode::class)]),
-            ],
-            'allowMissingFields' => true,
-            'allowExtraFields' => false,
-        ]));
+        $payload = $this->payloadValidator->validateRequest($request, ExportTrackedJobsPayload::constraint());
 
         $filters = [
             'search' => $payload['search'] ?? null,
@@ -195,63 +184,5 @@ final class TrackedJobController extends AbstractController
         return $this->trackedJobRepository->getByIdForOwner(Uuid::fromString($id), $user);
     }
 
-    private function trackedJobConstraint(): Assert\Collection
-    {
-        return new Assert\Collection(
-            fields: [
-                'company' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 255)]),
-                'title' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 255)]),
-                'contractType' => new Assert\Optional([$this->enumChoiceConstraint(ContractType::class)]),
-                'location' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 255)]),
-                'remoteMode' => new Assert\Optional([$this->enumChoiceConstraint(RemoteMode::class)]),
-                'remuneration' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 255)]),
-                'offerUrl' => new Assert\Optional([new Assert\Type('string')]),
-                'notes' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 10000)]),
-                'applicationDate' => $this->dateFieldConstraint(),
-                'effectiveFollowUpDate' => $this->dateFieldConstraint(),
-                'firstContactDate' => $this->dateFieldConstraint(),
-                'preliminaryInterviewDate' => $this->dateFieldConstraint(),
-                'secondInterviewDate' => $this->dateFieldConstraint(),
-                'hrContactName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 255)]),
-                'businessContactName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 255)]),
-                'subjectiveRelevance' => new Assert\Optional([
-                    new Assert\Type('numeric'),
-                    new Assert\Range(min: 1, max: 10),
-                ]),
-                'status' => new Assert\Optional([$this->enumChoiceConstraint(TrackedJobStatus::class)]),
-            ],
-            allowMissingFields: true,
-            allowExtraFields: false,
-        );
-    }
-
-    /**
-     * @param class-string<\BackedEnum> $enumClass
-     */
-    private function enumChoiceConstraint(string $enumClass): Assert\Choice
-    {
-        return new Assert\Choice(
-            choices: array_map(static fn (\BackedEnum $item) => $item->value, $enumClass::cases()),
-        );
-    }
-
-    private function dateFieldConstraint(): Assert\Optional
-    {
-        return new Assert\Optional([
-            new Assert\Callback($this->validateDateValue(...)),
-        ]);
-    }
-
-    public function validateDateValue(mixed $value, ExecutionContextInterface $context): void
-    {
-        if ($value === null || $value === '') {
-            return;
-        }
-
-        if (!is_string($value) || !TrackedJobDateParser::isValid($value)) {
-            $context->buildViolation('This value should be a valid date.')
-                ->addViolation();
-        }
-    }
 
 }

@@ -5,6 +5,7 @@ namespace App\Admin\Presentation;
 use App\AccessRequest\Application\AccessRequestPresenter;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
+use App\Admin\Presentation\Payload\ApproveAccessRequestPayload;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
@@ -18,7 +19,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[Route('/api/admin/access-requests')]
 final class AdminAccessRequestController extends AbstractController
@@ -51,7 +51,11 @@ final class AdminAccessRequestController extends AbstractController
         ]);
     }
 
-    #[OA\Post(path: '/api/admin/access-requests/{id}/approve', summary: 'Approve an access request and create a user if needed.', tags: ['Admin access requests'])]
+    #[OA\Post(
+        path: '/api/admin/access-requests/{id}/approve',
+        summary: 'Approve an access request and create a user if needed.',
+        tags: ['Admin access requests'],
+    )]
     #[Route('/{id}/approve', name: 'api_admin_access_requests_approve', methods: ['POST'])]
     public function approve(string $id, Request $request): Response
     {
@@ -61,20 +65,7 @@ final class AdminAccessRequestController extends AbstractController
             return ApiJsonResponse::error('Access request not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection(
-            fields: [
-                'password' => new Assert\Sequentially([
-                    new Assert\NotBlank(),
-                    new Assert\Length(min: 8),
-                    new Assert\Regex('/\d/', 'Password must contain at least one digit.'),
-                    new Assert\Regex('/[.#&!]/', 'Password must contain at least one allowed special character: . # & !'),
-                ]),
-                'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-                'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-            ],
-            allowMissingFields: false,
-            allowExtraFields: false,
-        ));
+        $payload = $this->payloadValidator->validateRequest($request, ApproveAccessRequestPayload::constraint());
 
         $normalizedEmail = $this->emailNormalizer->normalize($accessRequest->getEmail());
         $user = $this->userRepository->findOneByNormalizedEmail($normalizedEmail);

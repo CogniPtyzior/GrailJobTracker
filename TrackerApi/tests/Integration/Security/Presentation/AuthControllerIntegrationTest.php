@@ -125,7 +125,10 @@ final class AuthControllerIntegrationTest extends WebTestCase
         $client->request(
             'POST',
             '/api/auth/login',
-            server: ['CONTENT_TYPE' => 'application/json'],
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'REMOTE_ADDR' => '203.0.113.'.random_int(1, 254),
+            ],
             content: json_encode([
                 'email' => $email,
                 'password' => self::PASSWORD,

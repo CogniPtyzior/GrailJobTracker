@@ -3,6 +3,8 @@
 namespace App\Admin\Presentation;
 
 use App\Admin\Application\UserPresenter;
+use App\Admin\Presentation\Payload\CreateAdminUserPayload;
+use App\Admin\Presentation\Payload\UpdateAdminUserPayload;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
@@ -17,7 +19,6 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[Route('/api/admin/users')]
 final class AdminUserController extends AbstractController
@@ -63,18 +64,7 @@ final class AdminUserController extends AbstractController
     #[Route('', name: 'api_admin_users_create', methods: ['POST'])]
     public function create(Request $request): Response
     {
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection(
-            fields: [
-                'email' => [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 180)],
-                'password' => $this->passwordConstraint(),
-                'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-                'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-                'isActive' => new Assert\Optional([new Assert\Type('bool')]),
-                'isAdmin' => new Assert\Optional([new Assert\Type('bool')]),
-            ],
-            allowMissingFields: false,
-            allowExtraFields: false,
-        ));
+        $payload = $this->payloadValidator->validateRequest($request, CreateAdminUserPayload::constraint());
 
         $normalizedEmail = $this->emailNormalizer->normalize($payload['email']);
 
@@ -105,24 +95,17 @@ final class AdminUserController extends AbstractController
             return ApiJsonResponse::error('User not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $payload = $this->payloadValidator->validateRequest($request, new Assert\Collection(
-            fields: [
-                'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-                'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-                'isActive' => new Assert\Optional([new Assert\Type('bool')]),
-                'isAdmin' => new Assert\Optional([new Assert\Type('bool')]),
-                'password' => new Assert\Optional([$this->passwordConstraint()]),
-            ],
-            allowMissingFields: true,
-            allowExtraFields: false,
-        ));
+        $payload = $this->payloadValidator->validateRequest($request, UpdateAdminUserPayload::constraint());
 
         $bootstrapAdmin = $user->isBootstrapAdmin($this->adminBootstrapEmail);
 
         $user->setFirstName($payload['firstName'] ?? $user->getFirstName());
         $user->setLastName($payload['lastName'] ?? $user->getLastName());
 
-        if (array_key_exists('isActive', $payload) && !($bootstrapAdmin && $currentUser->getId()->equals($user->getId()) && $payload['isActive'] === false)) {
+        if (
+            array_key_exists('isActive', $payload)
+            && !($bootstrapAdmin && $currentUser->getId()->equals($user->getId()) && $payload['isActive'] === false)
+        ) {
             if (!$bootstrapAdmin || $payload['isActive'] === true) {
                 $user->setIsActive($payload['isActive']);
             }
@@ -174,13 +157,4 @@ final class AdminUserController extends AbstractController
         return $this->userRepository->getById(Uuid::fromString($id));
     }
 
-    private function passwordConstraint(): Assert\Sequentially
-    {
-        return new Assert\Sequentially([
-            new Assert\NotBlank(),
-            new Assert\Length(min: 8),
-            new Assert\Regex('/\d/', 'Password must contain at least one digit.'),
-            new Assert\Regex('/[.#&!]/', 'Password must contain at least one allowed special character: . # & !'),
-        ]);
-    }
 }
