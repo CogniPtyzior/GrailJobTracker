@@ -6,7 +6,8 @@
     "ng": "ng",
     "start": "ng serve --port 4200",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "test": "vitest run"
   },
   "dependencies": {
     "@angular/animations": "^20.0.0",
@@ -27,6 +28,8 @@
     "@angular/cli": "^20.0.0",
     "@angular/compiler-cli": "^20.0.0",
     "@types/node": "^22.14.1",
-    "typescript": "~5.8.2"
+    "jsdom": "^30.0.1",
+    "typescript": "~5.8.2",
+    "vitest": "^3.2.7"
   }
 }
