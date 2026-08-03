@@ -8,7 +8,7 @@ use App\Admin\Application\DeleteAccessRequest;
 use App\Admin\Presentation\AdminAccessRequestController;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
-use App\Shared\Infrastructure\Validation\PayloadValidator;
+use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\Tests\Support\Builder\AccessRequestBuilder;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Fake\InMemoryAccessRequestRepository;
@@ -103,7 +103,7 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
         return new AdminAccessRequestController(
             $accessRequestRepository,
             new AccessRequestPresenter(),
-            new PayloadValidator(Validation::createValidator()),
+            new RequestPayloadMapper(Validation::createValidator()),
             new ApproveAccessRequest(
                 $userRepository,
                 new EmailNormalizer(),

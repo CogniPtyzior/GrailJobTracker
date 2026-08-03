@@ -16,12 +16,9 @@ final class UpdateTrackedJob
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $payload
-     */
-    public function handle(TrackedJob $trackedJob, array $payload): TrackedJob
+    public function handle(TrackedJob $trackedJob, TrackedJobInput $payload): TrackedJob
     {
-        $this->trackedJobFactory->hydrate($trackedJob, $payload);
+        $this->trackedJobFactory->hydrate($trackedJob, $payload->toArray());
         $this->entityManager->flush();
 
         return $trackedJob;

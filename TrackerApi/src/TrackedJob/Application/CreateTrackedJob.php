@@ -17,12 +17,9 @@ final class CreateTrackedJob
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $payload
-     */
-    public function handle(User $owner, array $payload): TrackedJob
+    public function handle(User $owner, TrackedJobInput $payload): TrackedJob
     {
-        $trackedJob = $this->trackedJobFactory->create($owner, $payload);
+        $trackedJob = $this->trackedJobFactory->create($owner, $payload->toArray());
 
         $this->entityManager->persist($trackedJob);
         $this->entityManager->flush();

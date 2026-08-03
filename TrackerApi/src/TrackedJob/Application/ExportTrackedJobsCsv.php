@@ -18,12 +18,9 @@ final class ExportTrackedJobsCsv
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $filters
-     */
-    public function handle(User $owner, array $filters): string
+    public function handle(User $owner, ExportTrackedJobsInput $filters): string
     {
-        $result = $this->trackedJobRepository->search($owner, $filters, 1, self::EXPORT_LIMIT);
+        $result = $this->trackedJobRepository->search($owner, $filters->toFilters(), 1, self::EXPORT_LIMIT);
 
         return $this->csvExporter->export($result['items']);
     }

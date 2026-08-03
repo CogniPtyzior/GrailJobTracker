@@ -12,7 +12,7 @@ use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
-use App\Shared\Infrastructure\Validation\PayloadValidator;
+use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,7 +27,7 @@ final class AdminUserController extends AbstractController
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserPresenter $presenter,
-        private readonly PayloadValidator $payloadValidator,
+        private readonly RequestPayloadMapper $payloads,
         private readonly EmailNormalizer $emailNormalizer,
         private readonly CreateAdminUser $createAdminUser,
         private readonly UpdateAdminUser $updateAdminUser,
@@ -66,14 +66,16 @@ final class AdminUserController extends AbstractController
     #[Route('', name: 'api_admin_users_create', methods: ['POST'])]
     public function create(Request $request): Response
     {
-        $payload = $this->payloadValidator->validateRequest($request, CreateAdminUserPayload::constraint());
-        $normalizedEmail = $this->emailNormalizer->normalize((string) $payload['email']);
+        /** @var CreateAdminUserPayload $payload */
+        $payload = $this->payloads->fromRequest($request, CreateAdminUserPayload::class);
+        $input = $payload->toInput();
+        $normalizedEmail = $this->emailNormalizer->normalize($input->email);
 
         if ($this->userRepository->findOneByNormalizedEmail($normalizedEmail) instanceof User) {
             return ApiJsonResponse::error('A user with this email already exists.', Response::HTTP_CONFLICT);
         }
 
-        $user = $this->createAdminUser->handle($payload);
+        $user = $this->createAdminUser->handle($input);
 
         return ApiJsonResponse::success(['item' => $this->presenter->present($user)], Response::HTTP_CREATED);
     }
@@ -88,8 +90,9 @@ final class AdminUserController extends AbstractController
             return ApiJsonResponse::error('User not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $payload = $this->payloadValidator->validateRequest($request, UpdateAdminUserPayload::constraint());
-        $this->updateAdminUser->handle($user, $currentUser, $payload);
+        /** @var UpdateAdminUserPayload $payload */
+        $payload = $this->payloads->fromRequest($request, UpdateAdminUserPayload::class);
+        $this->updateAdminUser->handle($user, $currentUser, $payload->toInput());
 
         return ApiJsonResponse::success(['item' => $this->presenter->present($user)]);
     }

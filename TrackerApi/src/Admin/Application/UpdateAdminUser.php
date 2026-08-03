@@ -18,26 +18,28 @@ final class UpdateAdminUser
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $payload
-     */
-    public function handle(User $user, User $currentUser, array $payload): User
+    public function handle(User $user, User $currentUser, UpdateAdminUserInput $payload): User
     {
         $bootstrapAdmin = $user->isBootstrapAdmin($this->adminBootstrapEmail);
 
-        $user->setFirstName($payload['firstName'] ?? $user->getFirstName());
-        $user->setLastName($payload['lastName'] ?? $user->getLastName());
-
-        if ($this->canUpdateActiveFlag($user, $currentUser, $payload, $bootstrapAdmin)) {
-            $user->setIsActive($payload['isActive']);
+        if ($payload->has('firstName')) {
+            $user->setFirstName($payload->firstName);
         }
 
-        if (array_key_exists('isAdmin', $payload)) {
+        if ($payload->has('lastName')) {
+            $user->setLastName($payload->lastName);
+        }
+
+        if ($this->canUpdateActiveFlag($user, $currentUser, $payload, $bootstrapAdmin)) {
+            $user->setIsActive($payload->isActive ?? false);
+        }
+
+        if ($payload->has('isAdmin')) {
             $user->setRoles($bootstrapAdmin ? ['ROLE_ADMIN', 'ROLE_USER'] : $this->rolesFromPayload($payload));
         }
 
-        if (isset($payload['password']) && is_string($payload['password'])) {
-            $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload['password']));
+        if ($payload->has('password') && $payload->password !== null) {
+            $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload->password));
         }
 
         $this->entityManager->flush();
@@ -45,32 +47,28 @@ final class UpdateAdminUser
         return $user;
     }
 
-    /**
-     * @param array<string, mixed> $payload
-     */
     private function canUpdateActiveFlag(
         User $user,
         User $currentUser,
-        array $payload,
+        UpdateAdminUserInput $payload,
         bool $bootstrapAdmin,
     ): bool {
-        if (!array_key_exists('isActive', $payload)) {
+        if (!$payload->has('isActive')) {
             return false;
         }
 
-        if ($bootstrapAdmin && $currentUser->getId()->equals($user->getId()) && $payload['isActive'] === false) {
+        if ($bootstrapAdmin && $currentUser->getId()->equals($user->getId()) && $payload->isActive === false) {
             return false;
         }
 
-        return !$bootstrapAdmin || $payload['isActive'] === true;
+        return !$bootstrapAdmin || $payload->isActive === true;
     }
 
     /**
-     * @param array<string, mixed> $payload
      * @return list<string>
      */
-    private function rolesFromPayload(array $payload): array
+    private function rolesFromPayload(UpdateAdminUserInput $payload): array
     {
-        return $payload['isAdmin'] ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER'];
+        return $payload->isAdmin ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER'];
     }
 }

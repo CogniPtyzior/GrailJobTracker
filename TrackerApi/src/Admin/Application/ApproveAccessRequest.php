@@ -22,10 +22,7 @@ final class ApproveAccessRequest
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $payload
-     */
-    public function handle(AccessRequest $accessRequest, array $payload): User
+    public function handle(AccessRequest $accessRequest, ApproveAccessRequestInput $payload): User
     {
         $normalizedEmail = $this->emailNormalizer->normalize($accessRequest->getEmail());
         $user = $this->userRepository->findOneByNormalizedEmail($normalizedEmail);
@@ -35,11 +32,11 @@ final class ApproveAccessRequest
             $this->entityManager->persist($user);
         }
 
-        $user->setFirstName($payload['firstName'] ?? $accessRequest->getFirstName());
-        $user->setLastName($payload['lastName'] ?? $accessRequest->getLastName());
+        $user->setFirstName($payload->firstName ?? $accessRequest->getFirstName());
+        $user->setLastName($payload->lastName ?? $accessRequest->getLastName());
         $user->setIsActive(true);
         $user->setRoles(['ROLE_USER']);
-        $user->setPasswordHash($this->passwordHasher->hashPassword($user, (string) $payload['password']));
+        $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload->password));
 
         $this->entityManager->remove($accessRequest);
         $this->entityManager->flush();

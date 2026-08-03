@@ -18,20 +18,17 @@ final class CreateAccessRequest
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $payload
-     */
-    public function handle(array $payload): AccessRequest
+    public function handle(CreateAccessRequestInput $payload): AccessRequest
     {
         $accessRequest = new AccessRequest(
-            (string) $payload['email'],
-            $this->emailNormalizer->normalize((string) $payload['email']),
-            trim((string) $payload['companyName']),
-            trim((string) $payload['reason']),
+            $payload->email,
+            $this->emailNormalizer->normalize($payload->email),
+            trim($payload->companyName),
+            trim($payload->reason),
         );
 
-        $accessRequest->setFirstName($payload['firstName'] ?? null);
-        $accessRequest->setLastName($payload['lastName'] ?? null);
+        $accessRequest->setFirstName($payload->firstName);
+        $accessRequest->setLastName($payload->lastName);
 
         $this->entityManager->persist($accessRequest);
         $this->entityManager->flush();

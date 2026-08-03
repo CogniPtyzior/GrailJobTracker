@@ -9,7 +9,7 @@ use App\Admin\Application\UserPresenter;
 use App\Admin\Presentation\AdminUserController;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
-use App\Shared\Infrastructure\Validation\PayloadValidator;
+use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Fake\InMemoryUserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -151,7 +151,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
         return new AdminUserController(
             $userRepository,
             new UserPresenter(),
-            new PayloadValidator(Validation::createValidator()),
+            new RequestPayloadMapper(Validation::createValidator()),
             new EmailNormalizer(),
             new CreateAdminUser(new EmailNormalizer(), $passwordHasher, $entityManager),
             new UpdateAdminUser($passwordHasher, $entityManager, $adminBootstrapEmail),

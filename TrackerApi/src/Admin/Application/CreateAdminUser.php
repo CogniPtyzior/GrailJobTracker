@@ -19,19 +19,15 @@ final class CreateAdminUser
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $payload
-     */
-    public function handle(array $payload): User
+    public function handle(CreateAdminUserInput $payload): User
     {
-        $email = (string) $payload['email'];
-        $user = new User($email, $this->emailNormalizer->normalize($email));
+        $user = new User($payload->email, $this->emailNormalizer->normalize($payload->email));
 
-        $user->setFirstName($payload['firstName'] ?? null);
-        $user->setLastName($payload['lastName'] ?? null);
-        $user->setIsActive($payload['isActive'] ?? true);
-        $user->setRoles(($payload['isAdmin'] ?? false) ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER']);
-        $user->setPasswordHash($this->passwordHasher->hashPassword($user, (string) $payload['password']));
+        $user->setFirstName($payload->firstName);
+        $user->setLastName($payload->lastName);
+        $user->setIsActive($payload->isActive);
+        $user->setRoles($payload->isAdmin ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER']);
+        $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload->password));
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();

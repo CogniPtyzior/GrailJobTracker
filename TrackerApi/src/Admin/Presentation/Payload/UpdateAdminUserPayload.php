@@ -1,26 +1,74 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Admin\Presentation\Payload;
 
+use App\Admin\Application\UpdateAdminUserInput;
+use App\Shared\Infrastructure\Validation\RequestPayload;
+use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Defines the partial admin user update payload contract.
+ * Typed DTO representing the partial admin user update payload accepted by the HTTP controller.
  */
-final class UpdateAdminUserPayload
+final readonly class UpdateAdminUserPayload implements RequestPayload
 {
-    public static function constraint(): Assert\Collection
+    /**
+     * @param list<string> $providedFields
+     */
+    public function __construct(
+        #[Assert\Length(max: 120)]
+        public ?string $firstName = null,
+        #[Assert\Length(max: 120)]
+        public ?string $lastName = null,
+        public ?bool $isActive = null,
+        public ?bool $isAdmin = null,
+        #[Assert\NotBlank(allowNull: true)]
+        #[Assert\Length(min: 8)]
+        #[Assert\Regex('/\d/', message: 'Password must contain at least one digit.')]
+        #[Assert\Regex('/[.#&!]/', message: 'Password must contain at least one allowed special character: . # & !')]
+        public ?string $password = null,
+        private array $providedFields = [],
+    ) {
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function expectedFields(): array
     {
-        return new Assert\Collection(
-            fields: [
-                'firstName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-                'lastName' => new Assert\Optional([new Assert\Type('string'), new Assert\Length(max: 120)]),
-                'isActive' => new Assert\Optional([new Assert\Type('bool')]),
-                'isAdmin' => new Assert\Optional([new Assert\Type('bool')]),
-                'password' => new Assert\Optional([AdminUserPasswordPayload::constraint()]),
-            ],
-            allowMissingFields: true,
-            allowExtraFields: false,
+        return ['firstName', 'lastName', 'isActive', 'isAdmin', 'password'];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public static function fromArray(array $payload): self
+    {
+        try {
+            return new self(
+                firstName: $payload['firstName'] ?? null,
+                lastName: $payload['lastName'] ?? null,
+                isActive: $payload['isActive'] ?? null,
+                isAdmin: $payload['isAdmin'] ?? null,
+                password: array_key_exists('password', $payload) ? ($payload['password'] ?? '') : null,
+                providedFields: array_values(array_intersect(array_keys($payload), self::expectedFields())),
+            );
+        } catch (\TypeError) {
+            throw RequestPayloadHydrationException::invalidPayload();
+        }
+    }
+
+    public function toInput(): UpdateAdminUserInput
+    {
+        return new UpdateAdminUserInput(
+            firstName: $this->firstName,
+            lastName: $this->lastName,
+            isActive: $this->isActive,
+            isAdmin: $this->isAdmin,
+            password: $this->password,
+            providedFields: $this->providedFields,
         );
     }
 }

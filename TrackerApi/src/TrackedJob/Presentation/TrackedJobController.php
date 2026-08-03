@@ -4,7 +4,7 @@ namespace App\TrackedJob\Presentation;
 
 use App\Security\Domain\Entity\User;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
-use App\Shared\Infrastructure\Validation\PayloadValidator;
+use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\TrackedJob\Application\CreateTrackedJob;
 use App\TrackedJob\Application\DeleteTrackedJob;
 use App\TrackedJob\Application\ExportTrackedJobsCsv;
@@ -30,7 +30,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 final class TrackedJobController extends AbstractController
 {
     public function __construct(
-        private readonly PayloadValidator $payloadValidator,
+        private readonly RequestPayloadMapper $payloads,
         private readonly TrackedJobPresenter $presenter,
         private readonly SearchTrackedJobs $searchTrackedJobs,
         private readonly SuggestTrackedJobCompanies $suggestTrackedJobCompanies,
@@ -111,8 +111,9 @@ final class TrackedJobController extends AbstractController
     #[Route('', name: 'api_tracked_jobs_create', methods: ['POST'])]
     public function create(Request $request, #[CurrentUser] User $user): Response
     {
-        $payload = $this->payloadValidator->validateRequest($request, TrackedJobPayload::constraint());
-        $trackedJob = $this->createTrackedJob->handle($user, $payload);
+        /** @var TrackedJobPayload $payload */
+        $payload = $this->payloads->fromRequest($request, TrackedJobPayload::class);
+        $trackedJob = $this->createTrackedJob->handle($user, $payload->toInput());
 
         return ApiJsonResponse::success([
             'item' => $this->presenter->present($trackedJob),
@@ -129,8 +130,9 @@ final class TrackedJobController extends AbstractController
             return ApiJsonResponse::error('Tracked job not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $payload = $this->payloadValidator->validateRequest($request, TrackedJobPayload::constraint());
-        $this->updateTrackedJob->handle($trackedJob, $payload);
+        /** @var TrackedJobPayload $payload */
+        $payload = $this->payloads->fromRequest($request, TrackedJobPayload::class);
+        $this->updateTrackedJob->handle($trackedJob, $payload->toInput());
 
         return ApiJsonResponse::success([
             'item' => $this->presenter->present($trackedJob),
@@ -156,17 +158,9 @@ final class TrackedJobController extends AbstractController
     #[Route('/export-csv', name: 'api_tracked_jobs_export_csv', methods: ['POST'])]
     public function exportCsv(Request $request, #[CurrentUser] User $user): Response
     {
-        $payload = $this->payloadValidator->validateRequest($request, ExportTrackedJobsPayload::constraint());
-
-        $filters = [
-            'search' => $payload['search'] ?? null,
-            'company' => $payload['company'] ?? null,
-            'status' => isset($payload['status']) ? TrackedJobStatus::tryFrom((string) $payload['status']) : null,
-            'contractType' => isset($payload['contractType']) ? ContractType::tryFrom((string) $payload['contractType']) : null,
-            'remoteMode' => isset($payload['remoteMode']) ? RemoteMode::tryFrom((string) $payload['remoteMode']) : null,
-        ];
-
-        $csv = $this->exportTrackedJobsCsv->handle($user, $filters);
+        /** @var ExportTrackedJobsPayload $payload */
+        $payload = $this->payloads->fromRequest($request, ExportTrackedJobsPayload::class);
+        $csv = $this->exportTrackedJobsCsv->handle($user, $payload->toInput());
 
         return new Response($csv, Response::HTTP_OK, [
             'Content-Type' => 'text/csv; charset=UTF-8',

@@ -5,7 +5,7 @@ namespace App\AccessRequest\Presentation;
 use App\AccessRequest\Application\CreateAccessRequest;
 use App\AccessRequest\Presentation\Payload\CreateAccessRequestPayload;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
-use App\Shared\Infrastructure\Validation\PayloadValidator;
+use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,7 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class PublicAccessRequestController extends AbstractController
 {
     public function __construct(
-        private readonly PayloadValidator $payloadValidator,
+        private readonly RequestPayloadMapper $payloads,
         private readonly CreateAccessRequest $createAccessRequest,
         private readonly RateLimiterFactoryInterface $accessRequestSubmissionLimiter,
     ) {
@@ -33,8 +33,9 @@ final class PublicAccessRequestController extends AbstractController
     {
         $this->enforceRateLimit($request);
 
-        $payload = $this->payloadValidator->validateRequest($request, CreateAccessRequestPayload::constraint());
-        $this->createAccessRequest->handle($payload);
+        /** @var CreateAccessRequestPayload $payload */
+        $payload = $this->payloads->fromRequest($request, CreateAccessRequestPayload::class);
+        $this->createAccessRequest->handle($payload->toInput());
 
         return ApiJsonResponse::success([], Response::HTTP_CREATED);
     }
@@ -56,3 +57,4 @@ final class PublicAccessRequestController extends AbstractController
         );
     }
 }
+

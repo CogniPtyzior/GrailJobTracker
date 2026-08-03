@@ -9,7 +9,7 @@ use App\Admin\Application\ApproveAccessRequest;
 use App\Admin\Application\DeleteAccessRequest;
 use App\Admin\Presentation\Payload\ApproveAccessRequestPayload;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
-use App\Shared\Infrastructure\Validation\PayloadValidator;
+use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,7 +23,7 @@ final class AdminAccessRequestController extends AbstractController
     public function __construct(
         private readonly AccessRequestRepositoryInterface $accessRequestRepository,
         private readonly AccessRequestPresenter $presenter,
-        private readonly PayloadValidator $payloadValidator,
+        private readonly RequestPayloadMapper $payloads,
         private readonly ApproveAccessRequest $approveAccessRequest,
         private readonly DeleteAccessRequest $deleteAccessRequest,
     ) {
@@ -60,8 +60,9 @@ final class AdminAccessRequestController extends AbstractController
             return ApiJsonResponse::error('Access request not found.', Response::HTTP_NOT_FOUND);
         }
 
-        $payload = $this->payloadValidator->validateRequest($request, ApproveAccessRequestPayload::constraint());
-        $user = $this->approveAccessRequest->handle($accessRequest, $payload);
+        /** @var ApproveAccessRequestPayload $payload */
+        $payload = $this->payloads->fromRequest($request, ApproveAccessRequestPayload::class);
+        $user = $this->approveAccessRequest->handle($accessRequest, $payload->toInput());
 
         return ApiJsonResponse::success([
             'item' => [
