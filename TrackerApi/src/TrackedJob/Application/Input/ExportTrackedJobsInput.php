@@ -1,6 +1,6 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Application\Input;
 
 /**
  * Application input object carrying filters accepted by the tracked job CSV export use case.

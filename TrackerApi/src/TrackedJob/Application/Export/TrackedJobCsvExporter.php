@@ -1,6 +1,6 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Application\Export;
 
 use App\TrackedJob\Domain\Entity\TrackedJob;
 

@@ -2,14 +2,14 @@
 
 namespace App\Tests\Unit\TrackedJob\Application;
 
-use App\TrackedJob\Application\TrackedJobFactory;
-use App\TrackedJob\Application\TrackedJobStatusResolver;
+use App\TrackedJob\Application\Date\TrackedJobDateParser;
+use App\TrackedJob\Application\Factory\TrackedJobFactory;
+use App\TrackedJob\Application\Input\TrackedJobInput;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
 use App\Tests\Support\Builder\TrackedJobBuilder;
 use App\Tests\Support\Builder\UserBuilder;
-use App\Tests\Support\Payload\TrackedJobPayloads;
 use PHPUnit\Framework\TestCase;
 
 final class TrackedJobFactoryTest extends TestCase
@@ -18,12 +18,12 @@ final class TrackedJobFactoryTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->factory = new TrackedJobFactory(new TrackedJobStatusResolver());
+        $this->factory = new TrackedJobFactory();
     }
 
-    public function testCreateHydratesPayloadIntoTrackedJob(): void
+    public function testCreateHydratesInputIntoTrackedJob(): void
     {
-        $trackedJob = $this->factory->create(UserBuilder::aUser()->build(), TrackedJobPayloads::full());
+        $trackedJob = $this->factory->create(UserBuilder::aUser()->build(), $this->fullInput());
 
         self::assertSame('Acme', $trackedJob->getCompany());
         self::assertSame('Backend Engineer', $trackedJob->getTitle());
@@ -39,11 +39,11 @@ final class TrackedJobFactoryTest extends TestCase
         self::assertSame(TrackedJobStatus::SECOND_INTERVIEW, $trackedJob->getStatus());
     }
 
-    public function testHydrateConvertsBlankStringsAndInvalidEnums(): void
+    public function testHydrateAppliesNullValuesAndDefaultsContractType(): void
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()->build();
 
-        $this->factory->hydrate($trackedJob, TrackedJobPayloads::withInvalidEnums());
+        $this->factory->hydrate($trackedJob, new TrackedJobInput());
 
         self::assertNull($trackedJob->getCompany());
         self::assertNull($trackedJob->getTitle());
@@ -62,19 +62,57 @@ final class TrackedJobFactoryTest extends TestCase
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()->build();
 
-        $this->factory->hydrate($trackedJob, TrackedJobPayloads::minimal());
+        $this->factory->hydrate($trackedJob, $this->minimalInput());
 
-        self::assertSame('2026-04-16T00:00:00+00:00', $trackedJob->getPlannedFollowUpDate()?->format(\DateTimeInterface::ATOM));
+        self::assertSame(
+            '2026-04-16T00:00:00+00:00',
+            $trackedJob->getPlannedFollowUpDate()?->format(\DateTimeInterface::ATOM),
+        );
     }
 
     public function testHydrateRespectsExplicitFinalStatus(): void
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()->build();
-        $payload = TrackedJobPayloads::minimal();
-        $payload['status'] = TrackedJobStatus::WITHDRAWN->value;
+        $input = new TrackedJobInput(
+            company: 'Acme',
+            title: 'Backend Engineer',
+            applicationDate: TrackedJobDateParser::parseNullable('2026-04-01T09:00:00+00:00'),
+            status: TrackedJobStatus::WITHDRAWN,
+        );
 
-        $this->factory->hydrate($trackedJob, $payload);
+        $this->factory->hydrate($trackedJob, $input);
 
         self::assertSame(TrackedJobStatus::WITHDRAWN, $trackedJob->getStatus());
+    }
+
+    private function minimalInput(): TrackedJobInput
+    {
+        return new TrackedJobInput(
+            company: 'Acme',
+            title: 'Backend Engineer',
+            applicationDate: TrackedJobDateParser::parseNullable('2026-04-01T09:00:00+00:00'),
+        );
+    }
+
+    private function fullInput(): TrackedJobInput
+    {
+        return new TrackedJobInput(
+            company: 'Acme',
+            title: 'Backend Engineer',
+            contractType: ContractType::CDD,
+            location: 'Paris',
+            remoteMode: RemoteMode::FULL,
+            remuneration: '60k',
+            offerUrl: 'https://example.com/job',
+            notes: 'Strong fit',
+            applicationDate: TrackedJobDateParser::parseNullable('2026-04-01T09:00:00+00:00'),
+            effectiveFollowUpDate: TrackedJobDateParser::parseNullable('2026-04-10T09:00:00+00:00'),
+            firstContactDate: TrackedJobDateParser::parseNullable('2026-04-11T09:00:00+00:00'),
+            preliminaryInterviewDate: TrackedJobDateParser::parseNullable('2026-04-15T09:00:00+00:00'),
+            secondInterviewDate: TrackedJobDateParser::parseNullable('2026-04-20T09:00:00+00:00'),
+            hrContactName: 'Jane HR',
+            businessContactName: 'Bob Manager',
+            subjectiveRelevance: 9,
+        );
     }
 }

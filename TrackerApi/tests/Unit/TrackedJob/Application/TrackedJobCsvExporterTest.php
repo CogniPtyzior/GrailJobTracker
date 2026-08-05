@@ -2,7 +2,7 @@
 
 namespace App\Tests\Unit\TrackedJob\Application;
 
-use App\TrackedJob\Application\TrackedJobCsvExporter;
+use App\TrackedJob\Application\Export\TrackedJobCsvExporter;
 use App\Tests\Support\Builder\TrackedJobBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;
