@@ -6,18 +6,17 @@ namespace App\TrackedJob\Presentation\Payload;
 
 use App\Shared\Infrastructure\Validation\RequestPayload;
 use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
-use App\TrackedJob\Application\TrackedJobDateParser;
-use App\TrackedJob\Application\TrackedJobInput;
+use App\TrackedJob\Application\Date\TrackedJobDateParser;
+use App\TrackedJob\Application\Input\TrackedJobInput;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
+use App\TrackedJob\Presentation\Validation\ValidTrackedJobDate;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Typed DTO representing the tracked job create/update payload accepted by the HTTP controller.
  */
-#[Assert\Callback('validate')]
 final readonly class TrackedJobPayload implements RequestPayload
 {
     public function __construct(
@@ -25,25 +24,35 @@ final readonly class TrackedJobPayload implements RequestPayload
         public ?string $company = null,
         #[Assert\Length(max: 255)]
         public ?string $title = null,
+        #[Assert\Choice(callback: [ContractType::class, 'values'])]
         public ?string $contractType = null,
         #[Assert\Length(max: 255)]
         public ?string $location = null,
+        #[Assert\Choice(callback: [RemoteMode::class, 'values'])]
         public ?string $remoteMode = null,
         #[Assert\Length(max: 255)]
         public ?string $remuneration = null,
         public ?string $offerUrl = null,
         #[Assert\Length(max: 10000)]
         public ?string $notes = null,
+        #[ValidTrackedJobDate]
         public ?string $applicationDate = null,
+        #[ValidTrackedJobDate]
         public ?string $effectiveFollowUpDate = null,
+        #[ValidTrackedJobDate]
         public ?string $firstContactDate = null,
+        #[ValidTrackedJobDate]
         public ?string $preliminaryInterviewDate = null,
+        #[ValidTrackedJobDate]
         public ?string $secondInterviewDate = null,
         #[Assert\Length(max: 255)]
         public ?string $hrContactName = null,
         #[Assert\Length(max: 255)]
         public ?string $businessContactName = null,
+        #[Assert\Type(type: 'numeric')]
+        #[Assert\Range(min: 1, max: 10)]
         public int|float|string|null $subjectiveRelevance = null,
+        #[Assert\Choice(callback: [TrackedJobStatus::class, 'values'])]
         public ?string $status = null,
     ) {
     }
@@ -106,94 +115,58 @@ final readonly class TrackedJobPayload implements RequestPayload
 
     public function toInput(): TrackedJobInput
     {
-        return new TrackedJobInput([
-            'company' => $this->company,
-            'title' => $this->title,
-            'contractType' => $this->contractType,
-            'location' => $this->location,
-            'remoteMode' => $this->remoteMode,
-            'remuneration' => $this->remuneration,
-            'offerUrl' => $this->offerUrl,
-            'notes' => $this->notes,
-            'applicationDate' => $this->applicationDate,
-            'effectiveFollowUpDate' => $this->effectiveFollowUpDate,
-            'firstContactDate' => $this->firstContactDate,
-            'preliminaryInterviewDate' => $this->preliminaryInterviewDate,
-            'secondInterviewDate' => $this->secondInterviewDate,
-            'hrContactName' => $this->hrContactName,
-            'businessContactName' => $this->businessContactName,
-            'subjectiveRelevance' => $this->subjectiveRelevance,
-            'status' => $this->status,
-        ]);
+        return new TrackedJobInput(
+            company: $this->blankToNull($this->company),
+            title: $this->blankToNull($this->title),
+            contractType: $this->enumOrNull(ContractType::class, $this->contractType),
+            location: $this->blankToNull($this->location),
+            remoteMode: $this->enumOrNull(RemoteMode::class, $this->remoteMode),
+            remuneration: $this->blankToNull($this->remuneration),
+            offerUrl: $this->blankToNull($this->offerUrl),
+            notes: $this->blankToNull($this->notes),
+            applicationDate: TrackedJobDateParser::parseNullable($this->applicationDate),
+            effectiveFollowUpDate: TrackedJobDateParser::parseNullable($this->effectiveFollowUpDate),
+            firstContactDate: TrackedJobDateParser::parseNullable($this->firstContactDate),
+            preliminaryInterviewDate: TrackedJobDateParser::parseNullable($this->preliminaryInterviewDate),
+            secondInterviewDate: TrackedJobDateParser::parseNullable($this->secondInterviewDate),
+            hrContactName: $this->blankToNull($this->hrContactName),
+            businessContactName: $this->blankToNull($this->businessContactName),
+            subjectiveRelevance: $this->intOrNull($this->subjectiveRelevance),
+            status: $this->enumOrNull(TrackedJobStatus::class, $this->status),
+        );
     }
 
-    public function validate(ExecutionContextInterface $context): void
+    private function blankToNull(?string $value): ?string
     {
-        $this->validateEnum('contractType', $this->contractType, ContractType::class, $context);
-        $this->validateEnum('remoteMode', $this->remoteMode, RemoteMode::class, $context);
-        $this->validateEnum('status', $this->status, TrackedJobStatus::class, $context);
-        $this->validateSubjectiveRelevance($context);
-        $this->validateDate('applicationDate', $this->applicationDate, $context);
-        $this->validateDate('effectiveFollowUpDate', $this->effectiveFollowUpDate, $context);
-        $this->validateDate('firstContactDate', $this->firstContactDate, $context);
-        $this->validateDate('preliminaryInterviewDate', $this->preliminaryInterviewDate, $context);
-        $this->validateDate('secondInterviewDate', $this->secondInterviewDate, $context);
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function intOrNull(int|float|string|null $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) $value;
     }
 
     /**
-     * @param class-string<\BackedEnum> $enumClass
+     * @template T of \BackedEnum
+     * @param class-string<T> $enumClass
+     * @return T|null
      */
-    private function validateEnum(
-        string $field,
-        ?string $value,
-        string $enumClass,
-        ExecutionContextInterface $context,
-    ): void {
-        if ($value === null) {
-            return;
-        }
-
-        if ($enumClass::tryFrom($value) === null) {
-            $context->buildViolation('The value you selected is not a valid choice.')
-                ->atPath($field)
-                ->addViolation();
-        }
-    }
-
-    private function validateSubjectiveRelevance(ExecutionContextInterface $context): void
-    {
-        if ($this->subjectiveRelevance === null) {
-            return;
-        }
-
-        if (!is_numeric($this->subjectiveRelevance)) {
-            $context->buildViolation('This value should be of type numeric.')
-                ->atPath('subjectiveRelevance')
-                ->addViolation();
-
-            return;
-        }
-
-        if ((float) $this->subjectiveRelevance < 1 || (float) $this->subjectiveRelevance > 10) {
-            $context->buildViolation('This value should be between {{ min }} and {{ max }}.')
-                ->setParameter('{{ min }}', '1')
-                ->setParameter('{{ max }}', '10')
-                ->atPath('subjectiveRelevance')
-                ->addViolation();
-        }
-    }
-
-    private function validateDate(string $field, ?string $value, ExecutionContextInterface $context): void
+    private function enumOrNull(string $enumClass, ?string $value): ?\BackedEnum
     {
         if ($value === null || $value === '') {
-            return;
+            return null;
         }
 
-        if (!TrackedJobDateParser::isValid($value)) {
-            $context->buildViolation('This value should be a valid date.')
-                ->atPath($field)
-                ->addViolation();
-        }
+        return $enumClass::from($value);
     }
 }
-
