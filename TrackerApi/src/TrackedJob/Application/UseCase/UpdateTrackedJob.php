@@ -1,7 +1,9 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Application\UseCase;
 
+use App\TrackedJob\Application\Factory\TrackedJobFactory;
+use App\TrackedJob\Application\Input\TrackedJobInput;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -18,7 +20,7 @@ final class UpdateTrackedJob
 
     public function handle(TrackedJob $trackedJob, TrackedJobInput $payload): TrackedJob
     {
-        $this->trackedJobFactory->hydrate($trackedJob, $payload->toArray());
+        $this->trackedJobFactory->hydrate($trackedJob, $payload);
         $this->entityManager->flush();
 
         return $trackedJob;

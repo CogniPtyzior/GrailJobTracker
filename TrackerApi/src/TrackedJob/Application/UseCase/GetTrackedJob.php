@@ -1,6 +1,6 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Application\UseCase;
 
 use App\Security\Domain\Entity\User;
 use App\TrackedJob\Domain\Entity\TrackedJob;
@@ -17,12 +17,8 @@ final class GetTrackedJob
     ) {
     }
 
-    public function handle(string $id, User $owner): ?TrackedJob
+    public function handle(Uuid $id, User $owner): ?TrackedJob
     {
-        if (!Uuid::isValid($id)) {
-            return null;
-        }
-
-        return $this->trackedJobRepository->getByIdForOwner(Uuid::fromString($id), $owner);
+        return $this->trackedJobRepository->getByIdForOwner($id, $owner);
     }
 }

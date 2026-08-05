@@ -1,9 +1,9 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Application\UseCase;
 
 use App\Security\Domain\Entity\User;
-use App\TrackedJob\Domain\Entity\TrackedJob;
+use App\TrackedJob\Application\Result\SearchTrackedJobsResult;
 use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 
 /**
@@ -18,10 +18,11 @@ final class SearchTrackedJobs
 
     /**
      * @param array<string, mixed> $filters
-     * @return array{items: list<TrackedJob>, hasMore: bool}
      */
-    public function handle(User $owner, array $filters, int $page, int $pageSize): array
+    public function handle(User $owner, array $filters, int $page, int $pageSize): SearchTrackedJobsResult
     {
-        return $this->trackedJobRepository->search($owner, $filters, $page, $pageSize);
+        $result = $this->trackedJobRepository->search($owner, $filters, $page, $pageSize);
+
+        return new SearchTrackedJobsResult($result['items'], $result['hasMore']);
     }
 }

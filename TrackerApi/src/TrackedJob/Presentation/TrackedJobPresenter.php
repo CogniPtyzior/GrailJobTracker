@@ -1,7 +1,8 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Presentation;
 
+use App\TrackedJob\Application\Result\SearchTrackedJobsResult;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 
 final class TrackedJobPresenter
@@ -33,6 +34,19 @@ final class TrackedJobPresenter
             'status' => $trackedJob->getStatus()->value,
             'createdAt' => $trackedJob->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'updatedAt' => $trackedJob->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentSearchResult(SearchTrackedJobsResult $result, int $page, int $pageSize): array
+    {
+        return [
+            'items' => array_map($this->present(...), $result->items),
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'hasMore' => $result->hasMore,
         ];
     }
 }

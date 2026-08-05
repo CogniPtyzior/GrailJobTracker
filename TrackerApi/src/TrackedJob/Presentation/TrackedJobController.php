@@ -5,14 +5,13 @@ namespace App\TrackedJob\Presentation;
 use App\Security\Domain\Entity\User;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
-use App\TrackedJob\Application\CreateTrackedJob;
-use App\TrackedJob\Application\DeleteTrackedJob;
-use App\TrackedJob\Application\ExportTrackedJobsCsv;
-use App\TrackedJob\Application\GetTrackedJob;
-use App\TrackedJob\Application\SearchTrackedJobs;
-use App\TrackedJob\Application\SuggestTrackedJobCompanies;
-use App\TrackedJob\Application\TrackedJobPresenter;
-use App\TrackedJob\Application\UpdateTrackedJob;
+use App\TrackedJob\Application\UseCase\CreateTrackedJob;
+use App\TrackedJob\Application\UseCase\DeleteTrackedJob;
+use App\TrackedJob\Application\UseCase\ExportTrackedJobsCsv;
+use App\TrackedJob\Application\UseCase\GetTrackedJob;
+use App\TrackedJob\Application\UseCase\SearchTrackedJobs;
+use App\TrackedJob\Application\UseCase\SuggestTrackedJobCompanies;
+use App\TrackedJob\Application\UseCase\UpdateTrackedJob;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
@@ -25,6 +24,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Uid\Uuid;
 
 #[Route('/api/tracked-jobs')]
 final class TrackedJobController extends AbstractController
@@ -69,12 +69,7 @@ final class TrackedJobController extends AbstractController
 
         $result = $this->searchTrackedJobs->handle($user, $filters, $page, $pageSize);
 
-        return ApiJsonResponse::success([
-            'items' => array_map($this->presenter->present(...), $result['items']),
-            'page' => $page,
-            'pageSize' => $pageSize,
-            'hasMore' => $result['hasMore'],
-        ]);
+        return ApiJsonResponse::success($this->presenter->presentSearchResult($result, $page, $pageSize));
     }
 
     #[OA\Get(path: '/api/tracked-jobs/company-suggestions', summary: 'Return company suggestions.', tags: ['Tracked jobs'])]
@@ -170,6 +165,10 @@ final class TrackedJobController extends AbstractController
 
     private function findTrackedJob(string $id, User $user): ?TrackedJob
     {
-        return $this->getTrackedJob->handle($id, $user);
+        try {
+            return $this->getTrackedJob->handle(Uuid::fromString($id), $user);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
     }
 }

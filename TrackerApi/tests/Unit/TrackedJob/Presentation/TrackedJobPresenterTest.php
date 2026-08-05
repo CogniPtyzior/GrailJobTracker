@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Tests\Unit\TrackedJob\Application;
+namespace App\Tests\Unit\TrackedJob\Presentation;
 
-use App\TrackedJob\Application\TrackedJobPresenter;
+use App\TrackedJob\Presentation\TrackedJobPresenter;
 use App\Tests\Support\Builder\TrackedJobBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;

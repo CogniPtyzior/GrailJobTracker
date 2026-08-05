@@ -1,6 +1,6 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Application\UseCase;
 
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;

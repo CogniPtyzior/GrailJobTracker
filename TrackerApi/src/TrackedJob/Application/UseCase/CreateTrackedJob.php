@@ -1,8 +1,10 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Application\UseCase;
 
 use App\Security\Domain\Entity\User;
+use App\TrackedJob\Application\Factory\TrackedJobFactory;
+use App\TrackedJob\Application\Input\TrackedJobInput;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -19,7 +21,7 @@ final class CreateTrackedJob
 
     public function handle(User $owner, TrackedJobInput $payload): TrackedJob
     {
-        $trackedJob = $this->trackedJobFactory->create($owner, $payload->toArray());
+        $trackedJob = $this->trackedJobFactory->create($owner, $payload);
 
         $this->entityManager->persist($trackedJob);
         $this->entityManager->flush();

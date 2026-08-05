@@ -1,8 +1,10 @@
 <?php
 
-namespace App\TrackedJob\Application;
+namespace App\TrackedJob\Application\UseCase;
 
 use App\Security\Domain\Entity\User;
+use App\TrackedJob\Application\Export\TrackedJobCsvExporter;
+use App\TrackedJob\Application\Input\ExportTrackedJobsInput;
 use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 
 /**
