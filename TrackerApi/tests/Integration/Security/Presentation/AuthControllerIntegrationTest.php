@@ -84,7 +84,7 @@ final class AuthControllerIntegrationTest extends WebTestCase
 
         self::assertInstanceOf(User::class, $managedUser);
 
-        $managedUser->setIsActive(false);
+        $managedUser->deactivate();
         $entityManager->flush();
         $entityManager->clear();
 
@@ -111,7 +111,7 @@ final class AuthControllerIntegrationTest extends WebTestCase
         $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
         $user = new User($email, mb_strtolower(trim($email)));
 
-        $user->setIsActive($isActive);
+        $isActive ? $user->activate() : $user->deactivate();
         $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
 
         $entityManager->persist($user);

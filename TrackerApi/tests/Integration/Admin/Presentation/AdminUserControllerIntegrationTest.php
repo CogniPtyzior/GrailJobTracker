@@ -2,10 +2,12 @@
 
 namespace App\Tests\Integration\Admin\Presentation;
 
-use App\Admin\Application\CreateAdminUser;
-use App\Admin\Application\DeleteAdminUser;
-use App\Admin\Application\UpdateAdminUser;
-use App\Admin\Application\UserPresenter;
+use App\Admin\Application\UseCase\CreateAdminUser;
+use App\Admin\Application\UseCase\DeleteAdminUser;
+use App\Admin\Application\UseCase\GetAdminUser;
+use App\Admin\Application\UseCase\SearchUsers;
+use App\Admin\Application\UseCase\UpdateAdminUser;
+use App\Admin\Presentation\UserPresenter;
 use App\Admin\Presentation\AdminUserController;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
@@ -149,11 +151,11 @@ final class AdminUserControllerIntegrationTest extends TestCase
         $passwordHasher = $this->passwordHasherStub();
 
         return new AdminUserController(
-            $userRepository,
             new UserPresenter(),
+            new SearchUsers($userRepository),
+            new GetAdminUser($userRepository),
             new RequestPayloadMapper(Validation::createValidator()),
-            new EmailNormalizer(),
-            new CreateAdminUser(new EmailNormalizer(), $passwordHasher, $entityManager),
+            new CreateAdminUser(new EmailNormalizer(), $userRepository, $passwordHasher, $entityManager),
             new UpdateAdminUser($passwordHasher, $entityManager, $adminBootstrapEmail),
             new DeleteAdminUser($entityManager),
             $adminBootstrapEmail,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Admin\Presentation\Payload;
 
-use App\Admin\Application\CreateAdminUserInput;
+use App\Admin\Application\Input\CreateAdminUserInput;
 use App\Shared\Infrastructure\Validation\RequestPayload;
 use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
 use Symfony\Component\Validator\Constraints as Assert;

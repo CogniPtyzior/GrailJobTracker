@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Admin\Application;
+namespace App\Admin\Presentation;
 
+use App\Admin\Application\Result\SearchUsersResult;
 use App\Security\Domain\Entity\User;
 
 final class UserPresenter
@@ -20,6 +21,19 @@ final class UserPresenter
             'roles' => $user->getRoles(),
             'createdAt' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'lastLoginAt' => $user->getLastLoginAt()?->format(\DateTimeInterface::ATOM),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentPaginatedResult(SearchUsersResult $result, int $page, int $pageSize): array
+    {
+        return [
+            'items' => array_map($this->present(...), $result->items),
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'total' => $result->total,
         ];
     }
 }

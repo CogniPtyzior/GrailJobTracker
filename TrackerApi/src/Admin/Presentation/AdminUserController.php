@@ -2,15 +2,15 @@
 
 namespace App\Admin\Presentation;
 
-use App\Admin\Application\CreateAdminUser;
-use App\Admin\Application\DeleteAdminUser;
-use App\Admin\Application\UpdateAdminUser;
-use App\Admin\Application\UserPresenter;
+use App\Admin\Application\UseCase\CreateAdminUser;
+use App\Admin\Application\Exception\AdminUserAlreadyExists;
+use App\Admin\Application\UseCase\GetAdminUser;
+use App\Admin\Application\UseCase\DeleteAdminUser;
+use App\Admin\Application\UseCase\SearchUsers;
+use App\Admin\Application\UseCase\UpdateAdminUser;
 use App\Admin\Presentation\Payload\CreateAdminUserPayload;
 use App\Admin\Presentation\Payload\UpdateAdminUserPayload;
-use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
-use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use OpenApi\Attributes as OA;
@@ -25,10 +25,10 @@ use Symfony\Component\Uid\Uuid;
 final class AdminUserController extends AbstractController
 {
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository,
         private readonly UserPresenter $presenter,
+        private readonly SearchUsers $searchUsers,
+        private readonly GetAdminUser $getAdminUser,
         private readonly RequestPayloadMapper $payloads,
-        private readonly EmailNormalizer $emailNormalizer,
         private readonly CreateAdminUser $createAdminUser,
         private readonly UpdateAdminUser $updateAdminUser,
         private readonly DeleteAdminUser $deleteAdminUser,
@@ -43,7 +43,7 @@ final class AdminUserController extends AbstractController
         $page = max((int) $request->query->get('page', 1), 1);
         $pageSize = min(max((int) $request->query->get('pageSize', 10), 1), 100);
 
-        $result = $this->userRepository->search(
+        $result = $this->searchUsers->handle(
             match ($request->query->get('isActive')) {
                 'true' => true,
                 'false' => false,
@@ -54,12 +54,7 @@ final class AdminUserController extends AbstractController
             $pageSize,
         );
 
-        return ApiJsonResponse::success([
-            'items' => array_map($this->presenter->present(...), $result['items']),
-            'page' => $page,
-            'pageSize' => $pageSize,
-            'total' => $result['total'],
-        ]);
+        return ApiJsonResponse::success($this->presenter->presentPaginatedResult($result, $page, $pageSize));
     }
 
     #[OA\Post(path: '/api/admin/users', summary: 'Create a user.', tags: ['Admin users'])]
@@ -68,14 +63,11 @@ final class AdminUserController extends AbstractController
     {
         /** @var CreateAdminUserPayload $payload */
         $payload = $this->payloads->fromRequest($request, CreateAdminUserPayload::class);
-        $input = $payload->toInput();
-        $normalizedEmail = $this->emailNormalizer->normalize($input->email);
-
-        if ($this->userRepository->findOneByNormalizedEmail($normalizedEmail) instanceof User) {
-            return ApiJsonResponse::error('A user with this email already exists.', Response::HTTP_CONFLICT);
+        try {
+            $user = $this->createAdminUser->handle($payload->toInput());
+        } catch (AdminUserAlreadyExists $exception) {
+            return ApiJsonResponse::error($exception->getMessage(), Response::HTTP_CONFLICT);
         }
-
-        $user = $this->createAdminUser->handle($input);
 
         return ApiJsonResponse::success(['item' => $this->presenter->present($user)], Response::HTTP_CREATED);
     }
@@ -118,10 +110,10 @@ final class AdminUserController extends AbstractController
 
     private function findUser(string $id): ?User
     {
-        if (!Uuid::isValid($id)) {
+        try {
+            return $this->getAdminUser->handle(Uuid::fromString($id));
+        } catch (\InvalidArgumentException) {
             return null;
         }
-
-        return $this->userRepository->getById(Uuid::fromString($id));
     }
 }

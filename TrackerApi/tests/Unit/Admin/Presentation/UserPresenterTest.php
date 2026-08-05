@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Tests\Unit\Admin\Application;
+namespace App\Tests\Unit\Admin\Presentation;
 
-use App\Admin\Application\UserPresenter;
+use App\Admin\Presentation\UserPresenter;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;
