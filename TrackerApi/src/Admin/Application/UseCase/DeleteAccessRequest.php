@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Admin\Application;
+namespace App\Admin\Application\UseCase;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use Doctrine\ORM\EntityManagerInterface;

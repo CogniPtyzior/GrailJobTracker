@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Admin\Application;
+namespace App\Admin\Application\UseCase;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
+use App\Admin\Application\Input\ApproveAccessRequestInput;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
@@ -32,10 +33,12 @@ final class ApproveAccessRequest
             $this->entityManager->persist($user);
         }
 
-        $user->setFirstName($payload->firstName ?? $accessRequest->getFirstName());
-        $user->setLastName($payload->lastName ?? $accessRequest->getLastName());
-        $user->setIsActive(true);
-        $user->setRoles(['ROLE_USER']);
+        $user->updateProfile(
+            $payload->firstName ?? $accessRequest->getFirstName(),
+            $payload->lastName ?? $accessRequest->getLastName(),
+        );
+        $user->activate();
+        $user->assignRegularUser();
         $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload->password));
 
         $this->entityManager->remove($accessRequest);

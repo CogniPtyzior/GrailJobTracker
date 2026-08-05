@@ -2,9 +2,11 @@
 
 namespace App\Tests\Integration\Admin\Presentation;
 
-use App\AccessRequest\Application\AccessRequestPresenter;
-use App\Admin\Application\ApproveAccessRequest;
-use App\Admin\Application\DeleteAccessRequest;
+use App\AccessRequest\Application\UseCase\GetAccessRequest;
+use App\AccessRequest\Application\UseCase\SearchAccessRequests;
+use App\AccessRequest\Presentation\AccessRequestPresenter;
+use App\Admin\Application\UseCase\ApproveAccessRequest;
+use App\Admin\Application\UseCase\DeleteAccessRequest;
 use App\Admin\Presentation\AdminAccessRequestController;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
@@ -101,8 +103,9 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
         EntityManagerInterface $entityManager,
     ): AdminAccessRequestController {
         return new AdminAccessRequestController(
-            $accessRequestRepository,
             new AccessRequestPresenter(),
+            new SearchAccessRequests($accessRequestRepository),
+            new GetAccessRequest($accessRequestRepository),
             new RequestPayloadMapper(Validation::createValidator()),
             new ApproveAccessRequest(
                 $userRepository,

@@ -2,11 +2,12 @@
 
 namespace App\Admin\Presentation;
 
-use App\AccessRequest\Application\AccessRequestPresenter;
+use App\AccessRequest\Presentation\AccessRequestPresenter;
+use App\AccessRequest\Application\UseCase\GetAccessRequest;
+use App\AccessRequest\Application\UseCase\SearchAccessRequests;
 use App\AccessRequest\Domain\Entity\AccessRequest;
-use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
-use App\Admin\Application\ApproveAccessRequest;
-use App\Admin\Application\DeleteAccessRequest;
+use App\Admin\Application\UseCase\ApproveAccessRequest;
+use App\Admin\Application\UseCase\DeleteAccessRequest;
 use App\Admin\Presentation\Payload\ApproveAccessRequestPayload;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
@@ -21,8 +22,9 @@ use Symfony\Component\Uid\Uuid;
 final class AdminAccessRequestController extends AbstractController
 {
     public function __construct(
-        private readonly AccessRequestRepositoryInterface $accessRequestRepository,
         private readonly AccessRequestPresenter $presenter,
+        private readonly SearchAccessRequests $searchAccessRequests,
+        private readonly GetAccessRequest $getAccessRequest,
         private readonly RequestPayloadMapper $payloads,
         private readonly ApproveAccessRequest $approveAccessRequest,
         private readonly DeleteAccessRequest $deleteAccessRequest,
@@ -36,14 +38,9 @@ final class AdminAccessRequestController extends AbstractController
         $page = max((int) $request->query->get('page', 1), 1);
         $pageSize = min(max((int) $request->query->get('pageSize', 10), 1), 100);
 
-        $result = $this->accessRequestRepository->search($request->query->get('query'), $page, $pageSize);
+        $result = $this->searchAccessRequests->handle($request->query->get('query'), $page, $pageSize);
 
-        return ApiJsonResponse::success([
-            'items' => array_map($this->presenter->present(...), $result['items']),
-            'page' => $page,
-            'pageSize' => $pageSize,
-            'total' => $result['total'],
-        ]);
+        return ApiJsonResponse::success($this->presenter->presentPaginatedResult($result, $page, $pageSize));
     }
 
     #[OA\Post(
@@ -89,10 +86,10 @@ final class AdminAccessRequestController extends AbstractController
 
     private function findAccessRequest(string $id): ?AccessRequest
     {
-        if (!Uuid::isValid($id)) {
+        try {
+            return $this->getAccessRequest->handle(Uuid::fromString($id));
+        } catch (\InvalidArgumentException) {
             return null;
         }
-
-        return $this->accessRequestRepository->getById(Uuid::fromString($id));
     }
 }

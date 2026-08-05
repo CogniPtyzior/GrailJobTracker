@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Admin\Application;
+namespace App\Admin\Application\Input;
 
 /**
  * Application input object used when approving an access request.
