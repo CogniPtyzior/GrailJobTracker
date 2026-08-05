@@ -59,15 +59,13 @@ final class AccessRequestBuilder
 
     public function build(): AccessRequest
     {
-        $accessRequest = new AccessRequest(
+        return AccessRequest::submit(
             $this->email,
             mb_strtolower(trim($this->email)),
             $this->companyName,
             $this->reason,
+            $this->firstName,
+            $this->lastName,
         );
-        $accessRequest->setFirstName($this->firstName);
-        $accessRequest->setLastName($this->lastName);
-
-        return $accessRequest;
     }
 }

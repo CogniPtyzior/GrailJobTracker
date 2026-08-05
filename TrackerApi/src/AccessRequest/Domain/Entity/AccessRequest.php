@@ -8,6 +8,9 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
+/**
+ * Domain entity that represents and normalizes a public access request.
+ */
 #[ORM\Entity(repositoryClass: AccessRequestRepository::class)]
 #[ORM\Table(name: 'access_requests', schema: 'trackers')]
 #[ORM\Index(columns: ['normalized_email'], name: 'idx_access_requests_normalized_email')]
@@ -45,27 +48,68 @@ final class AccessRequest
         $this->id = new UuidV7();
         $this->email = $email;
         $this->normalizedEmail = $normalizedEmail;
-        $this->companyName = $companyName;
-        $this->reason = $reason;
+        $this->companyName = trim($companyName);
+        $this->reason = trim($reason);
         $this->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getEmail(): string { return $this->email; }
-    public function getNormalizedEmail(): string { return $this->normalizedEmail; }
-    public function getCompanyName(): string { return $this->companyName; }
-    public function getReason(): string { return $this->reason; }
-    public function getFirstName(): ?string { return $this->firstName; }
-    public function getLastName(): ?string { return $this->lastName; }
-    public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+    public static function submit(
+        string $email,
+        string $normalizedEmail,
+        string $companyName,
+        string $reason,
+        ?string $firstName,
+        ?string $lastName,
+    ): self {
+        $accessRequest = new self($email, $normalizedEmail, $companyName, $reason);
+        $accessRequest->updateRequesterName($firstName, $lastName);
 
-    public function setFirstName(?string $firstName): void
-    {
-        $this->firstName = $this->trimOrNull($firstName);
+        return $accessRequest;
     }
 
-    public function setLastName(?string $lastName): void
+    public function getId(): Uuid
     {
+        return $this->id;
+    }
+
+    public function getEmail(): string
+    {
+        return $this->email;
+    }
+
+    public function getNormalizedEmail(): string
+    {
+        return $this->normalizedEmail;
+    }
+
+    public function getCompanyName(): string
+    {
+        return $this->companyName;
+    }
+
+    public function getReason(): string
+    {
+        return $this->reason;
+    }
+
+    public function getFirstName(): ?string
+    {
+        return $this->firstName;
+    }
+
+    public function getLastName(): ?string
+    {
+        return $this->lastName;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function updateRequesterName(?string $firstName, ?string $lastName): void
+    {
+        $this->firstName = $this->trimOrNull($firstName);
         $this->lastName = $this->trimOrNull($lastName);
     }
 

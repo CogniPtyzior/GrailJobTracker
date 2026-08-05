@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Tests\Unit\AccessRequest\Application;
+namespace App\Tests\Unit\AccessRequest\Presentation;
 
-use App\AccessRequest\Application\AccessRequestPresenter;
+use App\AccessRequest\Presentation\AccessRequestPresenter;
 use App\Tests\Support\Builder\AccessRequestBuilder;
 use PHPUnit\Framework\TestCase;
 

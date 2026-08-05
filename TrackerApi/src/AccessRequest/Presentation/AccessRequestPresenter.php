@@ -1,7 +1,8 @@
 <?php
 
-namespace App\AccessRequest\Application;
+namespace App\AccessRequest\Presentation;
 
+use App\AccessRequest\Application\Result\SearchAccessRequestsResult;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 
 final class AccessRequestPresenter
@@ -19,6 +20,19 @@ final class AccessRequestPresenter
             'firstName' => $accessRequest->getFirstName(),
             'lastName' => $accessRequest->getLastName(),
             'createdAt' => $accessRequest->getCreatedAt()->format(\DateTimeInterface::ATOM),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentPaginatedResult(SearchAccessRequestsResult $result, int $page, int $pageSize): array
+    {
+        return [
+            'items' => array_map($this->present(...), $result->items),
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'total' => $result->total,
         ];
     }
 }
