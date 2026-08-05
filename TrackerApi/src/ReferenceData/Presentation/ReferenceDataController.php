@@ -19,9 +19,9 @@ final class ReferenceDataController extends AbstractController
     public function __invoke(): Response
     {
         return ApiJsonResponse::success([
-            'contractTypes' => array_map(static fn (ContractType $item) => $item->value, ContractType::cases()),
-            'remoteModes' => array_map(static fn (RemoteMode $item) => $item->value, RemoteMode::cases()),
-            'trackedJobStatuses' => array_map(static fn (TrackedJobStatus $item) => $item->value, TrackedJobStatus::cases()),
+            'contractTypes' => ContractType::values(),
+            'remoteModes' => RemoteMode::values(),
+            'trackedJobStatuses' => TrackedJobStatus::values(),
             'defaultContractType' => ContractType::CDI->value,
         ]);
     }

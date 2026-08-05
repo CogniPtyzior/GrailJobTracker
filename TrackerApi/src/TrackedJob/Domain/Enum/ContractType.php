@@ -10,4 +10,12 @@ enum ContractType: string
     case INTERNSHIP = 'INTERNSHIP';
     case APPRENTICESHIP = 'APPRENTICESHIP';
     case OTHER = 'OTHER';
+
+    /**
+     * @return list<string>
+     */
+    public static function values(): array
+    {
+        return array_map(static fn (self $item): string => $item->value, self::cases());
+    }
 }
