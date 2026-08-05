@@ -12,6 +12,9 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
+/**
+ * Domain entity that owns tracked-job state transitions and normalization rules.
+ */
 #[ORM\Entity(repositoryClass: TrackedJobRepository::class)]
 #[ORM\Table(name: 'tracked_jobs', schema: 'trackers')]
 #[ORM\Index(columns: ['status'], name: 'idx_tracked_jobs_status')]
@@ -105,46 +108,205 @@ final class TrackedJob
         $this->updatedAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getOwner(): User { return $this->owner; }
-    public function getCompany(): ?string { return $this->company; }
-    public function setCompany(?string $company): void { $this->company = self::trimOrNull($company); }
-    public function getTitle(): ?string { return $this->title; }
-    public function setTitle(?string $title): void { $this->title = self::trimOrNull($title); }
-    public function getContractType(): ?ContractType { return $this->contractType; }
-    public function setContractType(?ContractType $contractType): void { $this->contractType = $contractType; }
-    public function getLocation(): ?string { return $this->location; }
-    public function setLocation(?string $location): void { $this->location = self::trimOrNull($location); }
-    public function getRemoteMode(): ?RemoteMode { return $this->remoteMode; }
-    public function setRemoteMode(?RemoteMode $remoteMode): void { $this->remoteMode = $remoteMode; }
-    public function getRemuneration(): ?string { return $this->remuneration; }
-    public function setRemuneration(?string $remuneration): void { $this->remuneration = self::trimOrNull($remuneration); }
-    public function getOfferUrl(): ?string { return $this->offerUrl; }
-    public function setOfferUrl(?string $offerUrl): void { $this->offerUrl = self::trimOrNull($offerUrl); }
-    public function getNotes(): ?string { return $this->notes; }
-    public function setNotes(?string $notes): void { $this->notes = self::trimOrNull($notes); }
-    public function getApplicationDate(): ?\DateTimeImmutable { return $this->applicationDate; }
-    public function setApplicationDate(?\DateTimeImmutable $applicationDate): void { $this->applicationDate = $applicationDate; }
-    public function getPlannedFollowUpDate(): ?\DateTimeImmutable { return $this->plannedFollowUpDate; }
-    public function setPlannedFollowUpDate(?\DateTimeImmutable $plannedFollowUpDate): void { $this->plannedFollowUpDate = $plannedFollowUpDate; }
-    public function getEffectiveFollowUpDate(): ?\DateTimeImmutable { return $this->effectiveFollowUpDate; }
-    public function setEffectiveFollowUpDate(?\DateTimeImmutable $effectiveFollowUpDate): void { $this->effectiveFollowUpDate = $effectiveFollowUpDate; }
-    public function getFirstContactDate(): ?\DateTimeImmutable { return $this->firstContactDate; }
-    public function setFirstContactDate(?\DateTimeImmutable $firstContactDate): void { $this->firstContactDate = $firstContactDate; }
-    public function getPreliminaryInterviewDate(): ?\DateTimeImmutable { return $this->preliminaryInterviewDate; }
-    public function setPreliminaryInterviewDate(?\DateTimeImmutable $preliminaryInterviewDate): void { $this->preliminaryInterviewDate = $preliminaryInterviewDate; }
-    public function getSecondInterviewDate(): ?\DateTimeImmutable { return $this->secondInterviewDate; }
-    public function setSecondInterviewDate(?\DateTimeImmutable $secondInterviewDate): void { $this->secondInterviewDate = $secondInterviewDate; }
-    public function getHrContactName(): ?string { return $this->hrContactName; }
-    public function setHrContactName(?string $hrContactName): void { $this->hrContactName = self::trimOrNull($hrContactName); }
-    public function getBusinessContactName(): ?string { return $this->businessContactName; }
-    public function setBusinessContactName(?string $businessContactName): void { $this->businessContactName = self::trimOrNull($businessContactName); }
-    public function getSubjectiveRelevance(): ?int { return $this->subjectiveRelevance; }
-    public function setSubjectiveRelevance(?int $subjectiveRelevance): void { $this->subjectiveRelevance = $subjectiveRelevance; }
-    public function getStatus(): TrackedJobStatus { return $this->status; }
-    public function setStatus(TrackedJobStatus $status): void { $this->status = $status; }
-    public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
-    public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
+    public function updateDetails(
+        ?string $company,
+        ?string $title,
+        ?ContractType $contractType,
+        ?string $location,
+        ?RemoteMode $remoteMode,
+        ?string $remuneration,
+        ?string $offerUrl,
+        ?string $notes,
+    ): void {
+        $this->company = self::trimOrNull($company);
+        $this->title = self::trimOrNull($title);
+        $this->contractType = $contractType ?? ContractType::CDI;
+        $this->location = self::trimOrNull($location);
+        $this->remoteMode = $remoteMode;
+        $this->remuneration = self::trimOrNull($remuneration);
+        $this->offerUrl = self::trimOrNull($offerUrl);
+        $this->notes = self::trimOrNull($notes);
+    }
+
+    public function updateProcessDates(
+        ?\DateTimeImmutable $applicationDate,
+        ?\DateTimeImmutable $effectiveFollowUpDate,
+        ?\DateTimeImmutable $firstContactDate,
+        ?\DateTimeImmutable $preliminaryInterviewDate,
+        ?\DateTimeImmutable $secondInterviewDate,
+    ): void {
+        $this->applicationDate = $applicationDate;
+        $this->effectiveFollowUpDate = $effectiveFollowUpDate;
+        $this->firstContactDate = $firstContactDate;
+        $this->preliminaryInterviewDate = $preliminaryInterviewDate;
+        $this->secondInterviewDate = $secondInterviewDate;
+        $this->plannedFollowUpDate = $this->calculatePlannedFollowUpDate($applicationDate);
+    }
+
+    public function updateContacts(?string $hrContactName, ?string $businessContactName): void
+    {
+        $this->hrContactName = self::trimOrNull($hrContactName);
+        $this->businessContactName = self::trimOrNull($businessContactName);
+    }
+
+    public function updateSubjectiveRelevance(?int $subjectiveRelevance): void
+    {
+        $this->subjectiveRelevance = $subjectiveRelevance;
+    }
+
+    public function recalculateStatus(?TrackedJobStatus $requestedFinalStatus = null): void
+    {
+        if ($requestedFinalStatus?->isFinal()) {
+            $this->status = $requestedFinalStatus;
+
+            return;
+        }
+
+        if ($this->status->isFinal() && $requestedFinalStatus === null) {
+            return;
+        }
+
+        $this->status = $this->inferStatusFromDates();
+    }
+
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+
+    public function getCompany(): ?string
+    {
+        return $this->company;
+    }
+
+    public function getTitle(): ?string
+    {
+        return $this->title;
+    }
+
+    public function getContractType(): ?ContractType
+    {
+        return $this->contractType;
+    }
+
+    public function getLocation(): ?string
+    {
+        return $this->location;
+    }
+
+    public function getRemoteMode(): ?RemoteMode
+    {
+        return $this->remoteMode;
+    }
+
+    public function getRemuneration(): ?string
+    {
+        return $this->remuneration;
+    }
+
+    public function getOfferUrl(): ?string
+    {
+        return $this->offerUrl;
+    }
+
+    public function getNotes(): ?string
+    {
+        return $this->notes;
+    }
+
+    public function getApplicationDate(): ?\DateTimeImmutable
+    {
+        return $this->applicationDate;
+    }
+
+    public function getPlannedFollowUpDate(): ?\DateTimeImmutable
+    {
+        return $this->plannedFollowUpDate;
+    }
+
+    public function getEffectiveFollowUpDate(): ?\DateTimeImmutable
+    {
+        return $this->effectiveFollowUpDate;
+    }
+
+    public function getFirstContactDate(): ?\DateTimeImmutable
+    {
+        return $this->firstContactDate;
+    }
+
+    public function getPreliminaryInterviewDate(): ?\DateTimeImmutable
+    {
+        return $this->preliminaryInterviewDate;
+    }
+
+    public function getSecondInterviewDate(): ?\DateTimeImmutable
+    {
+        return $this->secondInterviewDate;
+    }
+
+    public function getHrContactName(): ?string
+    {
+        return $this->hrContactName;
+    }
+
+    public function getBusinessContactName(): ?string
+    {
+        return $this->businessContactName;
+    }
+
+    public function getSubjectiveRelevance(): ?int
+    {
+        return $this->subjectiveRelevance;
+    }
+
+    public function getStatus(): TrackedJobStatus
+    {
+        return $this->status;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function getUpdatedAt(): \DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    private function inferStatusFromDates(): TrackedJobStatus
+    {
+        if ($this->secondInterviewDate !== null) {
+            return TrackedJobStatus::SECOND_INTERVIEW;
+        }
+
+        if ($this->preliminaryInterviewDate !== null) {
+            return TrackedJobStatus::PRELIMINARY_INTERVIEW;
+        }
+
+        if ($this->firstContactDate !== null) {
+            return TrackedJobStatus::FIRST_CONTACT;
+        }
+
+        if ($this->effectiveFollowUpDate !== null) {
+            return TrackedJobStatus::FOLLOW_UP_DONE;
+        }
+
+        if ($this->plannedFollowUpDate !== null) {
+            return TrackedJobStatus::FOLLOW_UP_PENDING;
+        }
+
+        if ($this->applicationDate !== null) {
+            return TrackedJobStatus::APPLIED;
+        }
+
+        return TrackedJobStatus::DRAFT;
+    }
+
+    private function calculatePlannedFollowUpDate(?\DateTimeImmutable $applicationDate): ?\DateTimeImmutable
+    {
+        return $applicationDate?->setTime(0, 0)->modify('+15 days');
+    }
 
     private static function trimOrNull(?string $value): ?string
     {

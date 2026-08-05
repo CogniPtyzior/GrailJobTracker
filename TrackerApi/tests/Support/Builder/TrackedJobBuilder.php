@@ -134,25 +134,37 @@ final class TrackedJobBuilder
     public function build(): TrackedJob
     {
         $trackedJob = new TrackedJob($this->owner ?? UserBuilder::aUser()->build());
-        $trackedJob->setCompany($this->company);
-        $trackedJob->setTitle($this->title);
-        $trackedJob->setContractType($this->contractType);
-        $trackedJob->setLocation($this->location);
-        $trackedJob->setRemoteMode($this->remoteMode);
-        $trackedJob->setRemuneration($this->remuneration);
-        $trackedJob->setOfferUrl($this->offerUrl);
-        $trackedJob->setNotes($this->notes);
-        $trackedJob->setApplicationDate($this->applicationDate);
-        $trackedJob->setPlannedFollowUpDate($this->plannedFollowUpDate);
-        $trackedJob->setEffectiveFollowUpDate($this->effectiveFollowUpDate);
-        $trackedJob->setFirstContactDate($this->firstContactDate);
-        $trackedJob->setPreliminaryInterviewDate($this->preliminaryInterviewDate);
-        $trackedJob->setSecondInterviewDate($this->secondInterviewDate);
-        $trackedJob->setHrContactName($this->hrContactName);
-        $trackedJob->setBusinessContactName($this->businessContactName);
-        $trackedJob->setSubjectiveRelevance($this->subjectiveRelevance);
-        $trackedJob->setStatus($this->status);
+        $trackedJob->updateDetails(
+            $this->company,
+            $this->title,
+            $this->contractType,
+            $this->location,
+            $this->remoteMode,
+            $this->remuneration,
+            $this->offerUrl,
+            $this->notes,
+        );
+        $trackedJob->updateProcessDates(
+            $this->applicationDate,
+            $this->effectiveFollowUpDate,
+            $this->firstContactDate,
+            $this->preliminaryInterviewDate,
+            $this->secondInterviewDate,
+        );
+        $trackedJob->updateContacts($this->hrContactName, $this->businessContactName);
+        $trackedJob->updateSubjectiveRelevance($this->subjectiveRelevance);
+
+        // The builder can represent legacy or artificial states that are not produced by current domain methods.
+        $this->forceValue($trackedJob, 'plannedFollowUpDate', $this->plannedFollowUpDate);
+
+        $trackedJob->recalculateStatus($this->status);
 
         return $trackedJob;
+    }
+
+    private function forceValue(TrackedJob $trackedJob, string $property, mixed $value): void
+    {
+        $reflectionProperty = new \ReflectionProperty($trackedJob, $property);
+        $reflectionProperty->setValue($trackedJob, $value);
     }
 }

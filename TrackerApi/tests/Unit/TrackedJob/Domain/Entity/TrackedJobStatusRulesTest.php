@@ -1,29 +1,21 @@
 <?php
 
-namespace App\Tests\Unit\TrackedJob\Application;
+namespace App\Tests\Unit\TrackedJob\Domain\Entity;
 
-use App\TrackedJob\Application\TrackedJobStatusResolver;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
 use App\Tests\Support\Builder\TrackedJobBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;
 
-final class TrackedJobStatusResolverTest extends TestCase
+final class TrackedJobStatusRulesTest extends TestCase
 {
-    private TrackedJobStatusResolver $resolver;
-
-    protected function setUp(): void
-    {
-        $this->resolver = new TrackedJobStatusResolver();
-    }
-
     public function testRequestedFinalStatusWins(): void
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()
             ->withApplicationDate(FixedDates::april1())
             ->build();
 
-        $this->resolver->recalculate($trackedJob, TrackedJobStatus::REJECTED);
+        $trackedJob->recalculateStatus(TrackedJobStatus::REJECTED);
 
         self::assertSame(TrackedJobStatus::REJECTED, $trackedJob->getStatus());
     }
@@ -35,7 +27,7 @@ final class TrackedJobStatusResolverTest extends TestCase
             ->withApplicationDate(FixedDates::april1())
             ->build();
 
-        $this->resolver->recalculate($trackedJob);
+        $trackedJob->recalculateStatus();
 
         self::assertSame(TrackedJobStatus::HIRED, $trackedJob->getStatus());
     }
@@ -50,7 +42,7 @@ final class TrackedJobStatusResolverTest extends TestCase
             ->withSecondInterviewDate(FixedDates::april20())
             ->build();
 
-        $this->resolver->recalculate($trackedJob);
+        $trackedJob->recalculateStatus();
 
         self::assertSame(TrackedJobStatus::SECOND_INTERVIEW, $trackedJob->getStatus());
     }
@@ -63,7 +55,7 @@ final class TrackedJobStatusResolverTest extends TestCase
             ->withPreliminaryInterviewDate(FixedDates::april15())
             ->build();
 
-        $this->resolver->recalculate($trackedJob);
+        $trackedJob->recalculateStatus();
 
         self::assertSame(TrackedJobStatus::PRELIMINARY_INTERVIEW, $trackedJob->getStatus());
     }
@@ -77,7 +69,7 @@ final class TrackedJobStatusResolverTest extends TestCase
             ->withFirstContactDate(FixedDates::april20())
             ->build();
 
-        $this->resolver->recalculate($trackedJob);
+        $trackedJob->recalculateStatus();
 
         self::assertSame(TrackedJobStatus::FIRST_CONTACT, $trackedJob->getStatus());
     }
@@ -90,7 +82,7 @@ final class TrackedJobStatusResolverTest extends TestCase
             ->withEffectiveFollowUpDate(FixedDates::april10())
             ->build();
 
-        $this->resolver->recalculate($trackedJob);
+        $trackedJob->recalculateStatus();
 
         self::assertSame(TrackedJobStatus::FOLLOW_UP_DONE, $trackedJob->getStatus());
     }
@@ -102,7 +94,7 @@ final class TrackedJobStatusResolverTest extends TestCase
             ->withPlannedFollowUpDate(FixedDates::april15())
             ->build();
 
-        $this->resolver->recalculate($trackedJob);
+        $trackedJob->recalculateStatus();
 
         self::assertSame(TrackedJobStatus::FOLLOW_UP_PENDING, $trackedJob->getStatus());
     }
@@ -113,7 +105,7 @@ final class TrackedJobStatusResolverTest extends TestCase
             ->withApplicationDate(FixedDates::april1())
             ->build();
 
-        $this->resolver->recalculate($trackedJob);
+        $trackedJob->recalculateStatus();
 
         self::assertSame(TrackedJobStatus::APPLIED, $trackedJob->getStatus());
     }
@@ -122,7 +114,7 @@ final class TrackedJobStatusResolverTest extends TestCase
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()->build();
 
-        $this->resolver->recalculate($trackedJob);
+        $trackedJob->recalculateStatus();
 
         self::assertSame(TrackedJobStatus::DRAFT, $trackedJob->getStatus());
     }
