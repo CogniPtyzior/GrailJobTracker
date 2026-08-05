@@ -85,18 +85,14 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
         return $this->firstName;
     }
 
-    public function setFirstName(?string $firstName): void
-    {
-        $this->firstName = $firstName !== null ? trim($firstName) : null;
-    }
-
     public function getLastName(): ?string
     {
         return $this->lastName;
     }
 
-    public function setLastName(?string $lastName): void
+    public function updateProfile(?string $firstName, ?string $lastName): void
     {
+        $this->firstName = $firstName !== null ? trim($firstName) : null;
         $this->lastName = $lastName !== null ? trim($lastName) : null;
     }
 
@@ -105,9 +101,14 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
         return $this->isActive;
     }
 
-    public function setIsActive(bool $isActive): void
+    public function activate(): void
     {
-        $this->isActive = $isActive;
+        $this->isActive = true;
+    }
+
+    public function deactivate(): void
+    {
+        $this->isActive = false;
     }
 
     public function isBootstrapAdmin(string $bootstrapEmail): bool
@@ -129,13 +130,25 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
         return array_values(array_unique($roles));
     }
 
-    /**
-     * @param list<string> $roles
-     */
-    public function setRoles(array $roles): void
+    public function grantAdmin(): void
     {
-        $cleanRoles = array_values(array_unique(array_filter(array_map('trim', $roles))));
-        $this->roles = $cleanRoles === [] ? ['ROLE_USER'] : $cleanRoles;
+        $this->replaceRoles(['ROLE_ADMIN', 'ROLE_USER']);
+    }
+
+    public function assignRegularUser(): void
+    {
+        $this->replaceRoles(['ROLE_USER']);
+    }
+
+    public function updateAdminRole(bool $isAdmin): void
+    {
+        if ($isAdmin) {
+            $this->grantAdmin();
+
+            return;
+        }
+
+        $this->assignRegularUser();
     }
 
     public function getPassword(): string
@@ -182,5 +195,14 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
     public function markLoggedIn(\DateTimeImmutable $loggedAt): void
     {
         $this->lastLoginAt = $loggedAt;
+    }
+
+    /**
+     * @param list<string> $roles
+     */
+    private function replaceRoles(array $roles): void
+    {
+        $cleanRoles = array_values(array_unique(array_filter(array_map('trim', $roles))));
+        $this->roles = $cleanRoles === [] ? ['ROLE_USER'] : $cleanRoles;
     }
 }

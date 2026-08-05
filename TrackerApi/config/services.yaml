@@ -33,7 +33,7 @@ services:
         arguments:
             $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
 
-    App\Admin\Application\UpdateAdminUser:
+    App\Admin\Application\UseCase\UpdateAdminUser:
         arguments:
             $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
 

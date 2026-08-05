@@ -1,9 +1,12 @@
 <?php
 
-namespace App\Admin\Application;
+namespace App\Admin\Application\UseCase;
 
+use App\Admin\Application\Exception\AdminUserAlreadyExists;
+use App\Admin\Application\Input\CreateAdminUserInput;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
+use App\Security\Domain\Repository\UserRepositoryInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -14,6 +17,7 @@ final class CreateAdminUser
 {
     public function __construct(
         private readonly EmailNormalizer $emailNormalizer,
+        private readonly UserRepositoryInterface $userRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly EntityManagerInterface $entityManager,
     ) {
@@ -21,12 +25,17 @@ final class CreateAdminUser
 
     public function handle(CreateAdminUserInput $payload): User
     {
-        $user = new User($payload->email, $this->emailNormalizer->normalize($payload->email));
+        $normalizedEmail = $this->emailNormalizer->normalize($payload->email);
 
-        $user->setFirstName($payload->firstName);
-        $user->setLastName($payload->lastName);
-        $user->setIsActive($payload->isActive);
-        $user->setRoles($payload->isAdmin ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER']);
+        if ($this->userRepository->findOneByNormalizedEmail($normalizedEmail) instanceof User) {
+            throw new AdminUserAlreadyExists('A user with this email already exists.');
+        }
+
+        $user = new User($payload->email, $normalizedEmail);
+
+        $user->updateProfile($payload->firstName, $payload->lastName);
+        $payload->isActive ? $user->activate() : $user->deactivate();
+        $user->updateAdminRole($payload->isAdmin);
         $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload->password));
 
         $this->entityManager->persist($user);

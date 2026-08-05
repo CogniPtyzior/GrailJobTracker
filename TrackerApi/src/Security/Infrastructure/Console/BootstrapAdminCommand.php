@@ -61,10 +61,10 @@ final class BootstrapAdminCommand extends Command
         $existingUser = $this->userRepository->findOneByNormalizedEmail($normalizedEmail);
 
         if ($existingUser instanceof User) {
-            $existingUser->setRoles(['ROLE_ADMIN', 'ROLE_USER']);
+            $existingUser->grantAdmin();
 
             if (!$existingUser->isActive()) {
-                $existingUser->setIsActive(true);
+                $existingUser->activate();
             }
 
             $this->entityManager->flush();
@@ -74,7 +74,7 @@ final class BootstrapAdminCommand extends Command
         }
 
         $user = new User($this->adminBootstrapEmail, $normalizedEmail);
-        $user->setRoles(['ROLE_ADMIN', 'ROLE_USER']);
+        $user->grantAdmin();
         $user->setPasswordHash($this->passwordHasher->hashPassword($user, $password));
         $this->entityManager->persist($user);
         $this->entityManager->flush();

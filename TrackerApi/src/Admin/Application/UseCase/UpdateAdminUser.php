@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Admin\Application;
+namespace App\Admin\Application\UseCase;
 
+use App\Admin\Application\Input\UpdateAdminUserInput;
 use App\Security\Domain\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -23,19 +24,19 @@ final class UpdateAdminUser
         $bootstrapAdmin = $user->isBootstrapAdmin($this->adminBootstrapEmail);
 
         if ($payload->has('firstName')) {
-            $user->setFirstName($payload->firstName);
+            $user->updateProfile($payload->firstName, $user->getLastName());
         }
 
         if ($payload->has('lastName')) {
-            $user->setLastName($payload->lastName);
+            $user->updateProfile($user->getFirstName(), $payload->lastName);
         }
 
         if ($this->canUpdateActiveFlag($user, $currentUser, $payload, $bootstrapAdmin)) {
-            $user->setIsActive($payload->isActive ?? false);
+            ($payload->isActive ?? false) ? $user->activate() : $user->deactivate();
         }
 
         if ($payload->has('isAdmin')) {
-            $user->setRoles($bootstrapAdmin ? ['ROLE_ADMIN', 'ROLE_USER'] : $this->rolesFromPayload($payload));
+            $bootstrapAdmin ? $user->grantAdmin() : $user->updateAdminRole((bool) $payload->isAdmin);
         }
 
         if ($payload->has('password') && $payload->password !== null) {
@@ -62,13 +63,5 @@ final class UpdateAdminUser
         }
 
         return !$bootstrapAdmin || $payload->isActive === true;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function rolesFromPayload(UpdateAdminUserInput $payload): array
-    {
-        return $payload->isAdmin ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER'];
     }
 }

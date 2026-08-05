@@ -82,10 +82,9 @@ final class UserBuilder
         $normalizedEmail = mb_strtolower(trim($this->email));
 
         $user = new User($this->email, $normalizedEmail);
-        $user->setFirstName($this->firstName);
-        $user->setLastName($this->lastName);
-        $user->setIsActive($this->isActive);
-        $user->setRoles($this->roles);
+        $user->updateProfile($this->firstName, $this->lastName);
+        $this->isActive ? $user->activate() : $user->deactivate();
+        in_array('ROLE_ADMIN', $this->roles, true) ? $user->grantAdmin() : $user->assignRegularUser();
         $user->setPasswordHash($this->passwordHash);
 
         if ($this->lastLoginAt !== null) {
