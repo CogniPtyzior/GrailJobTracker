@@ -1,6 +1,6 @@
 <?php
 
-namespace App\AccessRequest\Application;
+namespace App\AccessRequest\Application\Notification;
 
 use App\AccessRequest\Application\Message\SendAccessRequestNotification;
 use App\AccessRequest\Domain\Entity\AccessRequest;

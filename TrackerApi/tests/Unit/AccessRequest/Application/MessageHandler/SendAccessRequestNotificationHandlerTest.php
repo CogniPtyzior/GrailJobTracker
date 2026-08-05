@@ -2,7 +2,7 @@
 
 namespace App\Tests\Unit\AccessRequest\Application\MessageHandler;
 
-use App\AccessRequest\Application\AccessRequestNotificationSender;
+use App\AccessRequest\Application\Notification\AccessRequestNotificationSender;
 use App\AccessRequest\Application\Message\SendAccessRequestNotification;
 use App\AccessRequest\Application\MessageHandler\SendAccessRequestNotificationHandler;
 use App\Tests\Support\Builder\AccessRequestBuilder;

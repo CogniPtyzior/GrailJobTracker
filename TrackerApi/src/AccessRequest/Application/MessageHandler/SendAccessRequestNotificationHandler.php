@@ -2,7 +2,7 @@
 
 namespace App\AccessRequest\Application\MessageHandler;
 
-use App\AccessRequest\Application\AccessRequestNotificationSender;
+use App\AccessRequest\Application\Notification\AccessRequestNotificationSender;
 use App\AccessRequest\Application\Message\SendAccessRequestNotification;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use Psr\Log\LoggerInterface;
@@ -24,7 +24,9 @@ final class SendAccessRequestNotificationHandler
 
     public function __invoke(SendAccessRequestNotification $message): void
     {
-        if (!Uuid::isValid($message->accessRequestId)) {
+        try {
+            $accessRequestId = Uuid::fromString($message->accessRequestId);
+        } catch (\InvalidArgumentException) {
             $this->logger->warning('Access request notification skipped for invalid id.', [
                 'accessRequestId' => $message->accessRequestId,
             ]);
@@ -32,7 +34,7 @@ final class SendAccessRequestNotificationHandler
             return;
         }
 
-        $accessRequest = $this->accessRequestRepository->getById(Uuid::fromString($message->accessRequestId));
+        $accessRequest = $this->accessRequestRepository->getById($accessRequestId);
 
         if ($accessRequest === null) {
             $this->logger->warning('Access request notification skipped because the request no longer exists.', [
