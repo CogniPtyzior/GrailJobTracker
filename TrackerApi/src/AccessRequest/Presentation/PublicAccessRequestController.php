@@ -2,7 +2,7 @@
 
 namespace App\AccessRequest\Presentation;
 
-use App\AccessRequest\Application\CreateAccessRequest;
+use App\AccessRequest\Application\UseCase\CreateAccessRequest;
 use App\AccessRequest\Presentation\Payload\CreateAccessRequestPayload;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;

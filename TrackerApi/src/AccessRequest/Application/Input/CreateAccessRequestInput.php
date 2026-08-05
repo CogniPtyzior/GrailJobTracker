@@ -1,6 +1,6 @@
 <?php
 
-namespace App\AccessRequest\Application;
+namespace App\AccessRequest\Application\Input;
 
 /**
  * Application input object used to create an access request without exposing HTTP payload details.

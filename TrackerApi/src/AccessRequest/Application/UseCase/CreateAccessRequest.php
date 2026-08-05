@@ -1,7 +1,9 @@
 <?php
 
-namespace App\AccessRequest\Application;
+namespace App\AccessRequest\Application\UseCase;
 
+use App\AccessRequest\Application\Input\CreateAccessRequestInput;
+use App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcher;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\Security\Application\EmailNormalizer;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,15 +22,14 @@ final class CreateAccessRequest
 
     public function handle(CreateAccessRequestInput $payload): AccessRequest
     {
-        $accessRequest = new AccessRequest(
+        $accessRequest = AccessRequest::submit(
             $payload->email,
             $this->emailNormalizer->normalize($payload->email),
-            trim($payload->companyName),
-            trim($payload->reason),
+            $payload->companyName,
+            $payload->reason,
+            $payload->firstName,
+            $payload->lastName,
         );
-
-        $accessRequest->setFirstName($payload->firstName);
-        $accessRequest->setLastName($payload->lastName);
 
         $this->entityManager->persist($accessRequest);
         $this->entityManager->flush();

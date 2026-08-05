@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\AccessRequest\Presentation\Payload;
 
-use App\AccessRequest\Application\CreateAccessRequestInput;
+use App\AccessRequest\Application\Input\CreateAccessRequestInput;
 use App\Shared\Infrastructure\Validation\RequestPayload;
 use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
 use Symfony\Component\Validator\Constraints as Assert;
