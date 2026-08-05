@@ -7,8 +7,8 @@ use App\Admin\Application\UseCase\DeleteAdminUser;
 use App\Admin\Application\UseCase\GetAdminUser;
 use App\Admin\Application\UseCase\SearchUsers;
 use App\Admin\Application\UseCase\UpdateAdminUser;
-use App\Admin\Presentation\UserPresenter;
 use App\Admin\Presentation\AdminUserController;
+use App\Admin\Presentation\UserPresenter;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
@@ -18,8 +18,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Validator\Validation;
 
 final class AdminUserControllerIntegrationTest extends TestCase
@@ -103,6 +104,31 @@ final class AdminUserControllerIntegrationTest extends TestCase
         self::assertSame($bootstrapAdmin->getId()->toRfc4122(), $payload['item']['id']);
     }
 
+    public function testUpdateRejectsNullBooleanFlags(): void
+    {
+        $currentUser = UserBuilder::aUser()->withEmail('admin@example.com')->withRoles(['ROLE_ADMIN', 'ROLE_USER'])->build();
+        $managedUser = UserBuilder::aUser()->withEmail('managed@example.com')->withRoles(['ROLE_ADMIN', 'ROLE_USER'])->build();
+        $userRepository = new InMemoryUserRepository([$currentUser, $managedUser]);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::never())->method('flush');
+
+        $controller = $this->createController($userRepository, $entityManager);
+        $request = $this->jsonRequest([
+            'isActive' => null,
+            'isAdmin' => null,
+        ], 'PUT');
+
+        try {
+            $controller->update($managedUser->getId()->toRfc4122(), $request, $currentUser);
+            self::fail('Expected null boolean flags to be rejected.');
+        } catch (BadRequestHttpException $exception) {
+            $details = json_decode($exception->getMessage(), true, 512, JSON_THROW_ON_ERROR);
+        }
+
+        self::assertContains('[isActive]', array_column($details, 'path'));
+        self::assertContains('[isAdmin]', array_column($details, 'path'));
+    }
+
     public function testDeleteRejectsSelfDeletion(): void
     {
         $currentUser = UserBuilder::aUser()->withEmail('self@example.com')->build();
@@ -154,7 +180,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
             new UserPresenter(),
             new SearchUsers($userRepository),
             new GetAdminUser($userRepository),
-            new RequestPayloadMapper(Validation::createValidator()),
+            new RequestPayloadMapper(Validation::createValidatorBuilder()->enableAttributeMapping()->getValidator()),
             new CreateAdminUser(new EmailNormalizer(), $userRepository, $passwordHasher, $entityManager),
             new UpdateAdminUser($passwordHasher, $entityManager, $adminBootstrapEmail),
             new DeleteAdminUser($entityManager),

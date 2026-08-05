@@ -22,7 +22,19 @@ final readonly class UpdateAdminUserPayload implements RequestPayload
         public ?string $firstName = null,
         #[Assert\Length(max: 120)]
         public ?string $lastName = null,
+        #[Assert\When(
+            expression: 'this.has("isActive")',
+            constraints: [
+                new Assert\NotNull(),
+            ],
+        )]
         public ?bool $isActive = null,
+        #[Assert\When(
+            expression: 'this.has("isAdmin")',
+            constraints: [
+                new Assert\NotNull(),
+            ],
+        )]
         public ?bool $isAdmin = null,
         #[Assert\NotBlank(allowNull: true)]
         #[Assert\Length(min: 8)]
@@ -70,5 +82,10 @@ final readonly class UpdateAdminUserPayload implements RequestPayload
             password: $this->password,
             providedFields: $this->providedFields,
         );
+    }
+
+    public function has(string $field): bool
+    {
+        return in_array($field, $this->providedFields, true);
     }
 }
