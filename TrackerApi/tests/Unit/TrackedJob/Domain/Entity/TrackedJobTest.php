@@ -9,6 +9,7 @@ use App\TrackedJob\Domain\Enum\TrackedJobStatus;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Uid\Uuid;
 
 final class TrackedJobTest extends TestCase
 {
@@ -131,4 +132,67 @@ final class TrackedJobTest extends TestCase
         self::assertNotSame($oldValue, $trackedJob->getUpdatedAt());
         self::assertGreaterThan($oldValue, $trackedJob->getUpdatedAt());
     }
+
+    public function testReconstituteRestoresPersistedStateWithoutRecomputingBusinessState(): void
+    {
+        $id = Uuid::fromString('018f6d6f-0000-7000-8000-000000000004');
+        $owner = UserBuilder::aUser()->withEmail('owner@example.com')->build();
+        $createdAt = new \DateTimeImmutable('2026-04-01T10:00:00+00:00');
+        $updatedAt = new \DateTimeImmutable('2026-04-20T12:30:00+00:00');
+        $applicationDate = new \DateTimeImmutable('2026-04-02T09:00:00+00:00');
+        $plannedFollowUpDate = new \DateTimeImmutable('2026-04-17T00:00:00+00:00');
+        $effectiveFollowUpDate = new \DateTimeImmutable('2026-04-10T11:00:00+00:00');
+        $firstContactDate = new \DateTimeImmutable('2026-04-12T11:00:00+00:00');
+        $preliminaryInterviewDate = new \DateTimeImmutable('2026-04-15T11:00:00+00:00');
+        $secondInterviewDate = new \DateTimeImmutable('2026-04-18T11:00:00+00:00');
+
+        $trackedJob = TrackedJob::reconstitute(
+            $id,
+            $owner,
+            '  Acme  ',
+            '  Backend Engineer  ',
+            ContractType::CDD,
+            '  Paris  ',
+            RemoteMode::HYBRID,
+            '  60k  ',
+            '  https://example.com/job  ',
+            '  Strong fit  ',
+            $applicationDate,
+            $plannedFollowUpDate,
+            $effectiveFollowUpDate,
+            $firstContactDate,
+            $preliminaryInterviewDate,
+            $secondInterviewDate,
+            '  Jane HR  ',
+            '   ',
+            8,
+            TrackedJobStatus::HIRED,
+            $createdAt,
+            $updatedAt,
+        );
+
+        self::assertSame($id, $trackedJob->getId());
+        self::assertSame($owner, $trackedJob->getOwner());
+        self::assertSame('Acme', $trackedJob->getCompany());
+        self::assertSame('Backend Engineer', $trackedJob->getTitle());
+        self::assertSame(ContractType::CDD, $trackedJob->getContractType());
+        self::assertSame('Paris', $trackedJob->getLocation());
+        self::assertSame(RemoteMode::HYBRID, $trackedJob->getRemoteMode());
+        self::assertSame('60k', $trackedJob->getRemuneration());
+        self::assertSame('https://example.com/job', $trackedJob->getOfferUrl());
+        self::assertSame('Strong fit', $trackedJob->getNotes());
+        self::assertSame($applicationDate, $trackedJob->getApplicationDate());
+        self::assertSame($plannedFollowUpDate, $trackedJob->getPlannedFollowUpDate());
+        self::assertSame($effectiveFollowUpDate, $trackedJob->getEffectiveFollowUpDate());
+        self::assertSame($firstContactDate, $trackedJob->getFirstContactDate());
+        self::assertSame($preliminaryInterviewDate, $trackedJob->getPreliminaryInterviewDate());
+        self::assertSame($secondInterviewDate, $trackedJob->getSecondInterviewDate());
+        self::assertSame('Jane HR', $trackedJob->getHrContactName());
+        self::assertNull($trackedJob->getBusinessContactName());
+        self::assertSame(8, $trackedJob->getSubjectiveRelevance());
+        self::assertSame(TrackedJobStatus::HIRED, $trackedJob->getStatus());
+        self::assertSame($createdAt, $trackedJob->getCreatedAt());
+        self::assertSame($updatedAt, $trackedJob->getUpdatedAt());
+    }
 }
+

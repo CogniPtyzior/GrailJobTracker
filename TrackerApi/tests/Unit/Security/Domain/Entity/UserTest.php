@@ -6,6 +6,7 @@ use App\Security\Domain\Entity\User;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 final class UserTest extends TestCase
@@ -162,4 +163,54 @@ final class UserTest extends TestCase
 
         self::assertFalse($user->isEqualTo($otherImplementation));
     }
+
+    public function testReconstituteRestoresPersistedStateAndCleansRoles(): void
+    {
+        $id = Uuid::fromString('018f6d6f-0000-7000-8000-000000000001');
+        $createdAt = new \DateTimeImmutable('2026-04-01T10:00:00+00:00');
+        $lastLoginAt = new \DateTimeImmutable('2026-04-20T12:30:00+00:00');
+
+        $user = User::reconstitute(
+            $id,
+            'John@example.com',
+            'john@example.com',
+            '  John  ',
+            '  Doe  ',
+            false,
+            [' ROLE_ADMIN ', '', 'ROLE_ADMIN', 'ROLE_USER'],
+            'persisted-hash',
+            $createdAt,
+            $lastLoginAt,
+        );
+
+        self::assertSame($id, $user->getId());
+        self::assertSame('John@example.com', $user->getEmail());
+        self::assertSame('john@example.com', $user->getNormalizedEmail());
+        self::assertSame('John', $user->getFirstName());
+        self::assertSame('Doe', $user->getLastName());
+        self::assertFalse($user->isActive());
+        self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $user->getRoles());
+        self::assertSame('persisted-hash', $user->getPassword());
+        self::assertSame($createdAt, $user->getCreatedAt());
+        self::assertSame($lastLoginAt, $user->getLastLoginAt());
+    }
+
+    public function testReconstituteDefaultsToRoleUserWhenPersistedRolesAreEmpty(): void
+    {
+        $user = User::reconstitute(
+            Uuid::fromString('018f6d6f-0000-7000-8000-000000000002'),
+            'john@example.com',
+            'john@example.com',
+            null,
+            null,
+            true,
+            ['', '   '],
+            'persisted-hash',
+            new \DateTimeImmutable('2026-04-01T10:00:00+00:00'),
+            null,
+        );
+
+        self::assertSame(['ROLE_USER'], $user->getRoles());
+    }
 }
+

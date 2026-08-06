@@ -23,6 +23,12 @@ services:
         resource: '../src/'
         exclude:
             - '../src/Kernel.php'
+            - '../src/AccessRequest/Domain/Entity/'
+            - '../src/AccessRequest/Infrastructure/Doctrine/Entity/'
+            - '../src/Security/Domain/Entity/'
+            - '../src/Security/Infrastructure/Doctrine/Entity/'
+            - '../src/TrackedJob/Domain/Entity/'
+            - '../src/TrackedJob/Infrastructure/Doctrine/Entity/'
 
     App\Shared\Infrastructure\Clock\ClockInterface:
         class: App\Shared\Infrastructure\Clock\SystemClock
@@ -52,3 +58,4 @@ services:
     App\AccessRequest\Presentation\PublicAccessRequestController:
         arguments:
             $accessRequestSubmissionLimiter: '@limiter.access_request_submission'
+
