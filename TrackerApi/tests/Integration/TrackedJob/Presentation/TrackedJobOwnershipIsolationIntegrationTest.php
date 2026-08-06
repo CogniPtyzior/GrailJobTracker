@@ -3,9 +3,11 @@
 namespace App\Tests\Integration\TrackedJob\Presentation;
 
 use App\Security\Domain\Entity\User;
+use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Tests\Support\Builder\TrackedJobBuilder;
 use App\TrackedJob\Domain\Entity\TrackedJob;
-use Doctrine\ORM\EntityManagerInterface;
+use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -87,28 +89,29 @@ final class TrackedJobOwnershipIsolationIntegrationTest extends WebTestCase
 
     private function createUser(string $email): User
     {
-        $entityManager = $this->entityManager();
         $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+        $userRepository = static::getContainer()->get(UserRepositoryInterface::class);
         $user = new User($email, mb_strtolower(trim($email)));
 
         $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
 
-        $entityManager->persist($user);
-        $entityManager->flush();
+        $userRepository->save($user);
+        $userRepository->flush();
 
         return $user;
     }
 
     private function createTrackedJob(User $owner, string $company, string $title): TrackedJob
     {
+        $trackedJobRepository = static::getContainer()->get(TrackedJobRepositoryInterface::class);
         $trackedJob = TrackedJobBuilder::aTrackedJob()
             ->ownedBy($owner)
             ->withCompany($company)
             ->withTitle($title)
             ->build();
 
-        $this->entityManager()->persist($trackedJob);
-        $this->entityManager()->flush();
+        $trackedJobRepository->save($trackedJob);
+        $trackedJobRepository->flush();
 
         return $trackedJob;
     }
@@ -146,7 +149,7 @@ final class TrackedJobOwnershipIsolationIntegrationTest extends WebTestCase
 
     private function deleteStepData(): void
     {
-        $connection = $this->entityManager()->getConnection();
+        $connection = $this->connection();
 
         $connection->executeStatement(
             'DELETE FROM trackers.tracked_jobs WHERE owner_id IN (
@@ -157,8 +160,8 @@ final class TrackedJobOwnershipIsolationIntegrationTest extends WebTestCase
         $connection->executeStatement('DELETE FROM trackers.users WHERE normalized_email LIKE ?', [self::EMAIL_PREFIX.'%']);
     }
 
-    private function entityManager(): EntityManagerInterface
+    private function connection(): Connection
     {
-        return static::getContainer()->get(EntityManagerInterface::class);
+        return static::getContainer()->get(Connection::class);
     }
 }

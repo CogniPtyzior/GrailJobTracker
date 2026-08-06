@@ -7,7 +7,6 @@ use App\Admin\Application\Input\CreateAdminUserInput;
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
@@ -19,7 +18,6 @@ final class CreateAdminUser
         private readonly EmailNormalizer $emailNormalizer,
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -32,14 +30,13 @@ final class CreateAdminUser
         }
 
         $user = new User($payload->email, $normalizedEmail);
-
         $user->updateProfile($payload->firstName, $payload->lastName);
         $payload->isActive ? $user->activate() : $user->deactivate();
         $user->updateAdminRole($payload->isAdmin);
         $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload->password));
 
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
+        $this->userRepository->save($user);
+        $this->userRepository->flush();
 
         return $user;
     }

@@ -3,7 +3,8 @@
 namespace App\Tests\Integration\TrackedJob\Presentation;
 
 use App\Security\Domain\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Security\Domain\Repository\UserRepositoryInterface;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -99,14 +100,14 @@ final class TrackedJobPayloadValidationIntegrationTest extends WebTestCase
     {
         $this->deleteStepData();
 
-        $entityManager = $this->entityManager();
         $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+        $userRepository = static::getContainer()->get(UserRepositoryInterface::class);
         $user = new User($email, mb_strtolower(trim($email)));
 
         $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
 
-        $entityManager->persist($user);
-        $entityManager->flush();
+        $userRepository->save($user);
+        $userRepository->flush();
 
         return $user;
     }
@@ -154,7 +155,7 @@ final class TrackedJobPayloadValidationIntegrationTest extends WebTestCase
 
     private function deleteStepData(): void
     {
-        $connection = $this->entityManager()->getConnection();
+        $connection = $this->connection();
 
         $connection->executeStatement(
             'DELETE FROM trackers.tracked_jobs WHERE owner_id IN (
@@ -165,8 +166,8 @@ final class TrackedJobPayloadValidationIntegrationTest extends WebTestCase
         $connection->executeStatement('DELETE FROM trackers.users WHERE normalized_email LIKE ?', [self::EMAIL_PREFIX.'%']);
     }
 
-    private function entityManager(): EntityManagerInterface
+    private function connection(): Connection
     {
-        return static::getContainer()->get(EntityManagerInterface::class);
+        return static::getContainer()->get(Connection::class);
     }
 }

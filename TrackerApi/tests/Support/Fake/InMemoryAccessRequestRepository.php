@@ -57,6 +57,10 @@ final class InMemoryAccessRequestRepository implements AccessRequestRepositoryIn
         unset($this->accessRequestsById[$accessRequest->getId()->toRfc4122()]);
     }
 
+    public function flush(): void
+    {
+    }
+
     public function exists(AccessRequest $accessRequest): bool
     {
         return isset($this->accessRequestsById[$accessRequest->getId()->toRfc4122()]);

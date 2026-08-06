@@ -5,8 +5,8 @@ namespace App\AccessRequest\Application\UseCase;
 use App\AccessRequest\Application\Input\CreateAccessRequestInput;
 use App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcher;
 use App\AccessRequest\Domain\Entity\AccessRequest;
+use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use App\Security\Application\EmailNormalizer;
-use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Application use case that creates an access request and queues its notification.
@@ -15,7 +15,7 @@ final class CreateAccessRequest
 {
     public function __construct(
         private readonly EmailNormalizer $emailNormalizer,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly AccessRequestRepositoryInterface $accessRequestRepository,
         private readonly AccessRequestNotificationDispatcher $notificationDispatcher,
     ) {
     }
@@ -31,8 +31,8 @@ final class CreateAccessRequest
             $payload->lastName,
         );
 
-        $this->entityManager->persist($accessRequest);
-        $this->entityManager->flush();
+        $this->accessRequestRepository->save($accessRequest);
+        $this->accessRequestRepository->flush();
         $this->notificationDispatcher->dispatchCreated($accessRequest);
 
         return $accessRequest;

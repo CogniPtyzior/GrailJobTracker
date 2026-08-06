@@ -6,7 +6,7 @@ use App\Security\Domain\Entity\User;
 use App\TrackedJob\Application\Factory\TrackedJobFactory;
 use App\TrackedJob\Application\Input\TrackedJobInput;
 use App\TrackedJob\Domain\Entity\TrackedJob;
-use Doctrine\ORM\EntityManagerInterface;
+use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 
 /**
  * Application use case that creates a tracked job for its owner.
@@ -15,7 +15,7 @@ final class CreateTrackedJob
 {
     public function __construct(
         private readonly TrackedJobFactory $trackedJobFactory,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly TrackedJobRepositoryInterface $trackedJobRepository,
     ) {
     }
 
@@ -23,8 +23,8 @@ final class CreateTrackedJob
     {
         $trackedJob = $this->trackedJobFactory->create($owner, $payload);
 
-        $this->entityManager->persist($trackedJob);
-        $this->entityManager->flush();
+        $this->trackedJobRepository->save($trackedJob);
+        $this->trackedJobRepository->flush();
 
         return $trackedJob;
     }

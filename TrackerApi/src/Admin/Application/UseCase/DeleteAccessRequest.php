@@ -3,20 +3,20 @@
 namespace App\Admin\Application\UseCase;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
-use Doctrine\ORM\EntityManagerInterface;
+use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 
 /**
- * Application use case that deletes a pending access request.
+ * Application use case that deletes a public access request.
  */
 final class DeleteAccessRequest
 {
-    public function __construct(private readonly EntityManagerInterface $entityManager)
+    public function __construct(private readonly AccessRequestRepositoryInterface $accessRequestRepository)
     {
     }
 
     public function handle(AccessRequest $accessRequest): void
     {
-        $this->entityManager->remove($accessRequest);
-        $this->entityManager->flush();
+        $this->accessRequestRepository->remove($accessRequest);
+        $this->accessRequestRepository->flush();
     }
 }

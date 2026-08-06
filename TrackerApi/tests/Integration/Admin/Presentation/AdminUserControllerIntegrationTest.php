@@ -10,12 +10,9 @@ use App\Admin\Application\UseCase\UpdateAdminUser;
 use App\Admin\Presentation\AdminUserController;
 use App\Admin\Presentation\UserPresenter;
 use App\Security\Application\EmailNormalizer;
-use App\Security\Domain\Entity\User;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Fake\InMemoryUserRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -28,9 +25,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
     public function testCreatePersistsRegularUserAndReturnsCreatedPayload(): void
     {
         $userRepository = new InMemoryUserRepository();
-        $entityManager = $this->createEntityManager($userRepository);
-
-        $controller = $this->createController($userRepository, $entityManager);
+        $controller = $this->createController($userRepository);
         $request = $this->jsonRequest([
             'email' => 'New.User@example.com',
             'password' => 'Password1!',
@@ -59,11 +54,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
     {
         $existingUser = UserBuilder::aUser()->withEmail('existing@example.com')->build();
         $userRepository = new InMemoryUserRepository([$existingUser]);
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects(self::never())->method('persist');
-        $entityManager->expects(self::never())->method('flush');
-
-        $controller = $this->createController($userRepository, $entityManager);
+        $controller = $this->createController($userRepository);
         $request = $this->jsonRequest([
             'email' => 'Existing@example.com',
             'password' => 'Password1!',
@@ -84,10 +75,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
             ->withRoles(['ROLE_ADMIN', 'ROLE_USER'])
             ->build();
         $userRepository = new InMemoryUserRepository([$bootstrapAdmin]);
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects(self::once())->method('flush');
-
-        $controller = $this->createController($userRepository, $entityManager, 'admin@example.com');
+        $controller = $this->createController($userRepository, 'admin@example.com');
         $request = $this->jsonRequest([
             'isActive' => false,
             'isAdmin' => false,
@@ -109,10 +97,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
         $currentUser = UserBuilder::aUser()->withEmail('admin@example.com')->withRoles(['ROLE_ADMIN', 'ROLE_USER'])->build();
         $managedUser = UserBuilder::aUser()->withEmail('managed@example.com')->withRoles(['ROLE_ADMIN', 'ROLE_USER'])->build();
         $userRepository = new InMemoryUserRepository([$currentUser, $managedUser]);
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects(self::never())->method('flush');
-
-        $controller = $this->createController($userRepository, $entityManager);
+        $controller = $this->createController($userRepository);
         $request = $this->jsonRequest([
             'isActive' => null,
             'isAdmin' => null,
@@ -133,11 +118,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
     {
         $currentUser = UserBuilder::aUser()->withEmail('self@example.com')->build();
         $userRepository = new InMemoryUserRepository([$currentUser]);
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects(self::never())->method('remove');
-        $entityManager->expects(self::never())->method('flush');
-
-        $controller = $this->createController($userRepository, $entityManager);
+        $controller = $this->createController($userRepository);
 
         $response = $controller->delete($currentUser->getId()->toRfc4122(), $currentUser);
         $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
@@ -155,11 +136,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
             ->build();
         $otherUser = UserBuilder::aUser()->withEmail('other@example.com')->build();
         $userRepository = new InMemoryUserRepository([$bootstrapAdmin, $otherUser]);
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects(self::never())->method('remove');
-        $entityManager->expects(self::never())->method('flush');
-
-        $controller = $this->createController($userRepository, $entityManager, 'admin@example.com');
+        $controller = $this->createController($userRepository, 'admin@example.com');
 
         $response = $controller->delete($bootstrapAdmin->getId()->toRfc4122(), $otherUser);
         $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
@@ -171,7 +148,6 @@ final class AdminUserControllerIntegrationTest extends TestCase
 
     private function createController(
         InMemoryUserRepository $userRepository,
-        EntityManagerInterface $entityManager,
         string $adminBootstrapEmail = 'bootstrap@example.com',
     ): AdminUserController {
         $passwordHasher = $this->passwordHasherStub();
@@ -181,27 +157,11 @@ final class AdminUserControllerIntegrationTest extends TestCase
             new SearchUsers($userRepository),
             new GetAdminUser($userRepository),
             new RequestPayloadMapper(Validation::createValidatorBuilder()->enableAttributeMapping()->getValidator()),
-            new CreateAdminUser(new EmailNormalizer(), $userRepository, $passwordHasher, $entityManager),
-            new UpdateAdminUser($passwordHasher, $entityManager, $adminBootstrapEmail),
-            new DeleteAdminUser($entityManager),
+            new CreateAdminUser(new EmailNormalizer(), $userRepository, $passwordHasher),
+            new UpdateAdminUser($passwordHasher, $userRepository, $adminBootstrapEmail),
+            new DeleteAdminUser($userRepository),
             $adminBootstrapEmail,
         );
-    }
-
-    /** @return MockObject&EntityManagerInterface */
-    private function createEntityManager(InMemoryUserRepository $userRepository): EntityManagerInterface
-    {
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects(self::once())
-            ->method('persist')
-            ->willReturnCallback(static function (object $entity) use ($userRepository): void {
-                if ($entity instanceof User) {
-                    $userRepository->save($entity);
-                }
-            });
-        $entityManager->expects(self::once())->method('flush');
-
-        return $entityManager;
     }
 
     /** @param array<string, mixed> $payload */

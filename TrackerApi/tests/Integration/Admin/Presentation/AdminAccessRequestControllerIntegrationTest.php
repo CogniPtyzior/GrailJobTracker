@@ -9,14 +9,11 @@ use App\Admin\Application\UseCase\ApproveAccessRequest;
 use App\Admin\Application\UseCase\DeleteAccessRequest;
 use App\Admin\Presentation\AdminAccessRequestController;
 use App\Security\Application\EmailNormalizer;
-use App\Security\Domain\Entity\User;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\Tests\Support\Builder\AccessRequestBuilder;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Fake\InMemoryAccessRequestRepository;
 use App\Tests\Support\Fake\InMemoryUserRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -34,9 +31,7 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
             ->build();
         $accessRequestRepository = new InMemoryAccessRequestRepository([$accessRequest]);
         $userRepository = new InMemoryUserRepository();
-        $entityManager = $this->createEntityManager($userRepository, $accessRequestRepository);
-
-        $controller = $this->createController($accessRequestRepository, $userRepository, $entityManager);
+        $controller = $this->createController($accessRequestRepository, $userRepository);
         $request = $this->jsonRequest([
             'password' => 'Password1!',
         ]);
@@ -74,9 +69,7 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
             ->build();
         $accessRequestRepository = new InMemoryAccessRequestRepository([$accessRequest]);
         $userRepository = new InMemoryUserRepository([$existingUser]);
-        $entityManager = $this->createEntityManager($userRepository, $accessRequestRepository);
-
-        $controller = $this->createController($accessRequestRepository, $userRepository, $entityManager);
+        $controller = $this->createController($accessRequestRepository, $userRepository);
         $request = $this->jsonRequest([
             'password' => 'Password1!',
             'firstName' => '  Approved ',
@@ -100,7 +93,6 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
     private function createController(
         InMemoryAccessRequestRepository $accessRequestRepository,
         InMemoryUserRepository $userRepository,
-        EntityManagerInterface $entityManager,
     ): AdminAccessRequestController {
         return new AdminAccessRequestController(
             new AccessRequestPresenter(),
@@ -109,41 +101,13 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
             new RequestPayloadMapper(Validation::createValidator()),
             new ApproveAccessRequest(
                 $userRepository,
+                $accessRequestRepository,
                 new EmailNormalizer(),
                 $this->passwordHasherStub(),
-                $entityManager,
             ),
-            new DeleteAccessRequest($entityManager),
+            new DeleteAccessRequest($accessRequestRepository),
         );
     }
-
-    /** @return MockObject&EntityManagerInterface */
-    private function createEntityManager(
-        InMemoryUserRepository $userRepository,
-        InMemoryAccessRequestRepository $accessRequestRepository,
-    ): EntityManagerInterface {
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->method('persist')
-            ->willReturnCallback(static function (object $entity) use ($userRepository): void {
-                if ($entity instanceof User) {
-                    $userRepository->save($entity);
-                }
-            });
-        $entityManager->method('remove')
-            ->willReturnCallback(static function (object $entity) use ($userRepository, $accessRequestRepository): void {
-                if ($entity instanceof User) {
-                    $userRepository->remove($entity);
-                }
-
-                if ($entity instanceof \App\AccessRequest\Domain\Entity\AccessRequest) {
-                    $accessRequestRepository->remove($entity);
-                }
-            });
-        $entityManager->expects(self::once())->method('flush');
-
-        return $entityManager;
-    }
-
     /** @param array<string, mixed> $payload */
     private function jsonRequest(array $payload, string $method = 'POST'): Request
     {

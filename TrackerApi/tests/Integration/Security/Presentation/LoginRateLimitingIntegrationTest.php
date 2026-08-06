@@ -3,7 +3,8 @@
 namespace App\Tests\Integration\Security\Presentation;
 
 use App\Security\Domain\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Security\Domain\Repository\UserRepositoryInterface;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -47,14 +48,14 @@ final class LoginRateLimitingIntegrationTest extends WebTestCase
 
     private function createUser(string $email): void
     {
-        $entityManager = $this->entityManager();
         $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+        $userRepository = static::getContainer()->get(UserRepositoryInterface::class);
         $user = new User($email, mb_strtolower(trim($email)));
 
         $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
 
-        $entityManager->persist($user);
-        $entityManager->flush();
+        $userRepository->save($user);
+        $userRepository->flush();
     }
 
     private function login(KernelBrowser $client, string $email, string $password, string $remoteAddress): void
@@ -91,8 +92,7 @@ final class LoginRateLimitingIntegrationTest extends WebTestCase
 
     private function deleteStepUsers(): void
     {
-        $this->entityManager()
-            ->getConnection()
+        $this->connection()
             ->executeStatement('DELETE FROM trackers.users WHERE normalized_email LIKE ?', [self::EMAIL_PREFIX.'%']);
     }
 
@@ -101,8 +101,8 @@ final class LoginRateLimitingIntegrationTest extends WebTestCase
         return '198.51.100.'.random_int(1, 254);
     }
 
-    private function entityManager(): EntityManagerInterface
+    private function connection(): Connection
     {
-        return static::getContainer()->get(EntityManagerInterface::class);
+        return static::getContainer()->get(Connection::class);
     }
 }

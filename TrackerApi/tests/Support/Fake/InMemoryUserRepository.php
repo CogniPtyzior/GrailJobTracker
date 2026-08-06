@@ -78,6 +78,10 @@ final class InMemoryUserRepository implements UserRepositoryInterface
         unset($this->usersById[$user->getId()->toRfc4122()]);
     }
 
+    public function flush(): void
+    {
+    }
+
     /** @return list<User> */
     public function all(): array
     {

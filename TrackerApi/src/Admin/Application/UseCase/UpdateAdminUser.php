@@ -4,7 +4,7 @@ namespace App\Admin\Application\UseCase;
 
 use App\Admin\Application\Input\UpdateAdminUserInput;
 use App\Security\Domain\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Security\Domain\Repository\UserRepositoryInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
@@ -14,7 +14,7 @@ final class UpdateAdminUser
 {
     public function __construct(
         private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly UserRepositoryInterface $userRepository,
         private readonly string $adminBootstrapEmail,
     ) {
     }
@@ -43,17 +43,14 @@ final class UpdateAdminUser
             $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload->password));
         }
 
-        $this->entityManager->flush();
+        $this->userRepository->save($user);
+        $this->userRepository->flush();
 
         return $user;
     }
 
-    private function canUpdateActiveFlag(
-        User $user,
-        User $currentUser,
-        UpdateAdminUserInput $payload,
-        bool $bootstrapAdmin,
-    ): bool {
+    private function canUpdateActiveFlag(User $user, User $currentUser, UpdateAdminUserInput $payload, bool $bootstrapAdmin): bool
+    {
         if (!$payload->has('isActive')) {
             return false;
         }

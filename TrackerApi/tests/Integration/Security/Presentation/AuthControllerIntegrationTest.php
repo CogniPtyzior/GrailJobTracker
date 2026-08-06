@@ -3,7 +3,8 @@
 namespace App\Tests\Integration\Security\Presentation;
 
 use App\Security\Domain\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Security\Domain\Repository\UserRepositoryInterface;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -79,14 +80,10 @@ final class AuthControllerIntegrationTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(200);
 
-        $entityManager = $this->entityManager();
-        $managedUser = $entityManager->find(User::class, $user->getId());
-
-        self::assertInstanceOf(User::class, $managedUser);
-
+        $managedUser = $this->userRepository()->getById($user->getId());
         $managedUser->deactivate();
-        $entityManager->flush();
-        $entityManager->clear();
+        $this->userRepository()->save($managedUser);
+        $this->userRepository()->flush();
 
         $client->request('GET', '/api/auth/me');
 
@@ -107,15 +104,14 @@ final class AuthControllerIntegrationTest extends WebTestCase
 
     private function createUser(string $email, bool $isActive = true): User
     {
-        $entityManager = $this->entityManager();
         $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
         $user = new User($email, mb_strtolower(trim($email)));
 
         $isActive ? $user->activate() : $user->deactivate();
         $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
 
-        $entityManager->persist($user);
-        $entityManager->flush();
+        $this->userRepository()->save($user);
+        $this->userRepository()->flush();
 
         return $user;
     }
@@ -154,13 +150,17 @@ final class AuthControllerIntegrationTest extends WebTestCase
 
     private function deleteStepUsers(): void
     {
-        $this->entityManager()
-            ->getConnection()
+        $this->connection()
             ->executeStatement('DELETE FROM trackers.users WHERE normalized_email LIKE ?', [self::EMAIL_PREFIX.'%']);
     }
 
-    private function entityManager(): EntityManagerInterface
+    private function userRepository(): UserRepositoryInterface
     {
-        return static::getContainer()->get(EntityManagerInterface::class);
+        return static::getContainer()->get(UserRepositoryInterface::class);
+    }
+
+    private function connection(): Connection
+    {
+        return static::getContainer()->get(Connection::class);
     }
 }

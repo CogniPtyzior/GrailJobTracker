@@ -4,9 +4,8 @@ namespace App\Security\Infrastructure\Console;
 
 use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
-use App\Security\Infrastructure\Doctrine\UserRepository;
+use App\Security\Domain\Repository\UserRepositoryInterface;
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -17,10 +16,9 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 final class BootstrapAdminCommand extends Command
 {
     public function __construct(
-        private readonly UserRepository $userRepository,
+        private readonly UserRepositoryInterface $userRepository,
         private readonly EmailNormalizer $emailNormalizer,
         private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly EntityManagerInterface $entityManager,
         private readonly Connection $connection,
         private readonly string $adminBootstrapEmail,
         private readonly string $adminBootstrapPasswordFile,
@@ -31,13 +29,10 @@ final class BootstrapAdminCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // This command is part of container startup. Missing bootstrap prerequisites should skip seeding,
-        // not prevent the backend from starting; successful execution does not guarantee an admin was created.
         $passwordFile = trim($this->adminBootstrapPasswordFile);
 
         if ($passwordFile === '' || !is_readable($passwordFile)) {
             $output->writeln('<comment>Bootstrap password file is missing or unreadable. Skipping admin seed.</comment>');
-
             return Command::SUCCESS;
         }
 
@@ -45,7 +40,6 @@ final class BootstrapAdminCommand extends Command
 
         if ($password === '') {
             $output->writeln('<comment>Bootstrap password file is empty. Skipping admin seed.</comment>');
-
             return Command::SUCCESS;
         }
 
@@ -53,7 +47,6 @@ final class BootstrapAdminCommand extends Command
 
         if ($this->connection->fetchOne(sprintf("SELECT to_regclass('%s.users')", $this->trackerSchema)) === null) {
             $output->writeln('<comment>Users table does not exist yet. Skipping admin seed.</comment>');
-
             return Command::SUCCESS;
         }
 
@@ -67,20 +60,19 @@ final class BootstrapAdminCommand extends Command
                 $existingUser->activate();
             }
 
-            $this->entityManager->flush();
+            $this->userRepository->save($existingUser);
+            $this->userRepository->flush();
             $output->writeln('<info>Bootstrap admin already exists.</info>');
-
             return Command::SUCCESS;
         }
 
         $user = new User($this->adminBootstrapEmail, $normalizedEmail);
         $user->grantAdmin();
         $user->setPasswordHash($this->passwordHasher->hashPassword($user, $password));
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
+        $this->userRepository->save($user);
+        $this->userRepository->flush();
 
         $output->writeln('<info>Bootstrap admin created.</info>');
-
         return Command::SUCCESS;
     }
 }

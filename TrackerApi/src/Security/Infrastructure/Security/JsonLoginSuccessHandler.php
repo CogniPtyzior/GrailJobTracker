@@ -3,15 +3,15 @@
 namespace App\Security\Infrastructure\Security;
 
 use App\Security\Domain\Entity\User;
+use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationSuccessHandlerInterface;
 
 final class JsonLoginSuccessHandler implements AuthenticationSuccessHandlerInterface
 {
-    public function __construct(private readonly EntityManagerInterface $entityManager)
+    public function __construct(private readonly UserRepositoryInterface $userRepository)
     {
     }
 
@@ -20,7 +20,8 @@ final class JsonLoginSuccessHandler implements AuthenticationSuccessHandlerInter
         /** @var User $user */
         $user = $token->getUser();
         $user->markLoggedIn(new \DateTimeImmutable('now', new \DateTimeZone('UTC')));
-        $this->entityManager->flush();
+        $this->userRepository->save($user);
+        $this->userRepository->flush();
 
         return ApiJsonResponse::success([
             'user' => [
