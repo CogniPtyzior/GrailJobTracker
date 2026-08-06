@@ -37,7 +37,7 @@ final readonly class TrackedJobPayload implements RequestPayload
         public ?string $remoteMode = null,
         #[Assert\Length(max: 255)]
         public ?string $remuneration = null,
-        #[Assert\Url(requireTld: false)]
+        #[Assert\Url(requireTld: false, normalizer: 'trim')]
         public ?string $offerUrl = null,
         #[Assert\Length(max: 10000)]
         public ?string $notes = null,
@@ -102,7 +102,7 @@ final readonly class TrackedJobPayload implements RequestPayload
                 location: $payload['location'] ?? null,
                 remoteMode: $payload['remoteMode'] ?? null,
                 remuneration: $payload['remuneration'] ?? null,
-                offerUrl: $payload['offerUrl'] ?? null,
+                offerUrl: self::blankToNull($payload['offerUrl'] ?? null),
                 notes: $payload['notes'] ?? null,
                 applicationDate: $payload['applicationDate'] ?? null,
                 effectiveFollowUpDate: $payload['effectiveFollowUpDate'] ?? null,
@@ -125,9 +125,9 @@ final readonly class TrackedJobPayload implements RequestPayload
             company: CompanyName::fromNullable($this->company),
             title: JobTitle::fromNullable($this->title),
             contractType: $this->enumOrNull(ContractType::class, $this->contractType),
-            location: $this->blankToNull($this->location),
+            location: self::blankToNull($this->location),
             remoteMode: $this->enumOrNull(RemoteMode::class, $this->remoteMode),
-            remuneration: $this->blankToNull($this->remuneration),
+            remuneration: self::blankToNull($this->remuneration),
             offerUrl: OfferUrl::fromNullable($this->offerUrl),
             notes: TrackedJobNotes::fromNullable($this->notes),
             applicationDate: TrackedJobDateParser::parseNullable($this->applicationDate),
@@ -142,7 +142,7 @@ final readonly class TrackedJobPayload implements RequestPayload
         );
     }
 
-    private function blankToNull(?string $value): ?string
+    private static function blankToNull(?string $value): ?string
     {
         if ($value === null) {
             return null;

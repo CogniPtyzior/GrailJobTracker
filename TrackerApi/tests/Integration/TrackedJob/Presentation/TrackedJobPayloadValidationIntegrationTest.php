@@ -77,6 +77,23 @@ final class TrackedJobPayloadValidationIntegrationTest extends WebTestCase
         self::assertViolationPath('[notes]', $payload);
     }
 
+    public function testBlankOfferUrlIsAcceptedAsNull(): void
+    {
+        $client = static::createClient();
+        $user = $this->createUser(self::EMAIL_PREFIX.'blank-offer-url@example.com');
+
+        $this->login($client, $user->getEmail());
+        $this->submitTrackedJob($client, [
+            'offerUrl' => '   ',
+        ]);
+
+        self::assertResponseStatusCodeSame(201);
+
+        $payload = $this->jsonResponse($client);
+
+        self::assertNull($payload['item']['offerUrl']);
+    }
+
     /**
      * @param array<string, mixed> $overrides
      */
