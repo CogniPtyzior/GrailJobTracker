@@ -42,26 +42,28 @@ final class TrackedJobCsvExporter
         ], ';', '"', '\\');
 
         foreach ($items as $item) {
+            $timeline = $item->timeline();
+
             fputcsv($stream, [
                 $item->getId()->toRfc4122(),
-                $item->getCompany(),
-                $item->getTitle(),
+                $item->company()?->value(),
+                $item->title()?->value(),
                 $item->getStatus()->value,
                 $item->getContractType()?->value,
                 $item->getLocation(),
                 $item->getRemoteMode()?->value,
                 $item->getRemuneration(),
-                $item->getOfferUrl(),
-                $item->getApplicationDate()?->format(\DateTimeInterface::ATOM),
-                $item->getPlannedFollowUpDate()?->format(\DateTimeInterface::ATOM),
-                $item->getEffectiveFollowUpDate()?->format(\DateTimeInterface::ATOM),
-                $item->getFirstContactDate()?->format(\DateTimeInterface::ATOM),
-                $item->getPreliminaryInterviewDate()?->format(\DateTimeInterface::ATOM),
-                $item->getSecondInterviewDate()?->format(\DateTimeInterface::ATOM),
-                $item->getHrContactName(),
-                $item->getBusinessContactName(),
+                $item->offerUrl()?->value(),
+                $timeline->applicationDate()?->format(\DateTimeInterface::ATOM),
+                $timeline->plannedFollowUpDate()?->format(\DateTimeInterface::ATOM),
+                $timeline->effectiveFollowUpDate()?->format(\DateTimeInterface::ATOM),
+                $timeline->firstContactDate()?->format(\DateTimeInterface::ATOM),
+                $timeline->preliminaryInterviewDate()?->format(\DateTimeInterface::ATOM),
+                $timeline->secondInterviewDate()?->format(\DateTimeInterface::ATOM),
+                $item->hrContactName()?->value(),
+                $item->businessContactName()?->value(),
                 $item->getSubjectiveRelevance(),
-                $item->getNotes(),
+                $item->notes()?->value(),
                 $item->getCreatedAt()->format(\DateTimeInterface::ATOM),
                 $item->getUpdatedAt()->format(\DateTimeInterface::ATOM),
             ], ';', '"', '\\');

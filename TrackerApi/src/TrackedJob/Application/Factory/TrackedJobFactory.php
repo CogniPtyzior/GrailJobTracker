@@ -6,6 +6,7 @@ use App\Security\Domain\Entity\User;
 use App\TrackedJob\Application\Input\TrackedJobInput;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
+use App\TrackedJob\Domain\ValueObject\SubjectiveRelevance;
 
 final class TrackedJobFactory
 {
@@ -38,7 +39,9 @@ final class TrackedJobFactory
             $input->secondInterviewDate,
         );
         $trackedJob->updateContacts($input->hrContactName, $input->businessContactName);
-        $trackedJob->updateSubjectiveRelevance($input->subjectiveRelevance);
+        $trackedJob->updateSubjectiveRelevance(
+            $input->subjectiveRelevance !== null ? SubjectiveRelevance::fromInt($input->subjectiveRelevance) : null,
+        );
         $trackedJob->recalculateStatus($input->status);
         $trackedJob->touch();
     }

@@ -4,6 +4,7 @@ namespace App\Tests\Integration\TrackedJob\Presentation;
 
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Builder\TrackedJobBuilder;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
@@ -91,7 +92,7 @@ final class TrackedJobOwnershipIsolationIntegrationTest extends WebTestCase
     {
         $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
         $userRepository = static::getContainer()->get(UserRepositoryInterface::class);
-        $user = new User($email, mb_strtolower(trim($email)));
+        $user = new User(EmailAddress::fromString($email));
 
         $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
 
@@ -165,3 +166,4 @@ final class TrackedJobOwnershipIsolationIntegrationTest extends WebTestCase
         return static::getContainer()->get(Connection::class);
     }
 }
+

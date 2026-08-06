@@ -7,6 +7,13 @@ use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
+use App\TrackedJob\Domain\ValueObject\CompanyName;
+use App\TrackedJob\Domain\ValueObject\ContactName;
+use App\TrackedJob\Domain\ValueObject\JobTitle;
+use App\TrackedJob\Domain\ValueObject\OfferUrl;
+use App\TrackedJob\Domain\ValueObject\SubjectiveRelevance;
+use App\TrackedJob\Domain\ValueObject\TrackedJobNotes;
+use App\TrackedJob\Domain\ValueObject\TrackedJobTimeline;
 
 final class TrackedJobBuilder
 {
@@ -135,14 +142,14 @@ final class TrackedJobBuilder
     {
         $trackedJob = new TrackedJob($this->owner ?? UserBuilder::aUser()->build());
         $trackedJob->updateDetails(
-            $this->company,
-            $this->title,
+            CompanyName::fromNullable($this->company),
+            JobTitle::fromNullable($this->title),
             $this->contractType,
             $this->location,
             $this->remoteMode,
             $this->remuneration,
-            $this->offerUrl,
-            $this->notes,
+            OfferUrl::fromNullable($this->offerUrl),
+            TrackedJobNotes::fromNullable($this->notes),
         );
         $trackedJob->updateProcessDates(
             $this->applicationDate,
@@ -151,11 +158,20 @@ final class TrackedJobBuilder
             $this->preliminaryInterviewDate,
             $this->secondInterviewDate,
         );
-        $trackedJob->updateContacts($this->hrContactName, $this->businessContactName);
-        $trackedJob->updateSubjectiveRelevance($this->subjectiveRelevance);
+        $trackedJob->updateContacts(ContactName::fromNullable($this->hrContactName), ContactName::fromNullable($this->businessContactName));
+        $trackedJob->updateSubjectiveRelevance($this->subjectiveRelevance !== null ? SubjectiveRelevance::fromInt($this->subjectiveRelevance) : null);
 
-        // The builder can represent legacy or artificial states that are not produced by current domain methods.
-        $this->forceValue($trackedJob, 'plannedFollowUpDate', $this->plannedFollowUpDate);
+        if ($this->plannedFollowUpDate !== $trackedJob->timeline()->plannedFollowUpDate()) {
+            // The builder can represent legacy or artificial states that are not produced by current domain methods.
+            $this->forceValue($trackedJob, 'timeline', TrackedJobTimeline::fromPersistedState(
+                $this->applicationDate,
+                $this->plannedFollowUpDate,
+                $this->effectiveFollowUpDate,
+                $this->firstContactDate,
+                $this->preliminaryInterviewDate,
+                $this->secondInterviewDate,
+            ));
+        }
 
         $trackedJob->recalculateStatus($this->status);
 
@@ -168,3 +184,5 @@ final class TrackedJobBuilder
         $reflectionProperty->setValue($trackedJob, $value);
     }
 }
+
+

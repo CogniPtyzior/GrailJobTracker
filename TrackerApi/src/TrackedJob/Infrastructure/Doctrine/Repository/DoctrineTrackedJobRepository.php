@@ -13,7 +13,7 @@ use App\TrackedJob\Infrastructure\Doctrine\Entity\TrackedJobRecord;
 use App\TrackedJob\Infrastructure\Doctrine\Mapper\TrackedJobRecordMapper;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 
 final class DoctrineTrackedJobRepository extends ServiceEntityRepository implements TrackedJobRepositoryInterface
 {
@@ -22,7 +22,7 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
         parent::__construct($registry, TrackedJobRecord::class);
     }
 
-    public function getByIdForOwner(Uuid $id, User $owner): ?TrackedJob
+    public function getByIdForOwner(TrackedJobId $id, User $owner): ?TrackedJob
     {
         $ownerRecord = $this->findUserRecord($owner);
 
@@ -30,7 +30,7 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
             return null;
         }
 
-        $record = $this->findOneBy(['id' => $id, 'owner' => $ownerRecord]);
+        $record = $this->findOneBy(['id' => $id->toUuid(), 'owner' => $ownerRecord]);
 
         return $record instanceof TrackedJobRecord ? $this->mapper->toDomain($record) : null;
     }
@@ -118,7 +118,7 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
             throw new \RuntimeException('Tracked job owner must be persisted before the tracked job can be saved.');
         }
 
-        $record = $this->find($trackedJob->getId()) ?? new TrackedJobRecord();
+        $record = $this->find($trackedJob->getId()->toUuid()) ?? new TrackedJobRecord();
         $this->mapper->updateRecord($trackedJob, $record, $ownerRecord);
         $this->getEntityManager()->persist($record);
     }
@@ -130,7 +130,7 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
 
     public function remove(TrackedJob $trackedJob): void
     {
-        $record = $this->find($trackedJob->getId());
+        $record = $this->find($trackedJob->getId()->toUuid());
 
         if ($record instanceof TrackedJobRecord) {
             $this->getEntityManager()->remove($record);
@@ -144,7 +144,7 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
 
     private function findUserRecord(User $user): ?UserRecord
     {
-        return $this->getEntityManager()->find(UserRecord::class, $user->getId());
+        return $this->getEntityManager()->find(UserRecord::class, $user->getId()->toUuid());
     }
 
     private function applyFilters(\Doctrine\ORM\QueryBuilder $qb, array $filters): void

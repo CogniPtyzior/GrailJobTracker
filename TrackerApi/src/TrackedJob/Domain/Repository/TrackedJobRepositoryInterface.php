@@ -4,11 +4,11 @@ namespace App\TrackedJob\Domain\Repository;
 
 use App\Security\Domain\Entity\User;
 use App\TrackedJob\Domain\Entity\TrackedJob;
-use Symfony\Component\Uid\Uuid;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 
 interface TrackedJobRepositoryInterface
 {
-    public function getByIdForOwner(Uuid $id, User $owner): ?TrackedJob;
+    public function getByIdForOwner(TrackedJobId $id, User $owner): ?TrackedJob;
 
     /**
      * @param array<string, mixed> $filters

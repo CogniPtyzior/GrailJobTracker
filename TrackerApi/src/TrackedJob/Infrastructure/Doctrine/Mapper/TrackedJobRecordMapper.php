@@ -2,10 +2,17 @@
 
 namespace App\TrackedJob\Infrastructure\Doctrine\Mapper;
 
-use App\TrackedJob\Domain\Entity\TrackedJob;
-use App\TrackedJob\Infrastructure\Doctrine\Entity\TrackedJobRecord;
 use App\Security\Infrastructure\Doctrine\Entity\UserRecord;
 use App\Security\Infrastructure\Doctrine\Mapper\UserRecordMapper;
+use App\TrackedJob\Domain\Entity\TrackedJob;
+use App\TrackedJob\Domain\ValueObject\CompanyName;
+use App\TrackedJob\Domain\ValueObject\ContactName;
+use App\TrackedJob\Domain\ValueObject\JobTitle;
+use App\TrackedJob\Domain\ValueObject\OfferUrl;
+use App\TrackedJob\Domain\ValueObject\SubjectiveRelevance;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
+use App\TrackedJob\Domain\ValueObject\TrackedJobNotes;
+use App\TrackedJob\Infrastructure\Doctrine\Entity\TrackedJobRecord;
 
 final class TrackedJobRecordMapper
 {
@@ -15,26 +22,28 @@ final class TrackedJobRecordMapper
 
     public function toDomain(TrackedJobRecord $record): TrackedJob
     {
+        $subjectiveRelevance = $record->getSubjectiveRelevance();
+
         return TrackedJob::reconstitute(
-            $record->getId(),
+            TrackedJobId::fromUuid($record->getId()),
             $this->userMapper->toDomain($record->getOwner()),
-            $record->getCompany(),
-            $record->getTitle(),
+            CompanyName::fromNullable($record->getCompany()),
+            JobTitle::fromNullable($record->getTitle()),
             $record->getContractType(),
             $record->getLocation(),
             $record->getRemoteMode(),
             $record->getRemuneration(),
-            $record->getOfferUrl(),
-            $record->getNotes(),
+            OfferUrl::fromNullable($record->getOfferUrl()),
+            TrackedJobNotes::fromNullable($record->getNotes()),
             $record->getApplicationDate(),
             $record->getPlannedFollowUpDate(),
             $record->getEffectiveFollowUpDate(),
             $record->getFirstContactDate(),
             $record->getPreliminaryInterviewDate(),
             $record->getSecondInterviewDate(),
-            $record->getHrContactName(),
-            $record->getBusinessContactName(),
-            $record->getSubjectiveRelevance(),
+            ContactName::fromNullable($record->getHrContactName()),
+            ContactName::fromNullable($record->getBusinessContactName()),
+            $subjectiveRelevance !== null ? SubjectiveRelevance::fromInt($subjectiveRelevance) : null,
             $record->getStatus(),
             $record->getCreatedAt(),
             $record->getUpdatedAt(),
@@ -43,25 +52,27 @@ final class TrackedJobRecordMapper
 
     public function updateRecord(TrackedJob $trackedJob, TrackedJobRecord $record, UserRecord $ownerRecord): void
     {
-        $record->setId($trackedJob->getId());
+        $timeline = $trackedJob->timeline();
+
+        $record->setId($trackedJob->getId()->toUuid());
         $record->setOwner($ownerRecord);
-        $record->setCompany($trackedJob->getCompany());
-        $record->setTitle($trackedJob->getTitle());
+        $record->setCompany($trackedJob->company()?->value());
+        $record->setTitle($trackedJob->title()?->value());
         $record->setContractType($trackedJob->getContractType());
         $record->setLocation($trackedJob->getLocation());
         $record->setRemoteMode($trackedJob->getRemoteMode());
         $record->setRemuneration($trackedJob->getRemuneration());
-        $record->setOfferUrl($trackedJob->getOfferUrl());
-        $record->setNotes($trackedJob->getNotes());
-        $record->setApplicationDate($trackedJob->getApplicationDate());
-        $record->setPlannedFollowUpDate($trackedJob->getPlannedFollowUpDate());
-        $record->setEffectiveFollowUpDate($trackedJob->getEffectiveFollowUpDate());
-        $record->setFirstContactDate($trackedJob->getFirstContactDate());
-        $record->setPreliminaryInterviewDate($trackedJob->getPreliminaryInterviewDate());
-        $record->setSecondInterviewDate($trackedJob->getSecondInterviewDate());
-        $record->setHrContactName($trackedJob->getHrContactName());
-        $record->setBusinessContactName($trackedJob->getBusinessContactName());
-        $record->setSubjectiveRelevance($trackedJob->getSubjectiveRelevance());
+        $record->setOfferUrl($trackedJob->offerUrl()?->value());
+        $record->setNotes($trackedJob->notes()?->value());
+        $record->setApplicationDate($timeline->applicationDate());
+        $record->setPlannedFollowUpDate($timeline->plannedFollowUpDate());
+        $record->setEffectiveFollowUpDate($timeline->effectiveFollowUpDate());
+        $record->setFirstContactDate($timeline->firstContactDate());
+        $record->setPreliminaryInterviewDate($timeline->preliminaryInterviewDate());
+        $record->setSecondInterviewDate($timeline->secondInterviewDate());
+        $record->setHrContactName($trackedJob->hrContactName()?->value());
+        $record->setBusinessContactName($trackedJob->businessContactName()?->value());
+        $record->setSubjectiveRelevance($trackedJob->subjectiveRelevance()?->value());
         $record->setStatus($trackedJob->getStatus());
         $record->setCreatedAt($trackedJob->getCreatedAt());
         $record->setUpdatedAt($trackedJob->getUpdatedAt());

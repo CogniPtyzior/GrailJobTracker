@@ -32,21 +32,21 @@ final class TrackedJobPayloadTest extends TestCase
             status: 'WITHDRAWN',
         ))->toInput();
 
-        self::assertSame('Acme', $input->company);
-        self::assertSame('Backend Engineer', $input->title);
+        self::assertSame('Acme', $input->company?->value());
+        self::assertSame('Backend Engineer', $input->title?->value());
         self::assertSame(ContractType::CDD, $input->contractType);
         self::assertSame('Paris', $input->location);
         self::assertSame(RemoteMode::FULL, $input->remoteMode);
         self::assertSame('60k', $input->remuneration);
-        self::assertSame('https://example.com/job', $input->offerUrl);
-        self::assertSame('Strong fit', $input->notes);
+        self::assertSame('https://example.com/job', $input->offerUrl?->value());
+        self::assertSame('Strong fit', $input->notes?->value());
         self::assertSame('2026-04-01T09:00:00+00:00', $input->applicationDate?->format(\DateTimeInterface::ATOM));
         self::assertSame('2026-04-10T09:00:00+00:00', $input->effectiveFollowUpDate?->format(\DateTimeInterface::ATOM));
         self::assertSame('2026-04-11T09:00:00+00:00', $input->firstContactDate?->format(\DateTimeInterface::ATOM));
         self::assertSame('2026-04-15T09:00:00+00:00', $input->preliminaryInterviewDate?->format(\DateTimeInterface::ATOM));
         self::assertSame('2026-04-20T09:00:00+00:00', $input->secondInterviewDate?->format(\DateTimeInterface::ATOM));
-        self::assertSame('Jane HR', $input->hrContactName);
-        self::assertSame('Bob Manager', $input->businessContactName);
+        self::assertSame('Jane HR', $input->hrContactName?->value());
+        self::assertSame('Bob Manager', $input->businessContactName?->value());
         self::assertSame(9, $input->subjectiveRelevance);
         self::assertSame(TrackedJobStatus::WITHDRAWN, $input->status);
     }

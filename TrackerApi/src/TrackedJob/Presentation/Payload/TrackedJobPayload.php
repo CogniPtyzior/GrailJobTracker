@@ -11,6 +11,11 @@ use App\TrackedJob\Application\Input\TrackedJobInput;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
+use App\TrackedJob\Domain\ValueObject\CompanyName;
+use App\TrackedJob\Domain\ValueObject\ContactName;
+use App\TrackedJob\Domain\ValueObject\JobTitle;
+use App\TrackedJob\Domain\ValueObject\OfferUrl;
+use App\TrackedJob\Domain\ValueObject\TrackedJobNotes;
 use App\TrackedJob\Presentation\Validation\ValidTrackedJobDate;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -32,6 +37,7 @@ final readonly class TrackedJobPayload implements RequestPayload
         public ?string $remoteMode = null,
         #[Assert\Length(max: 255)]
         public ?string $remuneration = null,
+        #[Assert\Url(requireTld: false)]
         public ?string $offerUrl = null,
         #[Assert\Length(max: 10000)]
         public ?string $notes = null,
@@ -116,21 +122,21 @@ final readonly class TrackedJobPayload implements RequestPayload
     public function toInput(): TrackedJobInput
     {
         return new TrackedJobInput(
-            company: $this->blankToNull($this->company),
-            title: $this->blankToNull($this->title),
+            company: CompanyName::fromNullable($this->company),
+            title: JobTitle::fromNullable($this->title),
             contractType: $this->enumOrNull(ContractType::class, $this->contractType),
             location: $this->blankToNull($this->location),
             remoteMode: $this->enumOrNull(RemoteMode::class, $this->remoteMode),
             remuneration: $this->blankToNull($this->remuneration),
-            offerUrl: $this->blankToNull($this->offerUrl),
-            notes: $this->blankToNull($this->notes),
+            offerUrl: OfferUrl::fromNullable($this->offerUrl),
+            notes: TrackedJobNotes::fromNullable($this->notes),
             applicationDate: TrackedJobDateParser::parseNullable($this->applicationDate),
             effectiveFollowUpDate: TrackedJobDateParser::parseNullable($this->effectiveFollowUpDate),
             firstContactDate: TrackedJobDateParser::parseNullable($this->firstContactDate),
             preliminaryInterviewDate: TrackedJobDateParser::parseNullable($this->preliminaryInterviewDate),
             secondInterviewDate: TrackedJobDateParser::parseNullable($this->secondInterviewDate),
-            hrContactName: $this->blankToNull($this->hrContactName),
-            businessContactName: $this->blankToNull($this->businessContactName),
+            hrContactName: ContactName::fromNullable($this->hrContactName),
+            businessContactName: ContactName::fromNullable($this->businessContactName),
             subjectiveRelevance: $this->intOrNull($this->subjectiveRelevance),
             status: $this->enumOrNull(TrackedJobStatus::class, $this->status),
         );

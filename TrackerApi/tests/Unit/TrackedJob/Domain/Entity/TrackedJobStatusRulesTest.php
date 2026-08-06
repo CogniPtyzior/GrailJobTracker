@@ -119,3 +119,4 @@ final class TrackedJobStatusRulesTest extends TestCase
         self::assertSame(TrackedJobStatus::DRAFT, $trackedJob->getStatus());
     }
 }
+

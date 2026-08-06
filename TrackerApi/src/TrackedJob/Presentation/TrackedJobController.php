@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\Uid\Uuid;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 
 #[Route('/api/tracked-jobs')]
 final class TrackedJobController extends AbstractController
@@ -166,7 +166,7 @@ final class TrackedJobController extends AbstractController
     private function findTrackedJob(string $id, User $user): ?TrackedJob
     {
         try {
-            return $this->getTrackedJob->handle(Uuid::fromString($id), $user);
+            return $this->getTrackedJob->handle(TrackedJobId::fromString($id), $user);
         } catch (\InvalidArgumentException) {
             return null;
         }

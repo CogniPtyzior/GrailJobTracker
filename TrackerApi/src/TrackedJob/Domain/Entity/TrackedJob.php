@@ -6,88 +6,92 @@ use App\Security\Domain\Entity\User;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
-use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Uid\UuidV7;
+use App\TrackedJob\Domain\ValueObject\CompanyName;
+use App\TrackedJob\Domain\ValueObject\ContactName;
+use App\TrackedJob\Domain\ValueObject\JobTitle;
+use App\TrackedJob\Domain\ValueObject\OfferUrl;
+use App\TrackedJob\Domain\ValueObject\SubjectiveRelevance;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
+use App\TrackedJob\Domain\ValueObject\TrackedJobNotes;
+use App\TrackedJob\Domain\ValueObject\TrackedJobTimeline;
 
 /**
  * Domain entity that owns tracked-job state transitions and normalization rules.
  */
 final class TrackedJob
 {
-    private Uuid $id;
+    private TrackedJobId $id;
     private User $owner;
-    private ?string $company = null;
-    private ?string $title = null;
+    private ?CompanyName $company = null;
+    private ?JobTitle $title = null;
     private ?ContractType $contractType = ContractType::CDI;
     private ?string $location = null;
     private ?RemoteMode $remoteMode = null;
     private ?string $remuneration = null;
-    private ?string $offerUrl = null;
-    private ?string $notes = null;
-    private ?\DateTimeImmutable $applicationDate = null;
-    private ?\DateTimeImmutable $plannedFollowUpDate = null;
-    private ?\DateTimeImmutable $effectiveFollowUpDate = null;
-    private ?\DateTimeImmutable $firstContactDate = null;
-    private ?\DateTimeImmutable $preliminaryInterviewDate = null;
-    private ?\DateTimeImmutable $secondInterviewDate = null;
-    private ?string $hrContactName = null;
-    private ?string $businessContactName = null;
-    private ?int $subjectiveRelevance = null;
+    private ?OfferUrl $offerUrl = null;
+    private ?TrackedJobNotes $notes = null;
+    private TrackedJobTimeline $timeline;
+    private ?ContactName $hrContactName = null;
+    private ?ContactName $businessContactName = null;
+    private ?SubjectiveRelevance $subjectiveRelevance = null;
     private TrackedJobStatus $status = TrackedJobStatus::DRAFT;
     private \DateTimeImmutable $createdAt;
     private \DateTimeImmutable $updatedAt;
 
     public function __construct(User $owner)
     {
-        $this->id = new UuidV7();
+        $this->id = TrackedJobId::new();
         $this->owner = $owner;
+        $this->timeline = TrackedJobTimeline::empty();
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $this->createdAt = $now;
         $this->updatedAt = $now;
     }
 
     public static function reconstitute(
-        Uuid $id,
+        TrackedJobId $id,
         User $owner,
-        ?string $company,
-        ?string $title,
+        ?CompanyName $company,
+        ?JobTitle $title,
         ?ContractType $contractType,
         ?string $location,
         ?RemoteMode $remoteMode,
         ?string $remuneration,
-        ?string $offerUrl,
-        ?string $notes,
+        ?OfferUrl $offerUrl,
+        ?TrackedJobNotes $notes,
         ?\DateTimeImmutable $applicationDate,
         ?\DateTimeImmutable $plannedFollowUpDate,
         ?\DateTimeImmutable $effectiveFollowUpDate,
         ?\DateTimeImmutable $firstContactDate,
         ?\DateTimeImmutable $preliminaryInterviewDate,
         ?\DateTimeImmutable $secondInterviewDate,
-        ?string $hrContactName,
-        ?string $businessContactName,
-        ?int $subjectiveRelevance,
+        ?ContactName $hrContactName,
+        ?ContactName $businessContactName,
+        ?SubjectiveRelevance $subjectiveRelevance,
         TrackedJobStatus $status,
         \DateTimeImmutable $createdAt,
         \DateTimeImmutable $updatedAt,
     ): self {
         $trackedJob = new self($owner);
         $trackedJob->id = $id;
-        $trackedJob->company = self::trimOrNull($company);
-        $trackedJob->title = self::trimOrNull($title);
+        $trackedJob->company = $company;
+        $trackedJob->title = $title;
         $trackedJob->contractType = $contractType ?? ContractType::CDI;
         $trackedJob->location = self::trimOrNull($location);
         $trackedJob->remoteMode = $remoteMode;
         $trackedJob->remuneration = self::trimOrNull($remuneration);
-        $trackedJob->offerUrl = self::trimOrNull($offerUrl);
-        $trackedJob->notes = self::trimOrNull($notes);
-        $trackedJob->applicationDate = $applicationDate;
-        $trackedJob->plannedFollowUpDate = $plannedFollowUpDate;
-        $trackedJob->effectiveFollowUpDate = $effectiveFollowUpDate;
-        $trackedJob->firstContactDate = $firstContactDate;
-        $trackedJob->preliminaryInterviewDate = $preliminaryInterviewDate;
-        $trackedJob->secondInterviewDate = $secondInterviewDate;
-        $trackedJob->hrContactName = self::trimOrNull($hrContactName);
-        $trackedJob->businessContactName = self::trimOrNull($businessContactName);
+        $trackedJob->offerUrl = $offerUrl;
+        $trackedJob->notes = $notes;
+        $trackedJob->timeline = TrackedJobTimeline::fromPersistedState(
+            $applicationDate,
+            $plannedFollowUpDate,
+            $effectiveFollowUpDate,
+            $firstContactDate,
+            $preliminaryInterviewDate,
+            $secondInterviewDate,
+        );
+        $trackedJob->hrContactName = $hrContactName;
+        $trackedJob->businessContactName = $businessContactName;
         $trackedJob->subjectiveRelevance = $subjectiveRelevance;
         $trackedJob->status = $status;
         $trackedJob->createdAt = $createdAt;
@@ -102,23 +106,23 @@ final class TrackedJob
     }
 
     public function updateDetails(
-        ?string $company,
-        ?string $title,
+        ?CompanyName $company,
+        ?JobTitle $title,
         ?ContractType $contractType,
         ?string $location,
         ?RemoteMode $remoteMode,
         ?string $remuneration,
-        ?string $offerUrl,
-        ?string $notes,
+        ?OfferUrl $offerUrl,
+        ?TrackedJobNotes $notes,
     ): void {
-        $this->company = self::trimOrNull($company);
-        $this->title = self::trimOrNull($title);
+        $this->company = $company;
+        $this->title = $title;
         $this->contractType = $contractType ?? ContractType::CDI;
         $this->location = self::trimOrNull($location);
         $this->remoteMode = $remoteMode;
         $this->remuneration = self::trimOrNull($remuneration);
-        $this->offerUrl = self::trimOrNull($offerUrl);
-        $this->notes = self::trimOrNull($notes);
+        $this->offerUrl = $offerUrl;
+        $this->notes = $notes;
     }
 
     public function updateProcessDates(
@@ -128,21 +132,22 @@ final class TrackedJob
         ?\DateTimeImmutable $preliminaryInterviewDate,
         ?\DateTimeImmutable $secondInterviewDate,
     ): void {
-        $this->applicationDate = $applicationDate;
-        $this->effectiveFollowUpDate = $effectiveFollowUpDate;
-        $this->firstContactDate = $firstContactDate;
-        $this->preliminaryInterviewDate = $preliminaryInterviewDate;
-        $this->secondInterviewDate = $secondInterviewDate;
-        $this->plannedFollowUpDate = $this->calculatePlannedFollowUpDate($applicationDate);
+        $this->timeline = TrackedJobTimeline::fromProcessDates(
+            $applicationDate,
+            $effectiveFollowUpDate,
+            $firstContactDate,
+            $preliminaryInterviewDate,
+            $secondInterviewDate,
+        );
     }
 
-    public function updateContacts(?string $hrContactName, ?string $businessContactName): void
+    public function updateContacts(?ContactName $hrContactName, ?ContactName $businessContactName): void
     {
-        $this->hrContactName = self::trimOrNull($hrContactName);
-        $this->businessContactName = self::trimOrNull($businessContactName);
+        $this->hrContactName = $hrContactName;
+        $this->businessContactName = $businessContactName;
     }
 
-    public function updateSubjectiveRelevance(?int $subjectiveRelevance): void
+    public function updateSubjectiveRelevance(?SubjectiveRelevance $subjectiveRelevance): void
     {
         $this->subjectiveRelevance = $subjectiveRelevance;
     }
@@ -159,10 +164,10 @@ final class TrackedJob
             return;
         }
 
-        $this->status = $this->inferStatusFromDates();
+        $this->status = $this->timeline->inferStatus();
     }
 
-    public function getId(): Uuid
+    public function getId(): TrackedJobId
     {
         return $this->id;
     }
@@ -172,15 +177,17 @@ final class TrackedJob
         return $this->owner;
     }
 
-    public function getCompany(): ?string
+    public function company(): ?CompanyName
     {
         return $this->company;
     }
 
-    public function getTitle(): ?string
+
+    public function title(): ?JobTitle
     {
         return $this->title;
     }
+
 
     public function getContractType(): ?ContractType
     {
@@ -202,59 +209,43 @@ final class TrackedJob
         return $this->remuneration;
     }
 
-    public function getOfferUrl(): ?string
+    public function offerUrl(): ?OfferUrl
     {
         return $this->offerUrl;
     }
 
-    public function getNotes(): ?string
+
+    public function notes(): ?TrackedJobNotes
     {
         return $this->notes;
     }
 
-    public function getApplicationDate(): ?\DateTimeImmutable
+
+    public function timeline(): TrackedJobTimeline
     {
-        return $this->applicationDate;
+        return $this->timeline;
     }
 
-    public function getPlannedFollowUpDate(): ?\DateTimeImmutable
-    {
-        return $this->plannedFollowUpDate;
-    }
-
-    public function getEffectiveFollowUpDate(): ?\DateTimeImmutable
-    {
-        return $this->effectiveFollowUpDate;
-    }
-
-    public function getFirstContactDate(): ?\DateTimeImmutable
-    {
-        return $this->firstContactDate;
-    }
-
-    public function getPreliminaryInterviewDate(): ?\DateTimeImmutable
-    {
-        return $this->preliminaryInterviewDate;
-    }
-
-    public function getSecondInterviewDate(): ?\DateTimeImmutable
-    {
-        return $this->secondInterviewDate;
-    }
-
-    public function getHrContactName(): ?string
+    public function hrContactName(): ?ContactName
     {
         return $this->hrContactName;
     }
 
-    public function getBusinessContactName(): ?string
+
+    public function businessContactName(): ?ContactName
     {
         return $this->businessContactName;
     }
 
-    public function getSubjectiveRelevance(): ?int
+
+    public function subjectiveRelevance(): ?SubjectiveRelevance
     {
         return $this->subjectiveRelevance;
+    }
+
+    public function getSubjectiveRelevance(): ?int
+    {
+        return $this->subjectiveRelevance?->value();
     }
 
     public function getStatus(): TrackedJobStatus
@@ -270,40 +261,6 @@ final class TrackedJob
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
-    }
-
-    private function inferStatusFromDates(): TrackedJobStatus
-    {
-        if ($this->secondInterviewDate !== null) {
-            return TrackedJobStatus::SECOND_INTERVIEW;
-        }
-
-        if ($this->preliminaryInterviewDate !== null) {
-            return TrackedJobStatus::PRELIMINARY_INTERVIEW;
-        }
-
-        if ($this->firstContactDate !== null) {
-            return TrackedJobStatus::FIRST_CONTACT;
-        }
-
-        if ($this->effectiveFollowUpDate !== null) {
-            return TrackedJobStatus::FOLLOW_UP_DONE;
-        }
-
-        if ($this->plannedFollowUpDate !== null) {
-            return TrackedJobStatus::FOLLOW_UP_PENDING;
-        }
-
-        if ($this->applicationDate !== null) {
-            return TrackedJobStatus::APPLIED;
-        }
-
-        return TrackedJobStatus::DRAFT;
-    }
-
-    private function calculatePlannedFollowUpDate(?\DateTimeImmutable $applicationDate): ?\DateTimeImmutable
-    {
-        return $applicationDate?->setTime(0, 0)->modify('+15 days');
     }
 
     private static function trimOrNull(?string $value): ?string

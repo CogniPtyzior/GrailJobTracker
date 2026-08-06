@@ -12,24 +12,26 @@ final class TrackedJobPresenter
      */
     public function present(TrackedJob $trackedJob): array
     {
+        $timeline = $trackedJob->timeline();
+
         return [
             'id' => $trackedJob->getId()->toRfc4122(),
-            'company' => $trackedJob->getCompany(),
-            'title' => $trackedJob->getTitle(),
+            'company' => $trackedJob->company()?->value(),
+            'title' => $trackedJob->title()?->value(),
             'contractType' => $trackedJob->getContractType()?->value,
             'location' => $trackedJob->getLocation(),
             'remoteMode' => $trackedJob->getRemoteMode()?->value,
             'remuneration' => $trackedJob->getRemuneration(),
-            'offerUrl' => $trackedJob->getOfferUrl(),
-            'notes' => $trackedJob->getNotes(),
-            'applicationDate' => $trackedJob->getApplicationDate()?->format(\DateTimeInterface::ATOM),
-            'plannedFollowUpDate' => $trackedJob->getPlannedFollowUpDate()?->format(\DateTimeInterface::ATOM),
-            'effectiveFollowUpDate' => $trackedJob->getEffectiveFollowUpDate()?->format(\DateTimeInterface::ATOM),
-            'firstContactDate' => $trackedJob->getFirstContactDate()?->format(\DateTimeInterface::ATOM),
-            'preliminaryInterviewDate' => $trackedJob->getPreliminaryInterviewDate()?->format(\DateTimeInterface::ATOM),
-            'secondInterviewDate' => $trackedJob->getSecondInterviewDate()?->format(\DateTimeInterface::ATOM),
-            'hrContactName' => $trackedJob->getHrContactName(),
-            'businessContactName' => $trackedJob->getBusinessContactName(),
+            'offerUrl' => $trackedJob->offerUrl()?->value(),
+            'notes' => $trackedJob->notes()?->value(),
+            'applicationDate' => $timeline->applicationDate()?->format(\DateTimeInterface::ATOM),
+            'plannedFollowUpDate' => $timeline->plannedFollowUpDate()?->format(\DateTimeInterface::ATOM),
+            'effectiveFollowUpDate' => $timeline->effectiveFollowUpDate()?->format(\DateTimeInterface::ATOM),
+            'firstContactDate' => $timeline->firstContactDate()?->format(\DateTimeInterface::ATOM),
+            'preliminaryInterviewDate' => $timeline->preliminaryInterviewDate()?->format(\DateTimeInterface::ATOM),
+            'secondInterviewDate' => $timeline->secondInterviewDate()?->format(\DateTimeInterface::ATOM),
+            'hrContactName' => $trackedJob->hrContactName()?->value(),
+            'businessContactName' => $trackedJob->businessContactName()?->value(),
             'subjectiveRelevance' => $trackedJob->getSubjectiveRelevance(),
             'status' => $trackedJob->getStatus()->value,
             'createdAt' => $trackedJob->getCreatedAt()->format(\DateTimeInterface::ATOM),

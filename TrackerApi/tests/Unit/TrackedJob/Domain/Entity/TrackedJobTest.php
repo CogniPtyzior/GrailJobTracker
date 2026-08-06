@@ -9,7 +9,13 @@ use App\TrackedJob\Domain\Enum\TrackedJobStatus;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Uid\Uuid;
+use App\TrackedJob\Domain\ValueObject\CompanyName;
+use App\TrackedJob\Domain\ValueObject\ContactName;
+use App\TrackedJob\Domain\ValueObject\JobTitle;
+use App\TrackedJob\Domain\ValueObject\OfferUrl;
+use App\TrackedJob\Domain\ValueObject\SubjectiveRelevance;
+use App\TrackedJob\Domain\ValueObject\TrackedJobNotes;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 
 final class TrackedJobTest extends TestCase
 {
@@ -29,40 +35,40 @@ final class TrackedJobTest extends TestCase
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
 
         $trackedJob->updateDetails(
-            '  Acme  ',
-            '  Backend Engineer  ',
+            CompanyName::fromNullable('  Acme  '),
+            JobTitle::fromNullable('  Backend Engineer  '),
             ContractType::CDD,
             '  Paris  ',
             RemoteMode::FULL,
             '  60k  ',
-            '  https://example.com/job  ',
-            '  Strong fit  ',
+            OfferUrl::fromNullable('  https://example.com/job  '),
+            TrackedJobNotes::fromNullable('  Strong fit  '),
         );
 
-        self::assertSame('Acme', $trackedJob->getCompany());
-        self::assertSame('Backend Engineer', $trackedJob->getTitle());
+        self::assertSame('Acme', $trackedJob->company()?->value());
+        self::assertSame('Backend Engineer', $trackedJob->title()?->value());
         self::assertSame(ContractType::CDD, $trackedJob->getContractType());
         self::assertSame('Paris', $trackedJob->getLocation());
         self::assertSame(RemoteMode::FULL, $trackedJob->getRemoteMode());
         self::assertSame('60k', $trackedJob->getRemuneration());
-        self::assertSame('https://example.com/job', $trackedJob->getOfferUrl());
-        self::assertSame('Strong fit', $trackedJob->getNotes());
+        self::assertSame('https://example.com/job', $trackedJob->offerUrl()?->value());
+        self::assertSame('Strong fit', $trackedJob->notes()?->value());
     }
 
     public function testUpdateDetailsConvertsBlankStringsToNullAndDefaultsContractType(): void
     {
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
 
-        $trackedJob->updateDetails('   ', '   ', null, '   ', null, '   ', '   ', '   ');
+        $trackedJob->updateDetails(CompanyName::fromNullable('   '), JobTitle::fromNullable('   '), null, '   ', null, '   ', OfferUrl::fromNullable('   '), TrackedJobNotes::fromNullable('   '));
 
-        self::assertNull($trackedJob->getCompany());
-        self::assertNull($trackedJob->getTitle());
+        self::assertNull($trackedJob->company()?->value());
+        self::assertNull($trackedJob->title()?->value());
         self::assertSame(ContractType::CDI, $trackedJob->getContractType());
         self::assertNull($trackedJob->getLocation());
         self::assertNull($trackedJob->getRemoteMode());
         self::assertNull($trackedJob->getRemuneration());
-        self::assertNull($trackedJob->getOfferUrl());
-        self::assertNull($trackedJob->getNotes());
+        self::assertNull($trackedJob->offerUrl()?->value());
+        self::assertNull($trackedJob->notes()?->value());
     }
 
     public function testUpdateProcessDatesStoresDatesAndComputesPlannedFollowUpAtUtcMidnight(): void
@@ -78,12 +84,12 @@ final class TrackedJobTest extends TestCase
             FixedDates::april20(),
         );
 
-        self::assertSame($applicationDate, $trackedJob->getApplicationDate());
-        self::assertEquals(FixedDates::april5(), $trackedJob->getEffectiveFollowUpDate());
-        self::assertEquals(FixedDates::april10(), $trackedJob->getFirstContactDate());
-        self::assertEquals(FixedDates::april15(), $trackedJob->getPreliminaryInterviewDate());
-        self::assertEquals(FixedDates::april20(), $trackedJob->getSecondInterviewDate());
-        self::assertSame('2026-04-16T00:00:00+00:00', $trackedJob->getPlannedFollowUpDate()?->format('c'));
+        self::assertSame($applicationDate, $trackedJob->timeline()->applicationDate());
+        self::assertEquals(FixedDates::april5(), $trackedJob->timeline()->effectiveFollowUpDate());
+        self::assertEquals(FixedDates::april10(), $trackedJob->timeline()->firstContactDate());
+        self::assertEquals(FixedDates::april15(), $trackedJob->timeline()->preliminaryInterviewDate());
+        self::assertEquals(FixedDates::april20(), $trackedJob->timeline()->secondInterviewDate());
+        self::assertSame('2026-04-16T00:00:00+00:00', $trackedJob->timeline()->plannedFollowUpDate()?->format('c'));
     }
 
     public function testUpdateProcessDatesClearsPlannedFollowUpWhenApplicationDateIsNull(): void
@@ -91,29 +97,29 @@ final class TrackedJobTest extends TestCase
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
         $trackedJob->updateProcessDates(FixedDates::april1(), null, null, null, null);
 
-        self::assertNotNull($trackedJob->getPlannedFollowUpDate());
+        self::assertNotNull($trackedJob->timeline()->plannedFollowUpDate());
 
         $trackedJob->updateProcessDates(null, null, null, null, null);
 
-        self::assertNull($trackedJob->getApplicationDate());
-        self::assertNull($trackedJob->getPlannedFollowUpDate());
+        self::assertNull($trackedJob->timeline()->applicationDate());
+        self::assertNull($trackedJob->timeline()->plannedFollowUpDate());
     }
 
     public function testUpdateContactsNormalizesNames(): void
     {
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
 
-        $trackedJob->updateContacts('  Jane HR  ', '   ');
+        $trackedJob->updateContacts(ContactName::fromNullable('  Jane HR  '), ContactName::fromNullable('   '));
 
-        self::assertSame('Jane HR', $trackedJob->getHrContactName());
-        self::assertNull($trackedJob->getBusinessContactName());
+        self::assertSame('Jane HR', $trackedJob->hrContactName()?->value());
+        self::assertNull($trackedJob->businessContactName()?->value());
     }
 
     public function testUpdateSubjectiveRelevanceStoresValueAndAllowsNull(): void
     {
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
 
-        $trackedJob->updateSubjectiveRelevance(8);
+        $trackedJob->updateSubjectiveRelevance(SubjectiveRelevance::fromInt(8));
         self::assertSame(8, $trackedJob->getSubjectiveRelevance());
 
         $trackedJob->updateSubjectiveRelevance(null);
@@ -135,7 +141,7 @@ final class TrackedJobTest extends TestCase
 
     public function testReconstituteRestoresPersistedStateWithoutRecomputingBusinessState(): void
     {
-        $id = Uuid::fromString('018f6d6f-0000-7000-8000-000000000004');
+        $id = TrackedJobId::fromString('018f6d6f-0000-7000-8000-000000000004');
         $owner = UserBuilder::aUser()->withEmail('owner@example.com')->build();
         $createdAt = new \DateTimeImmutable('2026-04-01T10:00:00+00:00');
         $updatedAt = new \DateTimeImmutable('2026-04-20T12:30:00+00:00');
@@ -149,23 +155,23 @@ final class TrackedJobTest extends TestCase
         $trackedJob = TrackedJob::reconstitute(
             $id,
             $owner,
-            '  Acme  ',
-            '  Backend Engineer  ',
+            CompanyName::fromNullable('  Acme  '),
+            JobTitle::fromNullable('  Backend Engineer  '),
             ContractType::CDD,
             '  Paris  ',
             RemoteMode::HYBRID,
             '  60k  ',
-            '  https://example.com/job  ',
-            '  Strong fit  ',
+            OfferUrl::fromNullable('  https://example.com/job  '),
+            TrackedJobNotes::fromNullable('  Strong fit  '),
             $applicationDate,
             $plannedFollowUpDate,
             $effectiveFollowUpDate,
             $firstContactDate,
             $preliminaryInterviewDate,
             $secondInterviewDate,
-            '  Jane HR  ',
-            '   ',
-            8,
+            ContactName::fromNullable('  Jane HR  '),
+            ContactName::fromNullable('   '),
+            SubjectiveRelevance::fromInt(8),
             TrackedJobStatus::HIRED,
             $createdAt,
             $updatedAt,
@@ -173,26 +179,27 @@ final class TrackedJobTest extends TestCase
 
         self::assertSame($id, $trackedJob->getId());
         self::assertSame($owner, $trackedJob->getOwner());
-        self::assertSame('Acme', $trackedJob->getCompany());
-        self::assertSame('Backend Engineer', $trackedJob->getTitle());
+        self::assertSame('Acme', $trackedJob->company()?->value());
+        self::assertSame('Backend Engineer', $trackedJob->title()?->value());
         self::assertSame(ContractType::CDD, $trackedJob->getContractType());
         self::assertSame('Paris', $trackedJob->getLocation());
         self::assertSame(RemoteMode::HYBRID, $trackedJob->getRemoteMode());
         self::assertSame('60k', $trackedJob->getRemuneration());
-        self::assertSame('https://example.com/job', $trackedJob->getOfferUrl());
-        self::assertSame('Strong fit', $trackedJob->getNotes());
-        self::assertSame($applicationDate, $trackedJob->getApplicationDate());
-        self::assertSame($plannedFollowUpDate, $trackedJob->getPlannedFollowUpDate());
-        self::assertSame($effectiveFollowUpDate, $trackedJob->getEffectiveFollowUpDate());
-        self::assertSame($firstContactDate, $trackedJob->getFirstContactDate());
-        self::assertSame($preliminaryInterviewDate, $trackedJob->getPreliminaryInterviewDate());
-        self::assertSame($secondInterviewDate, $trackedJob->getSecondInterviewDate());
-        self::assertSame('Jane HR', $trackedJob->getHrContactName());
-        self::assertNull($trackedJob->getBusinessContactName());
+        self::assertSame('https://example.com/job', $trackedJob->offerUrl()?->value());
+        self::assertSame('Strong fit', $trackedJob->notes()?->value());
+        self::assertSame($applicationDate, $trackedJob->timeline()->applicationDate());
+        self::assertSame($plannedFollowUpDate, $trackedJob->timeline()->plannedFollowUpDate());
+        self::assertSame($effectiveFollowUpDate, $trackedJob->timeline()->effectiveFollowUpDate());
+        self::assertSame($firstContactDate, $trackedJob->timeline()->firstContactDate());
+        self::assertSame($preliminaryInterviewDate, $trackedJob->timeline()->preliminaryInterviewDate());
+        self::assertSame($secondInterviewDate, $trackedJob->timeline()->secondInterviewDate());
+        self::assertSame('Jane HR', $trackedJob->hrContactName()?->value());
+        self::assertNull($trackedJob->businessContactName()?->value());
         self::assertSame(8, $trackedJob->getSubjectiveRelevance());
         self::assertSame(TrackedJobStatus::HIRED, $trackedJob->getStatus());
         self::assertSame($createdAt, $trackedJob->getCreatedAt());
         self::assertSame($updatedAt, $trackedJob->getUpdatedAt());
     }
 }
+
 
