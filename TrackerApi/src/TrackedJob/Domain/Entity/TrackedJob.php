@@ -48,6 +48,11 @@ final class TrackedJob
         $this->updatedAt = $now;
     }
 
+    public static function openFor(User $owner): self
+    {
+        return new self($owner);
+    }
+
     public static function reconstitute(
         TrackedJobId $id,
         User $owner,
@@ -105,7 +110,7 @@ final class TrackedJob
         $this->updatedAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     }
 
-    public function updateDetails(
+    public function updatePosition(
         ?CompanyName $company,
         ?JobTitle $title,
         ?ContractType $contractType,
@@ -123,48 +128,48 @@ final class TrackedJob
         $this->remuneration = self::trimOrNull($remuneration);
         $this->offerUrl = $offerUrl;
         $this->notes = $notes;
+        $this->touch();
     }
 
-    public function updateProcessDates(
-        ?\DateTimeImmutable $applicationDate,
-        ?\DateTimeImmutable $effectiveFollowUpDate,
-        ?\DateTimeImmutable $firstContactDate,
-        ?\DateTimeImmutable $preliminaryInterviewDate,
-        ?\DateTimeImmutable $secondInterviewDate,
-    ): void {
-        $this->timeline = TrackedJobTimeline::fromProcessDates(
-            $applicationDate,
-            $effectiveFollowUpDate,
-            $firstContactDate,
-            $preliminaryInterviewDate,
-            $secondInterviewDate,
-        );
+    public function updateTimeline(TrackedJobTimeline $timeline): void
+    {
+        $this->timeline = $timeline;
+
+        if (!$this->status->isFinal()) {
+            $this->status = $this->timeline->inferStatus();
+        }
+
+        $this->touch();
     }
 
     public function updateContacts(?ContactName $hrContactName, ?ContactName $businessContactName): void
     {
         $this->hrContactName = $hrContactName;
         $this->businessContactName = $businessContactName;
+        $this->touch();
     }
 
-    public function updateSubjectiveRelevance(?SubjectiveRelevance $subjectiveRelevance): void
+    public function updateRelevance(?SubjectiveRelevance $subjectiveRelevance): void
     {
         $this->subjectiveRelevance = $subjectiveRelevance;
+        $this->touch();
     }
 
-    public function recalculateStatus(?TrackedJobStatus $requestedFinalStatus = null): void
+    public function requestStatus(?TrackedJobStatus $requestedStatus = null): void
     {
-        if ($requestedFinalStatus?->isFinal()) {
-            $this->status = $requestedFinalStatus;
+        if ($requestedStatus?->isFinal()) {
+            $this->status = $requestedStatus;
+            $this->touch();
 
             return;
         }
 
-        if ($this->status->isFinal() && $requestedFinalStatus === null) {
+        if ($this->status->isFinal() && $requestedStatus === null) {
             return;
         }
 
         $this->status = $this->timeline->inferStatus();
+        $this->touch();
     }
 
     public function getId(): TrackedJobId
@@ -182,12 +187,10 @@ final class TrackedJob
         return $this->company;
     }
 
-
     public function title(): ?JobTitle
     {
         return $this->title;
     }
-
 
     public function getContractType(): ?ContractType
     {
@@ -214,12 +217,10 @@ final class TrackedJob
         return $this->offerUrl;
     }
 
-
     public function notes(): ?TrackedJobNotes
     {
         return $this->notes;
     }
-
 
     public function timeline(): TrackedJobTimeline
     {
@@ -231,12 +232,10 @@ final class TrackedJob
         return $this->hrContactName;
     }
 
-
     public function businessContactName(): ?ContactName
     {
         return $this->businessContactName;
     }
-
 
     public function subjectiveRelevance(): ?SubjectiveRelevance
     {

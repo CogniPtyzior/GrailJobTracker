@@ -16,6 +16,7 @@ use App\TrackedJob\Domain\ValueObject\OfferUrl;
 use App\TrackedJob\Domain\ValueObject\SubjectiveRelevance;
 use App\TrackedJob\Domain\ValueObject\TrackedJobNotes;
 use App\TrackedJob\Domain\ValueObject\TrackedJobId;
+use App\TrackedJob\Domain\ValueObject\TrackedJobTimeline;
 
 final class TrackedJobTest extends TestCase
 {
@@ -30,11 +31,11 @@ final class TrackedJobTest extends TestCase
         self::assertNotNull($trackedJob->getUpdatedAt());
     }
 
-    public function testUpdateDetailsNormalizesAllTextFieldsAndKeepsEnums(): void
+    public function testUpdatePositionNormalizesAllTextFieldsAndKeepsEnums(): void
     {
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
 
-        $trackedJob->updateDetails(
+        $trackedJob->updatePosition(
             CompanyName::fromNullable('  Acme  '),
             JobTitle::fromNullable('  Backend Engineer  '),
             ContractType::CDD,
@@ -55,11 +56,11 @@ final class TrackedJobTest extends TestCase
         self::assertSame('Strong fit', $trackedJob->notes()?->value());
     }
 
-    public function testUpdateDetailsConvertsBlankStringsToNullAndDefaultsContractType(): void
+    public function testUpdatePositionConvertsBlankStringsToNullAndDefaultsContractType(): void
     {
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
 
-        $trackedJob->updateDetails(CompanyName::fromNullable('   '), JobTitle::fromNullable('   '), null, '   ', null, '   ', OfferUrl::fromNullable('   '), TrackedJobNotes::fromNullable('   '));
+        $trackedJob->updatePosition(CompanyName::fromNullable('   '), JobTitle::fromNullable('   '), null, '   ', null, '   ', OfferUrl::fromNullable('   '), TrackedJobNotes::fromNullable('   '));
 
         self::assertNull($trackedJob->company()?->value());
         self::assertNull($trackedJob->title()?->value());
@@ -71,18 +72,18 @@ final class TrackedJobTest extends TestCase
         self::assertNull($trackedJob->notes()?->value());
     }
 
-    public function testUpdateProcessDatesStoresDatesAndComputesPlannedFollowUpAtUtcMidnight(): void
+    public function testUpdateTimelineStoresDatesAndComputesPlannedFollowUpAtUtcMidnight(): void
     {
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
         $applicationDate = new \DateTimeImmutable('2026-04-01T14:30:00+00:00');
 
-        $trackedJob->updateProcessDates(
+        $trackedJob->updateTimeline(TrackedJobTimeline::fromProcessDates(
             $applicationDate,
             FixedDates::april5(),
             FixedDates::april10(),
             FixedDates::april15(),
             FixedDates::april20(),
-        );
+        ));
 
         self::assertSame($applicationDate, $trackedJob->timeline()->applicationDate());
         self::assertEquals(FixedDates::april5(), $trackedJob->timeline()->effectiveFollowUpDate());
@@ -92,14 +93,14 @@ final class TrackedJobTest extends TestCase
         self::assertSame('2026-04-16T00:00:00+00:00', $trackedJob->timeline()->plannedFollowUpDate()?->format('c'));
     }
 
-    public function testUpdateProcessDatesClearsPlannedFollowUpWhenApplicationDateIsNull(): void
+    public function testUpdateTimelineClearsPlannedFollowUpWhenApplicationDateIsNull(): void
     {
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
-        $trackedJob->updateProcessDates(FixedDates::april1(), null, null, null, null);
+        $trackedJob->updateTimeline(TrackedJobTimeline::fromProcessDates(FixedDates::april1(), null, null, null, null));
 
         self::assertNotNull($trackedJob->timeline()->plannedFollowUpDate());
 
-        $trackedJob->updateProcessDates(null, null, null, null, null);
+        $trackedJob->updateTimeline(TrackedJobTimeline::fromProcessDates(null, null, null, null, null));
 
         self::assertNull($trackedJob->timeline()->applicationDate());
         self::assertNull($trackedJob->timeline()->plannedFollowUpDate());
@@ -115,14 +116,14 @@ final class TrackedJobTest extends TestCase
         self::assertNull($trackedJob->businessContactName()?->value());
     }
 
-    public function testUpdateSubjectiveRelevanceStoresValueAndAllowsNull(): void
+    public function testUpdateRelevanceStoresValueAndAllowsNull(): void
     {
         $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
 
-        $trackedJob->updateSubjectiveRelevance(SubjectiveRelevance::fromInt(8));
+        $trackedJob->updateRelevance(SubjectiveRelevance::fromInt(8));
         self::assertSame(8, $trackedJob->getSubjectiveRelevance());
 
-        $trackedJob->updateSubjectiveRelevance(null);
+        $trackedJob->updateRelevance(null);
         self::assertNull($trackedJob->getSubjectiveRelevance());
     }
 
@@ -201,5 +202,3 @@ final class TrackedJobTest extends TestCase
         self::assertSame($updatedAt, $trackedJob->getUpdatedAt());
     }
 }
-
-

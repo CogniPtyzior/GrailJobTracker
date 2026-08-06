@@ -108,7 +108,7 @@ final class TrackedJobController extends AbstractController
     {
         /** @var TrackedJobPayload $payload */
         $payload = $this->payloads->fromRequest($request, TrackedJobPayload::class);
-        $trackedJob = $this->createTrackedJob->handle($user, $payload->toInput());
+        $trackedJob = $this->createTrackedJob->handle($user, $payload->toCommand());
 
         return ApiJsonResponse::success([
             'item' => $this->presenter->present($trackedJob),
@@ -127,7 +127,7 @@ final class TrackedJobController extends AbstractController
 
         /** @var TrackedJobPayload $payload */
         $payload = $this->payloads->fromRequest($request, TrackedJobPayload::class);
-        $this->updateTrackedJob->handle($trackedJob, $payload->toInput());
+        $this->updateTrackedJob->handle($trackedJob, $payload->toCommand());
 
         return ApiJsonResponse::success([
             'item' => $this->presenter->present($trackedJob),

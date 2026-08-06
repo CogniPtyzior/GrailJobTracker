@@ -141,7 +141,7 @@ final class TrackedJobBuilder
     public function build(): TrackedJob
     {
         $trackedJob = new TrackedJob($this->owner ?? UserBuilder::aUser()->build());
-        $trackedJob->updateDetails(
+        $trackedJob->updatePosition(
             CompanyName::fromNullable($this->company),
             JobTitle::fromNullable($this->title),
             $this->contractType,
@@ -151,15 +151,15 @@ final class TrackedJobBuilder
             OfferUrl::fromNullable($this->offerUrl),
             TrackedJobNotes::fromNullable($this->notes),
         );
-        $trackedJob->updateProcessDates(
+        $trackedJob->updateTimeline(TrackedJobTimeline::fromProcessDates(
             $this->applicationDate,
             $this->effectiveFollowUpDate,
             $this->firstContactDate,
             $this->preliminaryInterviewDate,
             $this->secondInterviewDate,
-        );
+        ));
         $trackedJob->updateContacts(ContactName::fromNullable($this->hrContactName), ContactName::fromNullable($this->businessContactName));
-        $trackedJob->updateSubjectiveRelevance($this->subjectiveRelevance !== null ? SubjectiveRelevance::fromInt($this->subjectiveRelevance) : null);
+        $trackedJob->updateRelevance($this->subjectiveRelevance !== null ? SubjectiveRelevance::fromInt($this->subjectiveRelevance) : null);
 
         if ($this->plannedFollowUpDate !== $trackedJob->timeline()->plannedFollowUpDate()) {
             // The builder can represent legacy or artificial states that are not produced by current domain methods.
@@ -173,7 +173,7 @@ final class TrackedJobBuilder
             ));
         }
 
-        $trackedJob->recalculateStatus($this->status);
+        $trackedJob->requestStatus($this->status);
 
         return $trackedJob;
     }
@@ -184,5 +184,3 @@ final class TrackedJobBuilder
         $reflectionProperty->setValue($trackedJob, $value);
     }
 }
-
-

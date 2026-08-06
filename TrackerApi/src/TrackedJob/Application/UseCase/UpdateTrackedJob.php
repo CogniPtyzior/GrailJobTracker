@@ -2,8 +2,8 @@
 
 namespace App\TrackedJob\Application\UseCase;
 
-use App\TrackedJob\Application\Factory\TrackedJobFactory;
-use App\TrackedJob\Application\Input\TrackedJobInput;
+use App\TrackedJob\Application\Command\TrackedJobCommand;
+use App\TrackedJob\Application\Service\TrackedJobCommandApplier;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 
@@ -13,14 +13,14 @@ use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 final class UpdateTrackedJob
 {
     public function __construct(
-        private readonly TrackedJobFactory $trackedJobFactory,
+        private readonly TrackedJobCommandApplier $commandApplier,
         private readonly TrackedJobRepositoryInterface $trackedJobRepository,
     ) {
     }
 
-    public function handle(TrackedJob $trackedJob, TrackedJobInput $payload): TrackedJob
+    public function handle(TrackedJob $trackedJob, TrackedJobCommand $command): TrackedJob
     {
-        $this->trackedJobFactory->hydrate($trackedJob, $payload);
+        $this->commandApplier->apply($trackedJob, $command);
         $this->trackedJobRepository->save($trackedJob);
         $this->trackedJobRepository->flush();
 

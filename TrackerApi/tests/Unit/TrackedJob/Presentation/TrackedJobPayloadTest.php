@@ -30,7 +30,7 @@ final class TrackedJobPayloadTest extends TestCase
             businessContactName: '  Bob Manager  ',
             subjectiveRelevance: '9',
             status: 'WITHDRAWN',
-        ))->toInput();
+        ))->toCommand();
 
         self::assertSame('Acme', $input->company?->value());
         self::assertSame('Backend Engineer', $input->title?->value());
@@ -71,7 +71,7 @@ final class TrackedJobPayloadTest extends TestCase
             businessContactName: '   ',
             subjectiveRelevance: '',
             status: null,
-        ))->toInput();
+        ))->toCommand();
 
         self::assertNull($input->company);
         self::assertNull($input->title);

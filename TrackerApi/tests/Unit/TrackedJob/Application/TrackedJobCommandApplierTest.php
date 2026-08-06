@@ -2,9 +2,10 @@
 
 namespace App\Tests\Unit\TrackedJob\Application;
 
+use App\TrackedJob\Application\Command\TrackedJobCommand;
 use App\TrackedJob\Application\Date\TrackedJobDateParser;
-use App\TrackedJob\Application\Factory\TrackedJobFactory;
-use App\TrackedJob\Application\Input\TrackedJobInput;
+use App\TrackedJob\Application\Service\TrackedJobCommandApplier;
+use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
@@ -17,18 +18,20 @@ use App\Tests\Support\Builder\TrackedJobBuilder;
 use App\Tests\Support\Builder\UserBuilder;
 use PHPUnit\Framework\TestCase;
 
-final class TrackedJobFactoryTest extends TestCase
+final class TrackedJobCommandApplierTest extends TestCase
 {
-    private TrackedJobFactory $factory;
+    private TrackedJobCommandApplier $applier;
 
     protected function setUp(): void
     {
-        $this->factory = new TrackedJobFactory();
+        $this->applier = new TrackedJobCommandApplier();
     }
 
-    public function testCreateHydratesInputIntoTrackedJob(): void
+    public function testApplyHydratesCommandIntoTrackedJob(): void
     {
-        $trackedJob = $this->factory->create(UserBuilder::aUser()->build(), $this->fullInput());
+        $trackedJob = TrackedJob::openFor(UserBuilder::aUser()->build());
+
+        $this->applier->apply($trackedJob, $this->fullCommand());
 
         self::assertSame('Acme', $trackedJob->company()?->value());
         self::assertSame('Backend Engineer', $trackedJob->title()?->value());
@@ -44,11 +47,11 @@ final class TrackedJobFactoryTest extends TestCase
         self::assertSame(TrackedJobStatus::SECOND_INTERVIEW, $trackedJob->getStatus());
     }
 
-    public function testHydrateAppliesNullValuesAndDefaultsContractType(): void
+    public function testApplyNullValuesAndDefaultsContractType(): void
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()->build();
 
-        $this->factory->hydrate($trackedJob, new TrackedJobInput());
+        $this->applier->apply($trackedJob, new TrackedJobCommand());
 
         self::assertNull($trackedJob->company()?->value());
         self::assertNull($trackedJob->title()?->value());
@@ -63,11 +66,11 @@ final class TrackedJobFactoryTest extends TestCase
         self::assertNull($trackedJob->getSubjectiveRelevance());
     }
 
-    public function testHydrateComputesPlannedFollowUpDateFromApplicationDate(): void
+    public function testApplyComputesPlannedFollowUpDateFromApplicationDate(): void
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()->build();
 
-        $this->factory->hydrate($trackedJob, $this->minimalInput());
+        $this->applier->apply($trackedJob, $this->minimalCommand());
 
         self::assertSame(
             '2026-04-16T00:00:00+00:00',
@@ -75,33 +78,33 @@ final class TrackedJobFactoryTest extends TestCase
         );
     }
 
-    public function testHydrateRespectsExplicitFinalStatus(): void
+    public function testApplyRespectsExplicitFinalStatus(): void
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()->build();
-        $input = new TrackedJobInput(
+        $command = new TrackedJobCommand(
             company: CompanyName::fromNullable('Acme'),
             title: JobTitle::fromNullable('Backend Engineer'),
             applicationDate: TrackedJobDateParser::parseNullable('2026-04-01T09:00:00+00:00'),
             status: TrackedJobStatus::WITHDRAWN,
         );
 
-        $this->factory->hydrate($trackedJob, $input);
+        $this->applier->apply($trackedJob, $command);
 
         self::assertSame(TrackedJobStatus::WITHDRAWN, $trackedJob->getStatus());
     }
 
-    private function minimalInput(): TrackedJobInput
+    private function minimalCommand(): TrackedJobCommand
     {
-        return new TrackedJobInput(
+        return new TrackedJobCommand(
             company: CompanyName::fromNullable('Acme'),
             title: JobTitle::fromNullable('Backend Engineer'),
             applicationDate: TrackedJobDateParser::parseNullable('2026-04-01T09:00:00+00:00'),
         );
     }
 
-    private function fullInput(): TrackedJobInput
+    private function fullCommand(): TrackedJobCommand
     {
-        return new TrackedJobInput(
+        return new TrackedJobCommand(
             company: CompanyName::fromNullable('Acme'),
             title: JobTitle::fromNullable('Backend Engineer'),
             contractType: ContractType::CDD,
@@ -121,4 +124,3 @@ final class TrackedJobFactoryTest extends TestCase
         );
     }
 }
-

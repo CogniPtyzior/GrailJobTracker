@@ -1,6 +1,6 @@
 <?php
 
-namespace App\TrackedJob\Application\Input;
+namespace App\TrackedJob\Application\Command;
 
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
@@ -12,9 +12,9 @@ use App\TrackedJob\Domain\ValueObject\OfferUrl;
 use App\TrackedJob\Domain\ValueObject\TrackedJobNotes;
 
 /**
- * Application input object carrying normalized tracked job values for create/update use cases.
+ * Application command carrying normalized tracked job values for create/update use cases.
  */
-final readonly class TrackedJobInput
+final readonly class TrackedJobCommand
 {
     public function __construct(
         public ?CompanyName $company = null,

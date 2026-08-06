@@ -7,7 +7,7 @@ namespace App\TrackedJob\Presentation\Payload;
 use App\Shared\Infrastructure\Validation\RequestPayload;
 use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
 use App\TrackedJob\Application\Date\TrackedJobDateParser;
-use App\TrackedJob\Application\Input\TrackedJobInput;
+use App\TrackedJob\Application\Command\TrackedJobCommand;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
@@ -119,9 +119,9 @@ final readonly class TrackedJobPayload implements RequestPayload
         }
     }
 
-    public function toInput(): TrackedJobInput
+    public function toCommand(): TrackedJobCommand
     {
-        return new TrackedJobInput(
+        return new TrackedJobCommand(
             company: CompanyName::fromNullable($this->company),
             title: JobTitle::fromNullable($this->title),
             contractType: $this->enumOrNull(ContractType::class, $this->contractType),

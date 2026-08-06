@@ -15,7 +15,7 @@ final class TrackedJobStatusRulesTest extends TestCase
             ->withApplicationDate(FixedDates::april1())
             ->build();
 
-        $trackedJob->recalculateStatus(TrackedJobStatus::REJECTED);
+        $trackedJob->requestStatus(TrackedJobStatus::REJECTED);
 
         self::assertSame(TrackedJobStatus::REJECTED, $trackedJob->getStatus());
     }
@@ -27,7 +27,7 @@ final class TrackedJobStatusRulesTest extends TestCase
             ->withApplicationDate(FixedDates::april1())
             ->build();
 
-        $trackedJob->recalculateStatus();
+        $trackedJob->requestStatus();
 
         self::assertSame(TrackedJobStatus::HIRED, $trackedJob->getStatus());
     }
@@ -42,7 +42,7 @@ final class TrackedJobStatusRulesTest extends TestCase
             ->withSecondInterviewDate(FixedDates::april20())
             ->build();
 
-        $trackedJob->recalculateStatus();
+        $trackedJob->requestStatus();
 
         self::assertSame(TrackedJobStatus::SECOND_INTERVIEW, $trackedJob->getStatus());
     }
@@ -55,7 +55,7 @@ final class TrackedJobStatusRulesTest extends TestCase
             ->withPreliminaryInterviewDate(FixedDates::april15())
             ->build();
 
-        $trackedJob->recalculateStatus();
+        $trackedJob->requestStatus();
 
         self::assertSame(TrackedJobStatus::PRELIMINARY_INTERVIEW, $trackedJob->getStatus());
     }
@@ -69,7 +69,7 @@ final class TrackedJobStatusRulesTest extends TestCase
             ->withFirstContactDate(FixedDates::april20())
             ->build();
 
-        $trackedJob->recalculateStatus();
+        $trackedJob->requestStatus();
 
         self::assertSame(TrackedJobStatus::FIRST_CONTACT, $trackedJob->getStatus());
     }
@@ -82,7 +82,7 @@ final class TrackedJobStatusRulesTest extends TestCase
             ->withEffectiveFollowUpDate(FixedDates::april10())
             ->build();
 
-        $trackedJob->recalculateStatus();
+        $trackedJob->requestStatus();
 
         self::assertSame(TrackedJobStatus::FOLLOW_UP_DONE, $trackedJob->getStatus());
     }
@@ -94,7 +94,7 @@ final class TrackedJobStatusRulesTest extends TestCase
             ->withPlannedFollowUpDate(FixedDates::april15())
             ->build();
 
-        $trackedJob->recalculateStatus();
+        $trackedJob->requestStatus();
 
         self::assertSame(TrackedJobStatus::FOLLOW_UP_PENDING, $trackedJob->getStatus());
     }
@@ -105,7 +105,7 @@ final class TrackedJobStatusRulesTest extends TestCase
             ->withApplicationDate(FixedDates::april1())
             ->build();
 
-        $trackedJob->recalculateStatus();
+        $trackedJob->requestStatus();
 
         self::assertSame(TrackedJobStatus::APPLIED, $trackedJob->getStatus());
     }
@@ -114,9 +114,8 @@ final class TrackedJobStatusRulesTest extends TestCase
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()->build();
 
-        $trackedJob->recalculateStatus();
+        $trackedJob->requestStatus();
 
         self::assertSame(TrackedJobStatus::DRAFT, $trackedJob->getStatus());
     }
 }
-
