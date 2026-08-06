@@ -3,11 +3,11 @@
 namespace App\AccessRequest\Domain\Repository;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
-use Symfony\Component\Uid\Uuid;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
 
 interface AccessRequestRepositoryInterface
 {
-    public function getById(Uuid $id): ?AccessRequest;
+    public function getById(AccessRequestId $id): ?AccessRequest;
 
     /**
      * @return array{items: list<AccessRequest>, total: int}

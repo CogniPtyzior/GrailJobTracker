@@ -2,17 +2,17 @@
 
 namespace App\AccessRequest\Application\Input;
 
-/**
- * Application input object used to create an access request without exposing HTTP payload details.
- */
+use App\AccessRequest\Domain\ValueObject\AccessRequestReason;
+use App\Shared\Domain\ValueObject\PersonName;
+
 final readonly class CreateAccessRequestInput
 {
     public function __construct(
         public string $email,
         public string $companyName,
-        public string $reason,
-        public ?string $firstName,
-        public ?string $lastName,
+        public AccessRequestReason $reason,
+        public ?PersonName $firstName,
+        public ?PersonName $lastName,
     ) {
     }
 }

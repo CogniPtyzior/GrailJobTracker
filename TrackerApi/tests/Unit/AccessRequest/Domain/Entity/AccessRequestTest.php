@@ -3,26 +3,28 @@
 namespace App\Tests\Unit\AccessRequest\Domain\Entity;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
+use App\AccessRequest\Domain\ValueObject\AccessRequestReason;
+use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\PersonName;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Uid\Uuid;
 
 final class AccessRequestTest extends TestCase
 {
     public function testConstructorStoresRequiredFields(): void
     {
         $accessRequest = new AccessRequest(
-            'john@example.com',
-            'john@example.com',
+            EmailAddress::fromString('john@example.com'),
             'Acme',
-            'Please grant access.',
+            AccessRequestReason::fromString('Please grant access.'),
         );
 
         self::assertSame('john@example.com', $accessRequest->getEmail());
         self::assertSame('john@example.com', $accessRequest->getNormalizedEmail());
         self::assertSame('Acme', $accessRequest->getCompanyName());
-        self::assertSame('Please grant access.', $accessRequest->getReason());
-        self::assertNull($accessRequest->getFirstName());
-        self::assertNull($accessRequest->getLastName());
+        self::assertSame('Please grant access.', $accessRequest->reason()->value());
+        self::assertNull($accessRequest->firstName()?->value());
+        self::assertNull($accessRequest->lastName()?->value());
         self::assertNotNull($accessRequest->getId());
         self::assertNotNull($accessRequest->getCreatedAt());
     }
@@ -30,76 +32,71 @@ final class AccessRequestTest extends TestCase
     public function testConstructorTrimsRequiredFields(): void
     {
         $accessRequest = new AccessRequest(
-            'john@example.com',
-            'john@example.com',
+            EmailAddress::fromString('john@example.com'),
             '  Acme  ',
-            '  Please grant access.  ',
+            AccessRequestReason::fromString('  Please grant access.  '),
         );
 
         self::assertSame('Acme', $accessRequest->getCompanyName());
-        self::assertSame('Please grant access.', $accessRequest->getReason());
+        self::assertSame('Please grant access.', $accessRequest->reason()->value());
     }
 
     public function testSubmitNormalizesRequiredFieldsAndRequesterNames(): void
     {
         $accessRequest = AccessRequest::submit(
-            'john@example.com',
-            'john@example.com',
+            EmailAddress::fromString('john@example.com'),
             '  Acme  ',
-            '  Please grant access.  ',
-            '  John  ',
-            '   ',
+            AccessRequestReason::fromString('  Please grant access.  '),
+            PersonName::fromNullable('  John  '),
+            PersonName::fromNullable('   '),
         );
 
         self::assertSame('Acme', $accessRequest->getCompanyName());
-        self::assertSame('Please grant access.', $accessRequest->getReason());
-        self::assertSame('John', $accessRequest->getFirstName());
-        self::assertNull($accessRequest->getLastName());
+        self::assertSame('Please grant access.', $accessRequest->reason()->value());
+        self::assertSame('John', $accessRequest->firstName()?->value());
+        self::assertNull($accessRequest->lastName()?->value());
     }
 
     public function testSubmitAcceptsNullRequesterNames(): void
     {
         $accessRequest = AccessRequest::submit(
-            'john@example.com',
-            'john@example.com',
+            EmailAddress::fromString('john@example.com'),
             'Acme',
-            'Please grant access.',
+            AccessRequestReason::fromString('Please grant access.'),
             null,
             null,
         );
 
-        self::assertNull($accessRequest->getFirstName());
-        self::assertNull($accessRequest->getLastName());
+        self::assertNull($accessRequest->firstName()?->value());
+        self::assertNull($accessRequest->lastName()?->value());
     }
 
     public function testUpdateRequesterNameTrimsAndConvertsBlankStringsToNull(): void
     {
         $accessRequest = new AccessRequest(
-            'john@example.com',
-            'john@example.com',
+            EmailAddress::fromString('john@example.com'),
             'Acme',
-            'Please grant access.',
+            AccessRequestReason::fromString('Please grant access.'),
         );
 
-        $accessRequest->updateRequesterName('  John  ', '   ');
+        $accessRequest->updateRequesterName(PersonName::fromNullable('  John  '), PersonName::fromNullable('   '));
 
-        self::assertSame('John', $accessRequest->getFirstName());
-        self::assertNull($accessRequest->getLastName());
+        self::assertSame('John', $accessRequest->firstName()?->value());
+        self::assertNull($accessRequest->lastName()?->value());
     }
 
     public function testReconstituteRestoresPersistedStateAndNormalizesNames(): void
     {
-        $id = Uuid::fromString('018f6d6f-0000-7000-8000-000000000003');
+        $id = AccessRequestId::fromString('018f6d6f-0000-7000-8000-000000000003');
         $createdAt = new \DateTimeImmutable('2026-04-01T10:00:00+00:00');
 
         $accessRequest = AccessRequest::reconstitute(
             $id,
-            'john@example.com',
-            'john@example.com',
+            EmailAddress::fromString('john@example.com'),
             '  Acme  ',
-            '  Please grant access.  ',
-            '  John  ',
-            '   ',
+            AccessRequestReason::fromString('  Please grant access.  '),
+            PersonName::fromNullable('  John  '),
+            PersonName::fromNullable('   '),
             $createdAt,
         );
 
@@ -107,9 +104,9 @@ final class AccessRequestTest extends TestCase
         self::assertSame('john@example.com', $accessRequest->getEmail());
         self::assertSame('john@example.com', $accessRequest->getNormalizedEmail());
         self::assertSame('Acme', $accessRequest->getCompanyName());
-        self::assertSame('Please grant access.', $accessRequest->getReason());
-        self::assertSame('John', $accessRequest->getFirstName());
-        self::assertNull($accessRequest->getLastName());
+        self::assertSame('Please grant access.', $accessRequest->reason()->value());
+        self::assertSame('John', $accessRequest->firstName()?->value());
+        self::assertNull($accessRequest->lastName()?->value());
         self::assertSame($createdAt, $accessRequest->getCreatedAt());
     }
 }

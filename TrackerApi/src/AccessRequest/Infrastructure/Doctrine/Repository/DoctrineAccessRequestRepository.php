@@ -8,7 +8,7 @@ use App\AccessRequest\Infrastructure\Doctrine\Entity\AccessRequestRecord;
 use App\AccessRequest\Infrastructure\Doctrine\Mapper\AccessRequestRecordMapper;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
 
 final class DoctrineAccessRequestRepository extends ServiceEntityRepository implements AccessRequestRepositoryInterface
 {
@@ -17,9 +17,9 @@ final class DoctrineAccessRequestRepository extends ServiceEntityRepository impl
         parent::__construct($registry, AccessRequestRecord::class);
     }
 
-    public function getById(Uuid $id): ?AccessRequest
+    public function getById(AccessRequestId $id): ?AccessRequest
     {
-        $record = $this->find($id);
+        $record = $this->find($id->toUuid());
 
         return $record instanceof AccessRequestRecord ? $this->mapper->toDomain($record) : null;
     }
@@ -55,14 +55,14 @@ final class DoctrineAccessRequestRepository extends ServiceEntityRepository impl
 
     public function save(AccessRequest $accessRequest): void
     {
-        $record = $this->find($accessRequest->getId()) ?? new AccessRequestRecord();
+        $record = $this->find($accessRequest->getId()->toUuid()) ?? new AccessRequestRecord();
         $this->mapper->updateRecord($accessRequest, $record);
         $this->getEntityManager()->persist($record);
     }
 
     public function remove(AccessRequest $accessRequest): void
     {
-        $record = $this->find($accessRequest->getId());
+        $record = $this->find($accessRequest->getId()->toUuid());
 
         if ($record instanceof AccessRequestRecord) {
             $this->getEntityManager()->remove($record);

@@ -6,7 +6,7 @@ use App\AccessRequest\Application\Input\CreateAccessRequestInput;
 use App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcher;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
-use App\Security\Application\EmailNormalizer;
+use App\Shared\Domain\ValueObject\EmailAddress;
 
 /**
  * Application use case that creates an access request and queues its notification.
@@ -14,7 +14,6 @@ use App\Security\Application\EmailNormalizer;
 final class CreateAccessRequest
 {
     public function __construct(
-        private readonly EmailNormalizer $emailNormalizer,
         private readonly AccessRequestRepositoryInterface $accessRequestRepository,
         private readonly AccessRequestNotificationDispatcher $notificationDispatcher,
     ) {
@@ -23,8 +22,7 @@ final class CreateAccessRequest
     public function handle(CreateAccessRequestInput $payload): AccessRequest
     {
         $accessRequest = AccessRequest::submit(
-            $payload->email,
-            $this->emailNormalizer->normalize($payload->email),
+            EmailAddress::fromString($payload->email),
             $payload->companyName,
             $payload->reason,
             $payload->firstName,
@@ -38,3 +36,4 @@ final class CreateAccessRequest
         return $accessRequest;
     }
 }
+

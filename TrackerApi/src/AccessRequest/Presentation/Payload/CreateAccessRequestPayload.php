@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\AccessRequest\Presentation\Payload;
 
 use App\AccessRequest\Application\Input\CreateAccessRequestInput;
+use App\AccessRequest\Domain\ValueObject\AccessRequestReason;
+use App\Shared\Domain\ValueObject\PersonName;
 use App\Shared\Infrastructure\Validation\RequestPayload;
 use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -15,15 +17,15 @@ use Symfony\Component\Validator\Constraints as Assert;
 final readonly class CreateAccessRequestPayload implements RequestPayload
 {
     public function __construct(
-        #[Assert\NotBlank]
+        #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Email]
         #[Assert\Length(max: 180)]
         public string $email,
-        #[Assert\NotBlank]
-        #[Assert\Length(max: 255)]
+        #[Assert\NotBlank(normalizer: 'trim')]
+        #[Assert\Length(max: 255, normalizer: 'trim')]
         public string $companyName,
-        #[Assert\NotBlank]
-        #[Assert\Length(max: 5000)]
+        #[Assert\NotBlank(normalizer: 'trim')]
+        #[Assert\Length(min: 20, max: 5000, normalizer: 'trim')]
         public string $reason,
         #[Assert\Length(max: 120)]
         public ?string $firstName = null,
@@ -63,9 +65,9 @@ final readonly class CreateAccessRequestPayload implements RequestPayload
         return new CreateAccessRequestInput(
             email: $this->email,
             companyName: $this->companyName,
-            reason: $this->reason,
-            firstName: $this->firstName,
-            lastName: $this->lastName,
+            reason: AccessRequestReason::fromString($this->reason),
+            firstName: PersonName::fromNullable($this->firstName),
+            lastName: PersonName::fromNullable($this->lastName),
         );
     }
 }

@@ -3,6 +3,9 @@
 namespace App\Tests\Support\Builder;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
+use App\AccessRequest\Domain\ValueObject\AccessRequestReason;
+use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\PersonName;
 
 final class AccessRequestBuilder
 {
@@ -60,12 +63,13 @@ final class AccessRequestBuilder
     public function build(): AccessRequest
     {
         return AccessRequest::submit(
-            $this->email,
-            mb_strtolower(trim($this->email)),
+            EmailAddress::fromString($this->email),
             $this->companyName,
-            $this->reason,
-            $this->firstName,
-            $this->lastName,
+            AccessRequestReason::fromString($this->reason),
+            PersonName::fromNullable($this->firstName),
+            PersonName::fromNullable($this->lastName),
         );
     }
 }
+
+

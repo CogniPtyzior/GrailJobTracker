@@ -8,7 +8,6 @@ use App\AccessRequest\Presentation\AccessRequestPresenter;
 use App\Admin\Application\UseCase\ApproveAccessRequest;
 use App\Admin\Application\UseCase\DeleteAccessRequest;
 use App\Admin\Presentation\AdminAccessRequestController;
-use App\Security\Application\EmailNormalizer;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\Tests\Support\Builder\AccessRequestBuilder;
 use App\Tests\Support\Builder\UserBuilder;
@@ -46,8 +45,8 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
         $createdUser = $userRepository->all()[0];
         self::assertSame('Candidate@example.com', $createdUser->getEmail());
         self::assertSame('candidate@example.com', $createdUser->getNormalizedEmail());
-        self::assertSame('Jane', $createdUser->getFirstName());
-        self::assertSame('Doe', $createdUser->getLastName());
+        self::assertSame('Jane', $createdUser->firstName()?->value());
+        self::assertSame('Doe', $createdUser->lastName()?->value());
         self::assertSame(['ROLE_USER'], $createdUser->getRoles());
         self::assertTrue($createdUser->isActive());
         self::assertSame('hashed::Password1!', $createdUser->getPassword());
@@ -82,8 +81,8 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         self::assertFalse($accessRequestRepository->exists($accessRequest));
         self::assertCount(1, $userRepository->all());
-        self::assertSame('Approved', $existingUser->getFirstName());
-        self::assertSame('Person', $existingUser->getLastName());
+        self::assertSame('Approved', $existingUser->firstName()?->value());
+        self::assertSame('Person', $existingUser->lastName()?->value());
         self::assertTrue($existingUser->isActive());
         self::assertSame(['ROLE_USER'], $existingUser->getRoles());
         self::assertSame('hashed::Password1!', $existingUser->getPassword());
@@ -102,7 +101,6 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
             new ApproveAccessRequest(
                 $userRepository,
                 $accessRequestRepository,
-                new EmailNormalizer(),
                 $this->passwordHasherStub(),
             ),
             new DeleteAccessRequest($accessRequestRepository),
@@ -139,3 +137,4 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
         };
     }
 }
+

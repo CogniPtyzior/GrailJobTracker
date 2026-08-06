@@ -91,3 +91,4 @@ final class SpyMailer implements MailerInterface
         return count($this->messages);
     }
 }
+

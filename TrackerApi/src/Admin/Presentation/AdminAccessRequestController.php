@@ -16,7 +16,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Uid\Uuid;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
 
 #[Route('/api/admin/access-requests')]
 final class AdminAccessRequestController extends AbstractController
@@ -87,7 +87,7 @@ final class AdminAccessRequestController extends AbstractController
     private function findAccessRequest(string $id): ?AccessRequest
     {
         try {
-            return $this->getAccessRequest->handle(Uuid::fromString($id));
+            return $this->getAccessRequest->handle(AccessRequestId::fromString($id));
         } catch (\InvalidArgumentException) {
             return null;
         }

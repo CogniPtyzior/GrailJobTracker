@@ -53,10 +53,11 @@ final class AccessRequestNotificationSender
             "Une nouvelle demande d'accès a été créée.\n\nEmail: %s\nEntreprise: %s\nPrénom: %s\nNom: %s\nCréée le: %s\n\nMotif:\n%s\n",
             $accessRequest->getEmail(),
             $accessRequest->getCompanyName(),
-            $accessRequest->getFirstName() ?? '',
-            $accessRequest->getLastName() ?? '',
+            $accessRequest->firstName()?->value() ?? '',
+            $accessRequest->lastName()?->value() ?? '',
             $accessRequest->getCreatedAt()->format('d/m/Y H:i:s'),
-            $accessRequest->getReason(),
+            $accessRequest->reason()->value(),
         );
     }
 }
+

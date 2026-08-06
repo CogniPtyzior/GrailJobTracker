@@ -4,7 +4,7 @@ namespace App\AccessRequest\Application\UseCase;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
-use Symfony\Component\Uid\Uuid;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
 
 /**
  * Application use case that retrieves an access request by id for admin operations.
@@ -16,7 +16,7 @@ final class GetAccessRequest
     ) {
     }
 
-    public function handle(Uuid $id): ?AccessRequest
+    public function handle(AccessRequestId $id): ?AccessRequest
     {
         return $this->accessRequestRepository->getById($id);
     }

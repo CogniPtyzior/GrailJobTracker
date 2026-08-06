@@ -7,7 +7,7 @@ use App\AccessRequest\Application\Message\SendAccessRequestNotification;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Uid\Uuid;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
 
 /**
  * Worker-side handler that reloads the access request before sending the email.
@@ -25,7 +25,7 @@ final class SendAccessRequestNotificationHandler
     public function __invoke(SendAccessRequestNotification $message): void
     {
         try {
-            $accessRequestId = Uuid::fromString($message->accessRequestId);
+            $accessRequestId = AccessRequestId::fromString($message->accessRequestId);
         } catch (\InvalidArgumentException) {
             $this->logger->warning('Access request notification skipped for invalid id.', [
                 'accessRequestId' => $message->accessRequestId,

@@ -91,3 +91,4 @@ final class PublicAccessRequestAsyncNotificationIntegrationTest extends WebTestC
         return static::getContainer()->get(Connection::class);
     }
 }
+

@@ -4,7 +4,7 @@ namespace App\Tests\Support\Fake;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
-use Symfony\Component\Uid\Uuid;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
 
 final class InMemoryAccessRequestRepository implements AccessRequestRepositoryInterface
 {
@@ -19,7 +19,7 @@ final class InMemoryAccessRequestRepository implements AccessRequestRepositoryIn
         }
     }
 
-    public function getById(Uuid $id): ?AccessRequest
+    public function getById(AccessRequestId $id): ?AccessRequest
     {
         return $this->accessRequestsById[$id->toRfc4122()] ?? null;
     }
@@ -33,7 +33,7 @@ final class InMemoryAccessRequestRepository implements AccessRequestRepositoryIn
             $items = array_values(array_filter($items, static function (AccessRequest $accessRequest) use ($term): bool {
                 return str_contains(mb_strtolower($accessRequest->getEmail()), $term)
                     || str_contains(mb_strtolower($accessRequest->getCompanyName()), $term)
-                    || str_contains(mb_strtolower($accessRequest->getReason()), $term);
+                    || str_contains(mb_strtolower($accessRequest->reason()->value()), $term);
             }));
         }
 
@@ -66,3 +66,5 @@ final class InMemoryAccessRequestRepository implements AccessRequestRepositoryIn
         return isset($this->accessRequestsById[$accessRequest->getId()->toRfc4122()]);
     }
 }
+
+

@@ -2,79 +2,77 @@
 
 namespace App\AccessRequest\Domain\Entity;
 
-use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Uid\UuidV7;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
+use App\AccessRequest\Domain\ValueObject\AccessRequestReason;
+use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\PersonName;
 
 /**
  * Domain entity that represents and normalizes a public access request.
  */
 final class AccessRequest
 {
-    private Uuid $id;
-    private string $email;
-    private string $normalizedEmail;
+    private AccessRequestId $id;
+    private EmailAddress $email;
     private string $companyName;
-    private string $reason;
-    private ?string $firstName = null;
-    private ?string $lastName = null;
+    private AccessRequestReason $reason;
+    private ?PersonName $firstName = null;
+    private ?PersonName $lastName = null;
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(string $email, string $normalizedEmail, string $companyName, string $reason)
+    public function __construct(EmailAddress $email, string $companyName, AccessRequestReason $reason)
     {
-        $this->id = new UuidV7();
+        $this->id = AccessRequestId::new();
         $this->email = $email;
-        $this->normalizedEmail = $normalizedEmail;
         $this->companyName = trim($companyName);
-        $this->reason = trim($reason);
+        $this->reason = $reason;
         $this->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     }
 
     public static function submit(
-        string $email,
-        string $normalizedEmail,
+        EmailAddress $email,
         string $companyName,
-        string $reason,
-        ?string $firstName,
-        ?string $lastName,
+        AccessRequestReason $reason,
+        ?PersonName $firstName,
+        ?PersonName $lastName,
     ): self {
-        $accessRequest = new self($email, $normalizedEmail, $companyName, $reason);
+        $accessRequest = new self($email, $companyName, $reason);
         $accessRequest->updateRequesterName($firstName, $lastName);
 
         return $accessRequest;
     }
 
     public static function reconstitute(
-        Uuid $id,
-        string $email,
-        string $normalizedEmail,
+        AccessRequestId $id,
+        EmailAddress $email,
         string $companyName,
-        string $reason,
-        ?string $firstName,
-        ?string $lastName,
+        AccessRequestReason $reason,
+        ?PersonName $firstName,
+        ?PersonName $lastName,
         \DateTimeImmutable $createdAt,
     ): self {
-        $accessRequest = new self($email, $normalizedEmail, $companyName, $reason);
+        $accessRequest = new self($email, $companyName, $reason);
         $accessRequest->id = $id;
-        $accessRequest->firstName = $accessRequest->trimOrNull($firstName);
-        $accessRequest->lastName = $accessRequest->trimOrNull($lastName);
+        $accessRequest->firstName = $firstName;
+        $accessRequest->lastName = $lastName;
         $accessRequest->createdAt = $createdAt;
 
         return $accessRequest;
     }
 
-    public function getId(): Uuid
+    public function getId(): AccessRequestId
     {
         return $this->id;
     }
 
     public function getEmail(): string
     {
-        return $this->email;
+        return $this->email->value();
     }
 
     public function getNormalizedEmail(): string
     {
-        return $this->normalizedEmail;
+        return $this->email->normalizedValue();
     }
 
     public function getCompanyName(): string
@@ -82,40 +80,32 @@ final class AccessRequest
         return $this->companyName;
     }
 
-    public function getReason(): string
+    public function reason(): AccessRequestReason
     {
         return $this->reason;
     }
 
-    public function getFirstName(): ?string
+
+    public function firstName(): ?PersonName
     {
         return $this->firstName;
     }
 
-    public function getLastName(): ?string
+
+    public function lastName(): ?PersonName
     {
         return $this->lastName;
     }
+
 
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function updateRequesterName(?string $firstName, ?string $lastName): void
+    public function updateRequesterName(?PersonName $firstName, ?PersonName $lastName): void
     {
-        $this->firstName = $this->trimOrNull($firstName);
-        $this->lastName = $this->trimOrNull($lastName);
-    }
-
-    private function trimOrNull(?string $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $trimmed = trim($value);
-
-        return $trimmed === '' ? null : $trimmed;
+        $this->firstName = $firstName;
+        $this->lastName = $lastName;
     }
 }

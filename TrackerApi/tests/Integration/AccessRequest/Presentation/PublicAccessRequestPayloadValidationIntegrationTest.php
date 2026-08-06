@@ -35,7 +35,55 @@ final class PublicAccessRequestPayloadValidationIntegrationTest extends WebTestC
         self::assertSame(0, $this->countStepAccessRequests());
     }
 
-    private function submitAccessRequest(KernelBrowser $client, string $reason): void
+    public function testTooShortReasonIsRejected(): void
+    {
+        $client = static::createClient();
+
+        $this->deleteStepAccessRequests();
+        $this->submitAccessRequest($client, 'Too short');
+
+        self::assertResponseStatusCodeSame(400);
+
+        $payload = $this->jsonResponse($client);
+
+        self::assertSame('Invalid request payload.', $payload['message']);
+        self::assertViolationPath('[reason]', $payload);
+        self::assertSame(0, $this->countStepAccessRequests());
+    }
+
+    public function testBlankReasonIsRejectedBeforeDomainConstruction(): void
+    {
+        $client = static::createClient();
+
+        $this->deleteStepAccessRequests();
+        $this->submitAccessRequest($client, '   ');
+
+        self::assertResponseStatusCodeSame(400);
+
+        $payload = $this->jsonResponse($client);
+
+        self::assertSame('Invalid request payload.', $payload['message']);
+        self::assertViolationPath('[reason]', $payload);
+        self::assertSame(0, $this->countStepAccessRequests());
+    }
+
+    public function testBlankCompanyNameIsRejectedBeforeDomainConstruction(): void
+    {
+        $client = static::createClient();
+
+        $this->deleteStepAccessRequests();
+        $this->submitAccessRequest($client, 'I would like to try the tracker.', companyName: '   ');
+
+        self::assertResponseStatusCodeSame(400);
+
+        $payload = $this->jsonResponse($client);
+
+        self::assertSame('Invalid request payload.', $payload['message']);
+        self::assertViolationPath('[companyName]', $payload);
+        self::assertSame(0, $this->countStepAccessRequests());
+    }
+
+    private function submitAccessRequest(KernelBrowser $client, string $reason, string $companyName = 'Acme'): void
     {
         $client->request(
             'POST',
@@ -45,8 +93,8 @@ final class PublicAccessRequestPayloadValidationIntegrationTest extends WebTestC
                 'REMOTE_ADDR' => '203.0.113.'.random_int(1, 254),
             ],
             content: json_encode([
-                'email' => self::EMAIL_PREFIX.'too-long@example.com',
-                'companyName' => 'Acme',
+                'email' => self::EMAIL_PREFIX.'validation@example.com',
+                'companyName' => $companyName,
                 'reason' => $reason,
             ], JSON_THROW_ON_ERROR),
         );

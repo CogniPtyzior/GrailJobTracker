@@ -16,9 +16,9 @@ final class AccessRequestPresenter
             'id' => $accessRequest->getId()->toRfc4122(),
             'email' => $accessRequest->getEmail(),
             'companyName' => $accessRequest->getCompanyName(),
-            'reason' => $accessRequest->getReason(),
-            'firstName' => $accessRequest->getFirstName(),
-            'lastName' => $accessRequest->getLastName(),
+            'reason' => $accessRequest->reason()->value(),
+            'firstName' => $accessRequest->firstName()?->value(),
+            'lastName' => $accessRequest->lastName()?->value(),
             'createdAt' => $accessRequest->getCreatedAt()->format(\DateTimeInterface::ATOM),
         ];
     }
@@ -36,3 +36,4 @@ final class AccessRequestPresenter
         ];
     }
 }
+

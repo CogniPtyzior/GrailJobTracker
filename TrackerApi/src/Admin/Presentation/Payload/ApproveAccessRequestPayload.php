@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Admin\Presentation\Payload;
 
 use App\Admin\Application\Input\ApproveAccessRequestInput;
+use App\Shared\Domain\ValueObject\PersonName;
 use App\Shared\Infrastructure\Validation\RequestPayload;
 use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -55,8 +56,9 @@ final readonly class ApproveAccessRequestPayload implements RequestPayload
     {
         return new ApproveAccessRequestInput(
             password: $this->password,
-            firstName: $this->firstName,
-            lastName: $this->lastName,
+            firstName: PersonName::fromNullable($this->firstName),
+            lastName: PersonName::fromNullable($this->lastName),
         );
     }
 }
+
