@@ -29,7 +29,7 @@ final class TrackedJobCommandApplierTest extends TestCase
 
     public function testApplyHydratesCommandIntoTrackedJob(): void
     {
-        $trackedJob = TrackedJob::openFor(UserBuilder::aUser()->build());
+        $trackedJob = TrackedJob::openFor(UserBuilder::aUser()->build()->getId());
 
         $this->applier->apply($trackedJob, $this->fullCommand());
 

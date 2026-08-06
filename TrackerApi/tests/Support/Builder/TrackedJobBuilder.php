@@ -140,7 +140,7 @@ final class TrackedJobBuilder
 
     public function build(): TrackedJob
     {
-        $trackedJob = new TrackedJob($this->owner ?? UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(($this->owner ?? UserBuilder::aUser()->build())->getId());
         $trackedJob->updatePosition(
             CompanyName::fromNullable($this->company),
             JobTitle::fromNullable($this->title),

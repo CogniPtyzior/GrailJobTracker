@@ -9,6 +9,6 @@ final class TrackedJobFactory
 {
     public function create(User $owner): TrackedJob
     {
-        return TrackedJob::openFor($owner);
+        return TrackedJob::openFor($owner->getId());
     }
 }

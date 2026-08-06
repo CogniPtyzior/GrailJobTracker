@@ -1,8 +1,8 @@
 <?php
 
-namespace App\AccessRequest\Application\MessageHandler;
+namespace App\AccessRequest\Infrastructure\Messenger\MessageHandler;
 
-use App\AccessRequest\Application\Notification\AccessRequestNotificationSender;
+use App\AccessRequest\Infrastructure\Notification\AccessRequestNotificationSender;
 use App\AccessRequest\Application\Message\SendAccessRequestNotification;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use Psr\Log\LoggerInterface;

@@ -2,8 +2,8 @@
 
 namespace App\TrackedJob\Infrastructure\Doctrine\Mapper;
 
+use App\Security\Domain\ValueObject\UserId;
 use App\Security\Infrastructure\Doctrine\Entity\UserRecord;
-use App\Security\Infrastructure\Doctrine\Mapper\UserRecordMapper;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\ValueObject\CompanyName;
 use App\TrackedJob\Domain\ValueObject\ContactName;
@@ -16,17 +16,13 @@ use App\TrackedJob\Infrastructure\Doctrine\Entity\TrackedJobRecord;
 
 final class TrackedJobRecordMapper
 {
-    public function __construct(private readonly UserRecordMapper $userMapper)
-    {
-    }
-
     public function toDomain(TrackedJobRecord $record): TrackedJob
     {
         $subjectiveRelevance = $record->getSubjectiveRelevance();
 
         return TrackedJob::reconstitute(
             TrackedJobId::fromUuid($record->getId()),
-            $this->userMapper->toDomain($record->getOwner()),
+            UserId::fromUuid($record->getOwner()->getId()),
             CompanyName::fromNullable($record->getCompany()),
             JobTitle::fromNullable($record->getTitle()),
             $record->getContractType(),

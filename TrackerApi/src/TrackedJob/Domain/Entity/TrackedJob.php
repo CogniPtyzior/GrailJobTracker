@@ -2,7 +2,7 @@
 
 namespace App\TrackedJob\Domain\Entity;
 
-use App\Security\Domain\Entity\User;
+use App\Security\Domain\ValueObject\UserId;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
@@ -21,7 +21,7 @@ use App\TrackedJob\Domain\ValueObject\TrackedJobTimeline;
 final class TrackedJob
 {
     private TrackedJobId $id;
-    private User $owner;
+    private UserId $ownerId;
     private ?CompanyName $company = null;
     private ?JobTitle $title = null;
     private ?ContractType $contractType = ContractType::CDI;
@@ -38,24 +38,24 @@ final class TrackedJob
     private \DateTimeImmutable $createdAt;
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(User $owner)
+    public function __construct(UserId $ownerId)
     {
         $this->id = TrackedJobId::new();
-        $this->owner = $owner;
+        $this->ownerId = $ownerId;
         $this->timeline = TrackedJobTimeline::empty();
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $this->createdAt = $now;
         $this->updatedAt = $now;
     }
 
-    public static function openFor(User $owner): self
+    public static function openFor(UserId $ownerId): self
     {
-        return new self($owner);
+        return new self($ownerId);
     }
 
     public static function reconstitute(
         TrackedJobId $id,
-        User $owner,
+        UserId $ownerId,
         ?CompanyName $company,
         ?JobTitle $title,
         ?ContractType $contractType,
@@ -77,7 +77,7 @@ final class TrackedJob
         \DateTimeImmutable $createdAt,
         \DateTimeImmutable $updatedAt,
     ): self {
-        $trackedJob = new self($owner);
+        $trackedJob = new self($ownerId);
         $trackedJob->id = $id;
         $trackedJob->company = $company;
         $trackedJob->title = $title;
@@ -177,9 +177,9 @@ final class TrackedJob
         return $this->id;
     }
 
-    public function getOwner(): User
+    public function ownerId(): UserId
     {
-        return $this->owner;
+        return $this->ownerId;
     }
 
     public function company(): ?CompanyName

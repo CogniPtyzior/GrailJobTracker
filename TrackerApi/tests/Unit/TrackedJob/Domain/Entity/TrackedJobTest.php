@@ -22,7 +22,7 @@ final class TrackedJobTest extends TestCase
 {
     public function testConstructorInitializesDefaults(): void
     {
-        $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(UserBuilder::aUser()->build()->getId());
 
         self::assertSame(TrackedJobStatus::DRAFT, $trackedJob->getStatus());
         self::assertSame(ContractType::CDI, $trackedJob->getContractType());
@@ -33,7 +33,7 @@ final class TrackedJobTest extends TestCase
 
     public function testUpdatePositionNormalizesAllTextFieldsAndKeepsEnums(): void
     {
-        $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(UserBuilder::aUser()->build()->getId());
 
         $trackedJob->updatePosition(
             CompanyName::fromNullable('  Acme  '),
@@ -58,7 +58,7 @@ final class TrackedJobTest extends TestCase
 
     public function testUpdatePositionConvertsBlankStringsToNullAndDefaultsContractType(): void
     {
-        $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(UserBuilder::aUser()->build()->getId());
 
         $trackedJob->updatePosition(CompanyName::fromNullable('   '), JobTitle::fromNullable('   '), null, '   ', null, '   ', OfferUrl::fromNullable('   '), TrackedJobNotes::fromNullable('   '));
 
@@ -74,7 +74,7 @@ final class TrackedJobTest extends TestCase
 
     public function testUpdateTimelineStoresDatesAndComputesPlannedFollowUpAtUtcMidnight(): void
     {
-        $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(UserBuilder::aUser()->build()->getId());
         $applicationDate = new \DateTimeImmutable('2026-04-01T14:30:00+00:00');
 
         $trackedJob->updateTimeline(TrackedJobTimeline::fromProcessDates(
@@ -95,7 +95,7 @@ final class TrackedJobTest extends TestCase
 
     public function testUpdateTimelineClearsPlannedFollowUpWhenApplicationDateIsNull(): void
     {
-        $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(UserBuilder::aUser()->build()->getId());
         $trackedJob->updateTimeline(TrackedJobTimeline::fromProcessDates(FixedDates::april1(), null, null, null, null));
 
         self::assertNotNull($trackedJob->timeline()->plannedFollowUpDate());
@@ -108,7 +108,7 @@ final class TrackedJobTest extends TestCase
 
     public function testUpdateContactsNormalizesNames(): void
     {
-        $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(UserBuilder::aUser()->build()->getId());
 
         $trackedJob->updateContacts(ContactName::fromNullable('  Jane HR  '), ContactName::fromNullable('   '));
 
@@ -118,7 +118,7 @@ final class TrackedJobTest extends TestCase
 
     public function testUpdateRelevanceStoresValueAndAllowsNull(): void
     {
-        $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(UserBuilder::aUser()->build()->getId());
 
         $trackedJob->updateRelevance(SubjectiveRelevance::fromInt(8));
         self::assertSame(8, $trackedJob->getSubjectiveRelevance());
@@ -129,7 +129,7 @@ final class TrackedJobTest extends TestCase
 
     public function testTouchUpdatesUpdatedAt(): void
     {
-        $trackedJob = new TrackedJob(UserBuilder::aUser()->build());
+        $trackedJob = new TrackedJob(UserBuilder::aUser()->build()->getId());
         $property = new \ReflectionProperty($trackedJob, 'updatedAt');
         $oldValue = new \DateTimeImmutable('2020-01-01T00:00:00+00:00');
         $property->setValue($trackedJob, $oldValue);
@@ -155,7 +155,7 @@ final class TrackedJobTest extends TestCase
 
         $trackedJob = TrackedJob::reconstitute(
             $id,
-            $owner,
+            $owner->getId(),
             CompanyName::fromNullable('  Acme  '),
             JobTitle::fromNullable('  Backend Engineer  '),
             ContractType::CDD,
@@ -179,7 +179,7 @@ final class TrackedJobTest extends TestCase
         );
 
         self::assertSame($id, $trackedJob->getId());
-        self::assertSame($owner, $trackedJob->getOwner());
+        self::assertTrue($owner->getId()->equals($trackedJob->ownerId()));
         self::assertSame('Acme', $trackedJob->company()?->value());
         self::assertSame('Backend Engineer', $trackedJob->title()?->value());
         self::assertSame(ContractType::CDD, $trackedJob->getContractType());

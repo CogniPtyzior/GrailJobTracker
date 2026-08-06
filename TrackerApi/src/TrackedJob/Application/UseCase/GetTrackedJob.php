@@ -19,6 +19,6 @@ final class GetTrackedJob
 
     public function handle(TrackedJobId $id, User $owner): ?TrackedJob
     {
-        return $this->trackedJobRepository->getByIdForOwner($id, $owner);
+        return $this->trackedJobRepository->getByIdForOwner($id, $owner->getId());
     }
 }

@@ -60,7 +60,7 @@ services:
             $adminBootstrapPasswordFile: '%env(ADMIN_BOOTSTRAP_PASSWORD_FILE)%'
             $trackerSchema: '%tracker.schema%'
 
-    App\AccessRequest\Application\Notification\AccessRequestNotificationSender:
+    App\AccessRequest\Infrastructure\Notification\AccessRequestNotificationSender:
         arguments:
             $recipientEmail: '%access_request.notification_to%'
             $fromEmail: '%mailer.from_email%'

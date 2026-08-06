@@ -2,7 +2,7 @@
 
 namespace App\TrackedJob\Infrastructure\Doctrine\Repository;
 
-use App\Security\Domain\Entity\User;
+use App\Security\Domain\ValueObject\UserId;
 use App\Security\Infrastructure\Doctrine\Entity\UserRecord;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
@@ -22,9 +22,9 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
         parent::__construct($registry, TrackedJobRecord::class);
     }
 
-    public function getByIdForOwner(TrackedJobId $id, User $owner): ?TrackedJob
+    public function getByIdForOwner(TrackedJobId $id, UserId $ownerId): ?TrackedJob
     {
-        $ownerRecord = $this->findUserRecord($owner);
+        $ownerRecord = $this->findUserRecord($ownerId);
 
         if (!$ownerRecord instanceof UserRecord) {
             return null;
@@ -35,9 +35,9 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
         return $record instanceof TrackedJobRecord ? $this->mapper->toDomain($record) : null;
     }
 
-    public function search(User $owner, array $filters, int $page, int $pageSize): array
+    public function search(UserId $ownerId, array $filters, int $page, int $pageSize): array
     {
-        $ownerRecord = $this->findUserRecord($owner);
+        $ownerRecord = $this->findUserRecord($ownerId);
 
         if (!$ownerRecord instanceof UserRecord) {
             return ['items' => [], 'hasMore' => false];
@@ -85,9 +85,9 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
         ];
     }
 
-    public function searchDistinctCompanies(User $owner, string $query, int $limit = 10): array
+    public function searchDistinctCompanies(UserId $ownerId, string $query, int $limit = 10): array
     {
-        $ownerRecord = $this->findUserRecord($owner);
+        $ownerRecord = $this->findUserRecord($ownerId);
 
         if (!$ownerRecord instanceof UserRecord) {
             return [];
@@ -112,7 +112,7 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
 
     public function save(TrackedJob $trackedJob): void
     {
-        $ownerRecord = $this->findUserRecord($trackedJob->getOwner());
+        $ownerRecord = $this->findUserRecord($trackedJob->ownerId());
 
         if (!$ownerRecord instanceof UserRecord) {
             throw new \RuntimeException('Tracked job owner must be persisted before the tracked job can be saved.');
@@ -142,9 +142,9 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
         $this->getEntityManager()->flush();
     }
 
-    private function findUserRecord(User $user): ?UserRecord
+    private function findUserRecord(UserId $ownerId): ?UserRecord
     {
-        return $this->getEntityManager()->find(UserRecord::class, $user->getId()->toUuid());
+        return $this->getEntityManager()->find(UserRecord::class, $ownerId->toUuid());
     }
 
     private function applyFilters(\Doctrine\ORM\QueryBuilder $qb, array $filters): void

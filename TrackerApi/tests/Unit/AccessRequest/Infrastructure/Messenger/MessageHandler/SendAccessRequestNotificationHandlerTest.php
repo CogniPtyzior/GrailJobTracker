@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Tests\Unit\AccessRequest\Application\MessageHandler;
+namespace App\Tests\Unit\AccessRequest\Infrastructure\Messenger\MessageHandler;
 
-use App\AccessRequest\Application\Notification\AccessRequestNotificationSender;
+use App\AccessRequest\Infrastructure\Notification\AccessRequestNotificationSender;
 use App\AccessRequest\Application\Message\SendAccessRequestNotification;
-use App\AccessRequest\Application\MessageHandler\SendAccessRequestNotificationHandler;
+use App\AccessRequest\Infrastructure\Messenger\MessageHandler\SendAccessRequestNotificationHandler;
 use App\Tests\Support\Builder\AccessRequestBuilder;
 use App\Tests\Support\Fake\InMemoryAccessRequestRepository;
 use PHPUnit\Framework\TestCase;

@@ -22,7 +22,7 @@ final class ExportTrackedJobsCsv
 
     public function handle(User $owner, ExportTrackedJobsInput $filters): string
     {
-        $result = $this->trackedJobRepository->search($owner, $filters->toFilters(), 1, self::EXPORT_LIMIT);
+        $result = $this->trackedJobRepository->search($owner->getId(), $filters->toFilters(), 1, self::EXPORT_LIMIT);
 
         return $this->csvExporter->export($result['items']);
     }

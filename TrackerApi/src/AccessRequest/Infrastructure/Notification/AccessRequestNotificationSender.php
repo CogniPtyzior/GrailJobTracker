@@ -1,6 +1,6 @@
 <?php
 
-namespace App\AccessRequest\Application\Notification;
+namespace App\AccessRequest\Infrastructure\Notification;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use Psr\Log\LoggerInterface;

@@ -21,7 +21,7 @@ final class SearchTrackedJobs
      */
     public function handle(User $owner, array $filters, int $page, int $pageSize): SearchTrackedJobsResult
     {
-        $result = $this->trackedJobRepository->search($owner, $filters, $page, $pageSize);
+        $result = $this->trackedJobRepository->search($owner->getId(), $filters, $page, $pageSize);
 
         return new SearchTrackedJobsResult($result['items'], $result['hasMore']);
     }

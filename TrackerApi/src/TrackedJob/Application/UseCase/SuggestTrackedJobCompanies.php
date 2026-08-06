@@ -20,6 +20,6 @@ final class SuggestTrackedJobCompanies
      */
     public function handle(User $owner, string $query, int $limit = 10): array
     {
-        return $this->trackedJobRepository->searchDistinctCompanies($owner, $query, $limit);
+        return $this->trackedJobRepository->searchDistinctCompanies($owner->getId(), $query, $limit);
     }
 }
