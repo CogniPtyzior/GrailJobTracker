@@ -6,14 +6,17 @@ use App\Security\Domain\Entity\User;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Uid\Uuid;
+use App\Security\Domain\ValueObject\UserId;
+use App\Security\Domain\ValueObject\UserRoles;
+use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\PersonName;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 final class UserTest extends TestCase
 {
     public function testConstructorInitializesIdentityDefaults(): void
     {
-        $user = new User('John@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('John@example.com'));
 
         self::assertNotNull($user->getId());
         self::assertSame('John@example.com', $user->getEmail());
@@ -26,7 +29,7 @@ final class UserTest extends TestCase
 
     public function testGetRolesAlwaysContainsRoleUser(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
         $user->grantAdmin();
 
         self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $user->getRoles());
@@ -34,7 +37,7 @@ final class UserTest extends TestCase
 
     public function testRoleMethodsOwnRoleAssignments(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
 
         $user->grantAdmin();
         self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $user->getRoles());
@@ -45,7 +48,7 @@ final class UserTest extends TestCase
 
     public function testUpdateAdminRoleSwitchesBetweenAdminAndRegularUser(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
 
         $user->updateAdminRole(true);
         self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $user->getRoles());
@@ -56,30 +59,30 @@ final class UserTest extends TestCase
 
     public function testUpdateProfileTrimsNamesAndAllowsNull(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
 
-        $user->updateProfile('  John  ', '  Doe  ');
-        self::assertSame('John', $user->getFirstName());
-        self::assertSame('Doe', $user->getLastName());
+        $user->updateProfile(PersonName::fromNullable('  John  '), PersonName::fromNullable('  Doe  '));
+        self::assertSame('John', $user->firstName()?->value());
+        self::assertSame('Doe', $user->lastName()?->value());
 
         $user->updateProfile(null, null);
-        self::assertNull($user->getFirstName());
-        self::assertNull($user->getLastName());
+        self::assertNull($user->firstName()?->value());
+        self::assertNull($user->lastName()?->value());
     }
 
-    public function testUpdateProfilePreservesBlankStringsAsTrimmedEmptyValues(): void
+    public function testUpdateProfileConvertsBlankNamesToNull(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
 
-        $user->updateProfile('   ', '   ');
+        $user->updateProfile(PersonName::fromNullable('   '), PersonName::fromNullable('   '));
 
-        self::assertSame('', $user->getFirstName());
-        self::assertSame('', $user->getLastName());
+        self::assertNull($user->firstName()?->value());
+        self::assertNull($user->lastName()?->value());
     }
 
     public function testActivationMethodsOwnTheActiveFlag(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
 
         $user->deactivate();
         self::assertFalse($user->isActive());
@@ -90,7 +93,7 @@ final class UserTest extends TestCase
 
     public function testIsBootstrapAdminUsesNormalizedComparison(): void
     {
-        $user = new User('John@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('John@example.com'));
 
         self::assertTrue($user->isBootstrapAdmin('  JOHN@example.com  '));
         self::assertFalse($user->isBootstrapAdmin('other@example.com'));
@@ -98,7 +101,7 @@ final class UserTest extends TestCase
 
     public function testPasswordHashIsReturnedForSymfonySecurity(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
 
         $user->setPasswordHash('hashed-password');
 
@@ -107,7 +110,7 @@ final class UserTest extends TestCase
 
     public function testMarkLoggedInStoresTimestamp(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
         $loggedAt = FixedDates::april20();
         $user->markLoggedIn($loggedAt);
 
@@ -116,8 +119,8 @@ final class UserTest extends TestCase
 
     public function testChangeEmailUpdatesBothEmailAndNormalizedEmail(): void
     {
-        $user = new User('john@example.com', 'john@example.com');
-        $user->changeEmail('Jane@example.com', 'jane@example.com');
+        $user = new User(EmailAddress::fromString('john@example.com'));
+        $user->changeEmail(EmailAddress::fromString('Jane@example.com'));
 
         self::assertSame('Jane@example.com', $user->getEmail());
         self::assertSame('jane@example.com', $user->getNormalizedEmail());
@@ -166,18 +169,17 @@ final class UserTest extends TestCase
 
     public function testReconstituteRestoresPersistedStateAndCleansRoles(): void
     {
-        $id = Uuid::fromString('018f6d6f-0000-7000-8000-000000000001');
+        $id = UserId::fromString('018f6d6f-0000-7000-8000-000000000001');
         $createdAt = new \DateTimeImmutable('2026-04-01T10:00:00+00:00');
         $lastLoginAt = new \DateTimeImmutable('2026-04-20T12:30:00+00:00');
 
         $user = User::reconstitute(
             $id,
-            'John@example.com',
-            'john@example.com',
-            '  John  ',
-            '  Doe  ',
+            EmailAddress::fromString('John@example.com'),
+            PersonName::fromNullable('  John  '),
+            PersonName::fromNullable('  Doe  '),
             false,
-            [' ROLE_ADMIN ', '', 'ROLE_ADMIN', 'ROLE_USER'],
+            UserRoles::fromArray([' ROLE_ADMIN ', '', 'ROLE_ADMIN', 'ROLE_USER']),
             'persisted-hash',
             $createdAt,
             $lastLoginAt,
@@ -186,8 +188,8 @@ final class UserTest extends TestCase
         self::assertSame($id, $user->getId());
         self::assertSame('John@example.com', $user->getEmail());
         self::assertSame('john@example.com', $user->getNormalizedEmail());
-        self::assertSame('John', $user->getFirstName());
-        self::assertSame('Doe', $user->getLastName());
+        self::assertSame('John', $user->firstName()?->value());
+        self::assertSame('Doe', $user->lastName()?->value());
         self::assertFalse($user->isActive());
         self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $user->getRoles());
         self::assertSame('persisted-hash', $user->getPassword());
@@ -198,13 +200,12 @@ final class UserTest extends TestCase
     public function testReconstituteDefaultsToRoleUserWhenPersistedRolesAreEmpty(): void
     {
         $user = User::reconstitute(
-            Uuid::fromString('018f6d6f-0000-7000-8000-000000000002'),
-            'john@example.com',
-            'john@example.com',
+            UserId::fromString('018f6d6f-0000-7000-8000-000000000002'),
+            EmailAddress::fromString('john@example.com'),
             null,
             null,
             true,
-            ['', '   '],
+            UserRoles::fromArray(['', '   ']),
             'persisted-hash',
             new \DateTimeImmutable('2026-04-01T10:00:00+00:00'),
             null,

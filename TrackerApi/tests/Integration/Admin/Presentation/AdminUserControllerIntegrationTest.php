@@ -9,7 +9,6 @@ use App\Admin\Application\UseCase\SearchUsers;
 use App\Admin\Application\UseCase\UpdateAdminUser;
 use App\Admin\Presentation\AdminUserController;
 use App\Admin\Presentation\UserPresenter;
-use App\Security\Application\EmailNormalizer;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Fake\InMemoryUserRepository;
@@ -43,8 +42,8 @@ final class AdminUserControllerIntegrationTest extends TestCase
         $createdUser = $userRepository->all()[0];
         self::assertSame('New.User@example.com', $createdUser->getEmail());
         self::assertSame('new.user@example.com', $createdUser->getNormalizedEmail());
-        self::assertSame('New', $createdUser->getFirstName());
-        self::assertSame('User', $createdUser->getLastName());
+        self::assertSame('New', $createdUser->firstName()?->value());
+        self::assertSame('User', $createdUser->lastName()?->value());
         self::assertSame(['ROLE_USER'], $createdUser->getRoles());
         self::assertSame('hashed::Password1!', $createdUser->getPassword());
         self::assertSame($createdUser->getId()->toRfc4122(), $payload['item']['id']);
@@ -88,7 +87,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         self::assertTrue($bootstrapAdmin->isActive());
         self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $bootstrapAdmin->getRoles());
-        self::assertSame('Updated', $bootstrapAdmin->getFirstName());
+        self::assertSame('Updated', $bootstrapAdmin->firstName()?->value());
         self::assertSame($bootstrapAdmin->getId()->toRfc4122(), $payload['item']['id']);
     }
 
@@ -157,7 +156,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
             new SearchUsers($userRepository),
             new GetAdminUser($userRepository),
             new RequestPayloadMapper(Validation::createValidatorBuilder()->enableAttributeMapping()->getValidator()),
-            new CreateAdminUser(new EmailNormalizer(), $userRepository, $passwordHasher),
+            new CreateAdminUser($userRepository, $passwordHasher),
             new UpdateAdminUser($passwordHasher, $userRepository, $adminBootstrapEmail),
             new DeleteAdminUser($userRepository),
             $adminBootstrapEmail,
@@ -195,3 +194,4 @@ final class AdminUserControllerIntegrationTest extends TestCase
         };
     }
 }
+

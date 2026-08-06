@@ -4,6 +4,7 @@ namespace App\Tests\Integration\Security\Presentation;
 
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -105,7 +106,7 @@ final class AuthControllerIntegrationTest extends WebTestCase
     private function createUser(string $email, bool $isActive = true): User
     {
         $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
-        $user = new User($email, mb_strtolower(trim($email)));
+        $user = new User(EmailAddress::fromString($email));
 
         $isActive ? $user->activate() : $user->deactivate();
         $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
@@ -164,3 +165,4 @@ final class AuthControllerIntegrationTest extends WebTestCase
         return static::getContainer()->get(Connection::class);
     }
 }
+

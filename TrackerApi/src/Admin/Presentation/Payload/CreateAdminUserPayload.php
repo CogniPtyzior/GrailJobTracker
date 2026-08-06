@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Admin\Presentation\Payload;
 
 use App\Admin\Application\Input\CreateAdminUserInput;
+use App\Shared\Domain\ValueObject\PersonName;
 use App\Shared\Infrastructure\Validation\RequestPayload;
 use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -65,10 +66,11 @@ final readonly class CreateAdminUserPayload implements RequestPayload
         return new CreateAdminUserInput(
             email: $this->email,
             password: $this->password,
-            firstName: $this->firstName,
-            lastName: $this->lastName,
+            firstName: PersonName::fromNullable($this->firstName),
+            lastName: PersonName::fromNullable($this->lastName),
             isActive: $this->isActive,
             isAdmin: $this->isAdmin,
         );
     }
 }
+

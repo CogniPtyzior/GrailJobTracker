@@ -4,6 +4,7 @@ namespace App\Tests\Integration\Security\Presentation;
 
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -50,7 +51,7 @@ final class LoginRateLimitingIntegrationTest extends WebTestCase
     {
         $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
         $userRepository = static::getContainer()->get(UserRepositoryInterface::class);
-        $user = new User($email, mb_strtolower(trim($email)));
+        $user = new User(EmailAddress::fromString($email));
 
         $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
 
@@ -106,3 +107,4 @@ final class LoginRateLimitingIntegrationTest extends WebTestCase
         return static::getContainer()->get(Connection::class);
     }
 }
+

@@ -15,10 +15,10 @@ final class UserPresenter
         return [
             'id' => $user->getId()->toRfc4122(),
             'email' => $user->getEmail(),
-            'firstName' => $user->getFirstName(),
-            'lastName' => $user->getLastName(),
+            'firstName' => $user->firstName()?->value(),
+            'lastName' => $user->lastName()?->value(),
             'isActive' => $user->isActive(),
-            'roles' => $user->getRoles(),
+            'roles' => $user->roles()->toArray(),
             'createdAt' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'lastLoginAt' => $user->getLastLoginAt()?->format(\DateTimeInterface::ATOM),
         ];
@@ -37,3 +37,4 @@ final class UserPresenter
         ];
     }
 }
+

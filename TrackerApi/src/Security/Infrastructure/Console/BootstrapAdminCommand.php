@@ -2,9 +2,9 @@
 
 namespace App\Security\Infrastructure\Console;
 
-use App\Security\Application\EmailNormalizer;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -17,7 +17,6 @@ final class BootstrapAdminCommand extends Command
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
-        private readonly EmailNormalizer $emailNormalizer,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly Connection $connection,
         private readonly string $adminBootstrapEmail,
@@ -50,8 +49,8 @@ final class BootstrapAdminCommand extends Command
             return Command::SUCCESS;
         }
 
-        $normalizedEmail = $this->emailNormalizer->normalize($this->adminBootstrapEmail);
-        $existingUser = $this->userRepository->findOneByNormalizedEmail($normalizedEmail);
+        $email = EmailAddress::fromString($this->adminBootstrapEmail);
+        $existingUser = $this->userRepository->findOneByEmail($email);
 
         if ($existingUser instanceof User) {
             $existingUser->grantAdmin();
@@ -66,7 +65,7 @@ final class BootstrapAdminCommand extends Command
             return Command::SUCCESS;
         }
 
-        $user = new User($this->adminBootstrapEmail, $normalizedEmail);
+        $user = new User($email);
         $user->grantAdmin();
         $user->setPasswordHash($this->passwordHasher->hashPassword($user, $password));
         $this->userRepository->save($user);

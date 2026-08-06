@@ -4,6 +4,7 @@ namespace App\Security\Infrastructure\Security;
 
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -19,7 +20,7 @@ final class DomainUserProvider implements UserProviderInterface, PasswordUpgrade
 
     public function loadUserByIdentifier(string $identifier): UserInterface
     {
-        $user = $this->userRepository->findOneByNormalizedEmail(mb_strtolower(trim($identifier)));
+        $user = $this->userRepository->findOneByEmail(EmailAddress::fromString($identifier));
 
         if (!$user instanceof User) {
             throw new UserNotFoundException(sprintf('User "%s" was not found.', $identifier));

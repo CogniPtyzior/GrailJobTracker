@@ -23,11 +23,15 @@ services:
         resource: '../src/'
         exclude:
             - '../src/Kernel.php'
+            - '../src/Shared/Domain/ValueObject/'
             - '../src/AccessRequest/Domain/Entity/'
+            - '../src/AccessRequest/Domain/ValueObject/'
             - '../src/AccessRequest/Infrastructure/Doctrine/Entity/'
             - '../src/Security/Domain/Entity/'
+            - '../src/Security/Domain/ValueObject/'
             - '../src/Security/Infrastructure/Doctrine/Entity/'
             - '../src/TrackedJob/Domain/Entity/'
+            - '../src/TrackedJob/Domain/ValueObject/'
             - '../src/TrackedJob/Infrastructure/Doctrine/Entity/'
 
     App\Shared\Infrastructure\Clock\ClockInterface:

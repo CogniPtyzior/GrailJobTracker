@@ -27,9 +27,9 @@ final class JsonLoginSuccessHandler implements AuthenticationSuccessHandlerInter
             'user' => [
                 'id' => $user->getId()->toRfc4122(),
                 'email' => $user->getEmail(),
-                'firstName' => $user->getFirstName(),
-                'lastName' => $user->getLastName(),
-                'roles' => $user->getRoles(),
+                'firstName' => $user->firstName()?->value(),
+                'lastName' => $user->lastName()?->value(),
+                'roles' => $user->roles()->toArray(),
                 'isActive' => $user->isActive(),
                 'createdAt' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
                 'lastLoginAt' => $user->getLastLoginAt()?->format(\DateTimeInterface::ATOM),

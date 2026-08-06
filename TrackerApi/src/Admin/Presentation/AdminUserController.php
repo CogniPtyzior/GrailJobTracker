@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\Uid\Uuid;
+use App\Security\Domain\ValueObject\UserId;
 
 #[Route('/api/admin/users')]
 final class AdminUserController extends AbstractController
@@ -111,7 +111,7 @@ final class AdminUserController extends AbstractController
     private function findUser(string $id): ?User
     {
         try {
-            return $this->getAdminUser->handle(Uuid::fromString($id));
+            return $this->getAdminUser->handle(UserId::fromString($id));
         } catch (\InvalidArgumentException) {
             return null;
         }

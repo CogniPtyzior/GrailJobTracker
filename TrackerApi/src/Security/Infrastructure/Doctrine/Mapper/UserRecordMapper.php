@@ -3,20 +3,23 @@
 namespace App\Security\Infrastructure\Doctrine\Mapper;
 
 use App\Security\Domain\Entity\User;
+use App\Security\Domain\ValueObject\UserId;
+use App\Security\Domain\ValueObject\UserRoles;
 use App\Security\Infrastructure\Doctrine\Entity\UserRecord;
+use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\PersonName;
 
 final class UserRecordMapper
 {
     public function toDomain(UserRecord $record): User
     {
         return User::reconstitute(
-            $record->getId(),
-            $record->getEmail(),
-            $record->getNormalizedEmail(),
-            $record->getFirstName(),
-            $record->getLastName(),
+            UserId::fromUuid($record->getId()),
+            EmailAddress::reconstitute($record->getEmail(), $record->getNormalizedEmail()),
+            PersonName::fromNullable($record->getFirstName()),
+            PersonName::fromNullable($record->getLastName()),
             $record->isActive(),
-            $record->getRoles(),
+            UserRoles::fromArray($record->getRoles()),
             $record->getPasswordHash(),
             $record->getCreatedAt(),
             $record->getLastLoginAt(),
@@ -25,13 +28,13 @@ final class UserRecordMapper
 
     public function updateRecord(User $user, UserRecord $record): void
     {
-        $record->setId($user->getId());
+        $record->setId($user->getId()->toUuid());
         $record->setEmail($user->getEmail());
         $record->setNormalizedEmail($user->getNormalizedEmail());
-        $record->setFirstName($user->getFirstName());
-        $record->setLastName($user->getLastName());
+        $record->setFirstName($user->firstName()?->value());
+        $record->setLastName($user->lastName()?->value());
         $record->setIsActive($user->isActive());
-        $record->setRoles($user->getRoles());
+        $record->setRoles($user->roles()->toArray());
         $record->setPasswordHash($user->getPassword());
         $record->setCreatedAt($user->getCreatedAt());
         $record->setLastLoginAt($user->getLastLoginAt());

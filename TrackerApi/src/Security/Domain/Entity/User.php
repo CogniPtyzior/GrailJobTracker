@@ -2,54 +2,50 @@
 
 namespace App\Security\Domain\Entity;
 
+use App\Security\Domain\ValueObject\UserId;
+use App\Security\Domain\ValueObject\UserRoles;
+use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\PersonName;
 use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Uid\UuidV7;
 
 final class User implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
-    private Uuid $id;
-    private string $email;
-    private string $normalizedEmail;
-    private ?string $firstName = null;
-    private ?string $lastName = null;
+    private UserId $id;
+    private EmailAddress $email;
+    private ?PersonName $firstName = null;
+    private ?PersonName $lastName = null;
     private bool $isActive = true;
-
-    /** @var list<string> */
-    private array $roles = ['ROLE_USER'];
-
+    private UserRoles $roles;
     private string $passwordHash;
     private \DateTimeImmutable $createdAt;
     private ?\DateTimeImmutable $lastLoginAt = null;
 
-    public function __construct(string $email, string $normalizedEmail)
+    public function __construct(EmailAddress $email)
     {
-        $this->id = new UuidV7();
+        $this->id = UserId::new();
         $this->email = $email;
-        $this->normalizedEmail = $normalizedEmail;
+        $this->roles = UserRoles::regularUser();
         $this->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     }
 
-    /** @param list<string> $roles */
     public static function reconstitute(
-        Uuid $id,
-        string $email,
-        string $normalizedEmail,
-        ?string $firstName,
-        ?string $lastName,
+        UserId $id,
+        EmailAddress $email,
+        ?PersonName $firstName,
+        ?PersonName $lastName,
         bool $isActive,
-        array $roles,
+        UserRoles $roles,
         string $passwordHash,
         \DateTimeImmutable $createdAt,
         ?\DateTimeImmutable $lastLoginAt,
     ): self {
-        $user = new self($email, $normalizedEmail);
+        $user = new self($email);
         $user->id = $id;
         $user->updateProfile($firstName, $lastName);
         $user->isActive = $isActive;
-        $user->replaceRoles($roles);
+        $user->roles = $roles;
         $user->passwordHash = $passwordHash;
         $user->createdAt = $createdAt;
         $user->lastLoginAt = $lastLoginAt;
@@ -57,41 +53,42 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
         return $user;
     }
 
-    public function getId(): Uuid
+    public function getId(): UserId
     {
         return $this->id;
     }
 
     public function getEmail(): string
     {
-        return $this->email;
+        return $this->email->value();
     }
 
-    public function changeEmail(string $email, string $normalizedEmail): void
+    public function changeEmail(EmailAddress $email): void
     {
         $this->email = $email;
-        $this->normalizedEmail = $normalizedEmail;
     }
 
     public function getNormalizedEmail(): string
     {
-        return $this->normalizedEmail;
+        return $this->email->normalizedValue();
     }
 
-    public function getFirstName(): ?string
+    public function firstName(): ?PersonName
     {
         return $this->firstName;
     }
 
-    public function getLastName(): ?string
+
+    public function lastName(): ?PersonName
     {
         return $this->lastName;
     }
 
-    public function updateProfile(?string $firstName, ?string $lastName): void
+
+    public function updateProfile(?PersonName $firstName, ?PersonName $lastName): void
     {
-        $this->firstName = $firstName !== null ? trim($firstName) : null;
-        $this->lastName = $lastName !== null ? trim($lastName) : null;
+        $this->firstName = $firstName;
+        $this->lastName = $lastName;
     }
 
     public function isActive(): bool
@@ -111,29 +108,28 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
 
     public function isBootstrapAdmin(string $bootstrapEmail): bool
     {
-        return $this->normalizedEmail === mb_strtolower(trim($bootstrapEmail));
+        return $this->email->equals(EmailAddress::fromString($bootstrapEmail));
+    }
+
+    public function roles(): UserRoles
+    {
+        return $this->roles;
     }
 
     /** @return list<string> */
     public function getRoles(): array
     {
-        $roles = $this->roles;
-
-        if (!in_array('ROLE_USER', $roles, true)) {
-            $roles[] = 'ROLE_USER';
-        }
-
-        return array_values(array_unique($roles));
+        return $this->roles->toArray();
     }
 
     public function grantAdmin(): void
     {
-        $this->replaceRoles(['ROLE_ADMIN', 'ROLE_USER']);
+        $this->roles = UserRoles::admin();
     }
 
     public function assignRegularUser(): void
     {
-        $this->replaceRoles(['ROLE_USER']);
+        $this->roles = UserRoles::regularUser();
     }
 
     public function updateAdminRole(bool $isAdmin): void
@@ -167,15 +163,15 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
             return false;
         }
 
-        return $this->normalizedEmail === $user->normalizedEmail
+        return $this->email->equals($user->email)
             && $this->passwordHash === $user->passwordHash
             && $this->isActive === $user->isActive
-            && $this->getRoles() === $user->getRoles();
+            && $this->roles->equals($user->roles);
     }
 
     public function getUserIdentifier(): string
     {
-        return $this->normalizedEmail;
+        return $this->email->normalizedValue();
     }
 
     public function getCreatedAt(): \DateTimeImmutable
@@ -191,33 +187,5 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
     public function markLoggedIn(\DateTimeImmutable $loggedAt): void
     {
         $this->lastLoginAt = $loggedAt;
-    }
-
-    /** @param list<string> $roles */
-    private function replaceRoles(array $roles): void
-    {
-        $cleanRoles = self::cleanRoles($roles);
-        $this->roles = $cleanRoles === [] ? ['ROLE_USER'] : $cleanRoles;
-    }
-
-    /**
-     * @param list<string> $roles
-     * @return list<string>
-     */
-    private static function cleanRoles(array $roles): array
-    {
-        $cleanRoles = [];
-
-        foreach ($roles as $role) {
-            $role = trim($role);
-
-            if ($role === '' || in_array($role, $cleanRoles, true)) {
-                continue;
-            }
-
-            $cleanRoles[] = $role;
-        }
-
-        return $cleanRoles;
     }
 }

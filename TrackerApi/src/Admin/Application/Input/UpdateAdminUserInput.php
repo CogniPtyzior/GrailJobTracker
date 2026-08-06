@@ -2,6 +2,8 @@
 
 namespace App\Admin\Application\Input;
 
+use App\Shared\Domain\ValueObject\PersonName;
+
 /**
  * Application input object used to apply a partial admin user update.
  */
@@ -11,8 +13,8 @@ final readonly class UpdateAdminUserInput
      * @param list<string> $providedFields
      */
     public function __construct(
-        public ?string $firstName,
-        public ?string $lastName,
+        public ?PersonName $firstName,
+        public ?PersonName $lastName,
         public ?bool $isActive,
         public ?bool $isAdmin,
         public ?string $password,

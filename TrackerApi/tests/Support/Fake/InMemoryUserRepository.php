@@ -4,7 +4,8 @@ namespace App\Tests\Support\Fake;
 
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
-use Symfony\Component\Uid\Uuid;
+use App\Security\Domain\ValueObject\UserId;
+use App\Shared\Domain\ValueObject\EmailAddress;
 
 final class InMemoryUserRepository implements UserRepositoryInterface
 {
@@ -19,10 +20,10 @@ final class InMemoryUserRepository implements UserRepositoryInterface
         }
     }
 
-    public function findOneByNormalizedEmail(string $normalizedEmail): ?User
+    public function findOneByEmail(EmailAddress $email): ?User
     {
         foreach ($this->usersById as $user) {
-            if ($user->getNormalizedEmail() === $normalizedEmail) {
+            if ($user->getNormalizedEmail() === $email->normalizedValue()) {
                 return $user;
             }
         }
@@ -42,8 +43,8 @@ final class InMemoryUserRepository implements UserRepositoryInterface
             $term = mb_strtolower(trim($query));
             $items = array_values(array_filter($items, static function (User $user) use ($term): bool {
                 return str_contains(mb_strtolower($user->getEmail()), $term)
-                    || str_contains(mb_strtolower($user->getFirstName() ?? ''), $term)
-                    || str_contains(mb_strtolower($user->getLastName() ?? ''), $term);
+                    || str_contains(mb_strtolower($user->firstName()?->value() ?? ''), $term)
+                    || str_contains(mb_strtolower($user->lastName()?->value() ?? ''), $term);
             }));
         }
 
@@ -63,7 +64,7 @@ final class InMemoryUserRepository implements UserRepositoryInterface
         ];
     }
 
-    public function getById(Uuid $id): ?User
+    public function getById(UserId $id): ?User
     {
         return $this->usersById[$id->toRfc4122()] ?? null;
     }
@@ -88,3 +89,5 @@ final class InMemoryUserRepository implements UserRepositoryInterface
         return array_values($this->usersById);
     }
 }
+
+

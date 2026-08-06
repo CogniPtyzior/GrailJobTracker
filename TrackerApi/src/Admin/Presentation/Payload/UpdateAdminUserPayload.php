@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Admin\Presentation\Payload;
 
 use App\Admin\Application\Input\UpdateAdminUserInput;
+use App\Shared\Domain\ValueObject\PersonName;
 use App\Shared\Infrastructure\Validation\RequestPayload;
 use App\Shared\Infrastructure\Validation\RequestPayloadHydrationException;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -75,8 +76,8 @@ final readonly class UpdateAdminUserPayload implements RequestPayload
     public function toInput(): UpdateAdminUserInput
     {
         return new UpdateAdminUserInput(
-            firstName: $this->firstName,
-            lastName: $this->lastName,
+            firstName: PersonName::fromNullable($this->firstName),
+            lastName: PersonName::fromNullable($this->lastName),
             isActive: $this->isActive,
             isAdmin: $this->isAdmin,
             password: $this->password,
@@ -89,3 +90,4 @@ final readonly class UpdateAdminUserPayload implements RequestPayload
         return in_array($field, $this->providedFields, true);
     }
 }
+

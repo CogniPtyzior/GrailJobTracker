@@ -3,6 +3,9 @@
 namespace App\Tests\Support\Builder;
 
 use App\Security\Domain\Entity\User;
+use App\Security\Domain\ValueObject\UserRoles;
+use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\PersonName;
 
 final class UserBuilder
 {
@@ -10,10 +13,14 @@ final class UserBuilder
     private ?string $firstName = 'John';
     private ?string $lastName = 'Doe';
     private bool $isActive = true;
-    /** @var list<string> */
-    private array $roles = ['ROLE_USER'];
+    private UserRoles $roles;
     private string $passwordHash = 'hashed-password';
     private ?\DateTimeImmutable $lastLoginAt = null;
+
+    private function __construct()
+    {
+        $this->roles = UserRoles::regularUser();
+    }
 
     public static function aUser(): self
     {
@@ -56,7 +63,7 @@ final class UserBuilder
     public function withRoles(array $roles): self
     {
         $clone = clone $this;
-        $clone->roles = $roles;
+        $clone->roles = UserRoles::fromArray($roles);
 
         return $clone;
     }
@@ -79,12 +86,10 @@ final class UserBuilder
 
     public function build(): User
     {
-        $normalizedEmail = mb_strtolower(trim($this->email));
-
-        $user = new User($this->email, $normalizedEmail);
-        $user->updateProfile($this->firstName, $this->lastName);
+        $user = new User(EmailAddress::fromString($this->email));
+        $user->updateProfile(PersonName::fromNullable($this->firstName), PersonName::fromNullable($this->lastName));
         $this->isActive ? $user->activate() : $user->deactivate();
-        in_array('ROLE_ADMIN', $this->roles, true) ? $user->grantAdmin() : $user->assignRegularUser();
+        in_array('ROLE_ADMIN', $this->roles->toArray(), true) ? $user->grantAdmin() : $user->assignRegularUser();
         $user->setPasswordHash($this->passwordHash);
 
         if ($this->lastLoginAt !== null) {
@@ -94,3 +99,5 @@ final class UserBuilder
         return $user;
     }
 }
+
+

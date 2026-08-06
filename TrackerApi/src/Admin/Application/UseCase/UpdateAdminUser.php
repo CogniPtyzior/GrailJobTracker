@@ -24,11 +24,11 @@ final class UpdateAdminUser
         $bootstrapAdmin = $user->isBootstrapAdmin($this->adminBootstrapEmail);
 
         if ($payload->has('firstName')) {
-            $user->updateProfile($payload->firstName, $user->getLastName());
+            $user->updateProfile($payload->firstName, $user->lastName());
         }
 
         if ($payload->has('lastName')) {
-            $user->updateProfile($user->getFirstName(), $payload->lastName);
+            $user->updateProfile($user->firstName(), $payload->lastName);
         }
 
         if ($this->canUpdateActiveFlag($user, $currentUser, $payload, $bootstrapAdmin)) {

@@ -4,11 +4,12 @@ namespace App\Security\Infrastructure\Doctrine\Repository;
 
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Security\Domain\ValueObject\UserId;
 use App\Security\Infrastructure\Doctrine\Entity\UserRecord;
 use App\Security\Infrastructure\Doctrine\Mapper\UserRecordMapper;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Uuid;
 
 final class DoctrineUserRepository extends ServiceEntityRepository implements UserRepositoryInterface
 {
@@ -17,9 +18,9 @@ final class DoctrineUserRepository extends ServiceEntityRepository implements Us
         parent::__construct($registry, UserRecord::class);
     }
 
-    public function findOneByNormalizedEmail(string $normalizedEmail): ?User
+    public function findOneByEmail(EmailAddress $email): ?User
     {
-        $record = $this->findOneBy(['normalizedEmail' => $normalizedEmail]);
+        $record = $this->findOneBy(['normalizedEmail' => $email->normalizedValue()]);
 
         return $record instanceof UserRecord ? $this->mapper->toDomain($record) : null;
     }
@@ -57,23 +58,23 @@ final class DoctrineUserRepository extends ServiceEntityRepository implements Us
         ];
     }
 
-    public function getById(Uuid $id): ?User
+    public function getById(UserId $id): ?User
     {
-        $record = $this->find($id);
+        $record = $this->find($id->toUuid());
 
         return $record instanceof UserRecord ? $this->mapper->toDomain($record) : null;
     }
 
     public function save(User $user): void
     {
-        $record = $this->find($user->getId()) ?? new UserRecord();
+        $record = $this->find($user->getId()->toUuid()) ?? new UserRecord();
         $this->mapper->updateRecord($user, $record);
         $this->getEntityManager()->persist($record);
     }
 
     public function remove(User $user): void
     {
-        $record = $this->find($user->getId());
+        $record = $this->find($user->getId()->toUuid());
 
         if ($record instanceof UserRecord) {
             $this->getEntityManager()->remove($record);
