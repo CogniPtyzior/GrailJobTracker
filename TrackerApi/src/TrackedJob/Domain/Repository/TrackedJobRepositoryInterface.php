@@ -21,5 +21,11 @@ interface TrackedJobRepositoryInterface
      */
     public function searchDistinctCompanies(User $owner, string $query, int $limit = 10): array;
 
+    public function save(TrackedJob $trackedJob): void;
+
     public function delete(TrackedJob $trackedJob): void;
+
+    public function remove(TrackedJob $trackedJob): void;
+
+    public function flush(): void;
 }

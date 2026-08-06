@@ -15,4 +15,10 @@ interface UserRepositoryInterface
     public function search(?bool $isActive, ?string $query, int $page, int $pageSize): array;
 
     public function getById(Uuid $id): ?User;
+
+    public function save(User $user): void;
+
+    public function remove(User $user): void;
+
+    public function flush(): void;
 }

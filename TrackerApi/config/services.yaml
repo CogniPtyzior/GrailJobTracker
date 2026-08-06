@@ -11,13 +11,13 @@ services:
         autoconfigure: true
 
     App\Security\Domain\Repository\UserRepositoryInterface:
-        alias: App\Security\Infrastructure\Doctrine\UserRepository
+        alias: App\Security\Infrastructure\Doctrine\Repository\DoctrineUserRepository
 
     App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface:
-        alias: App\AccessRequest\Infrastructure\Doctrine\AccessRequestRepository
+        alias: App\AccessRequest\Infrastructure\Doctrine\Repository\DoctrineAccessRequestRepository
 
     App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface:
-        alias: App\TrackedJob\Infrastructure\Doctrine\TrackedJobRepository
+        alias: App\TrackedJob\Infrastructure\Doctrine\Repository\DoctrineTrackedJobRepository
 
     App\:
         resource: '../src/'

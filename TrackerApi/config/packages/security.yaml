@@ -5,9 +5,7 @@ security:
 
     providers:
         app_user_provider:
-            entity:
-                class: App\Security\Domain\Entity\User
-                property: normalizedEmail
+            id: App\Security\Infrastructure\Security\DomainUserProvider
 
     firewalls:
         dev:

@@ -12,9 +12,21 @@ doctrine:
                 validate_xml_mapping: false
                 naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
                 mappings:
-                    App:
+                    AccessRequestDoctrine:
                         type: attribute
                         is_bundle: false
-                        dir: '%kernel.project_dir%/src'
-                        prefix: 'App'
-                        alias: App
+                        dir: '%kernel.project_dir%/src/AccessRequest/Infrastructure/Doctrine/Entity'
+                        prefix: 'App\AccessRequest\Infrastructure\Doctrine\Entity'
+                        alias: AccessRequestDoctrine
+                    SecurityDoctrine:
+                        type: attribute
+                        is_bundle: false
+                        dir: '%kernel.project_dir%/src/Security/Infrastructure/Doctrine/Entity'
+                        prefix: 'App\Security\Infrastructure\Doctrine\Entity'
+                        alias: SecurityDoctrine
+                    TrackedJobDoctrine:
+                        type: attribute
+                        is_bundle: false
+                        dir: '%kernel.project_dir%/src/TrackedJob/Infrastructure/Doctrine/Entity'
+                        prefix: 'App\TrackedJob\Infrastructure\Doctrine\Entity'
+                        alias: TrackedJobDoctrine

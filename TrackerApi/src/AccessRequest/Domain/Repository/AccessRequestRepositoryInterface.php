@@ -13,4 +13,10 @@ interface AccessRequestRepositoryInterface
      * @return array{items: list<AccessRequest>, total: int}
      */
     public function search(?string $query, int $page, int $pageSize): array;
+
+    public function save(AccessRequest $accessRequest): void;
+
+    public function remove(AccessRequest $accessRequest): void;
+
+    public function flush(): void;
 }
