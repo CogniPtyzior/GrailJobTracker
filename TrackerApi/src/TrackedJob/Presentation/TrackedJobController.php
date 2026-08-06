@@ -69,7 +69,7 @@ final class TrackedJobController extends AbstractController
 
         $result = $this->searchTrackedJobs->handle($user, $filters, $page, $pageSize);
 
-        return ApiJsonResponse::success($this->presenter->presentSearchResult($result, $page, $pageSize));
+        return ApiJsonResponse::success($this->presenter->presentSearchResult($result, $page, $pageSize)->toArray());
     }
 
     #[OA\Get(path: '/api/tracked-jobs/company-suggestions', summary: 'Return company suggestions.', tags: ['Tracked jobs'])]
@@ -98,7 +98,7 @@ final class TrackedJobController extends AbstractController
         }
 
         return ApiJsonResponse::success([
-            'item' => $this->presenter->present($trackedJob),
+            'item' => $this->presenter->present($trackedJob)->toArray(),
         ]);
     }
 
@@ -111,7 +111,7 @@ final class TrackedJobController extends AbstractController
         $trackedJob = $this->createTrackedJob->handle($user, $payload->toCommand());
 
         return ApiJsonResponse::success([
-            'item' => $this->presenter->present($trackedJob),
+            'item' => $this->presenter->present($trackedJob)->toArray(),
         ], Response::HTTP_CREATED);
     }
 
@@ -130,7 +130,7 @@ final class TrackedJobController extends AbstractController
         $this->updateTrackedJob->handle($trackedJob, $payload->toCommand());
 
         return ApiJsonResponse::success([
-            'item' => $this->presenter->present($trackedJob),
+            'item' => $this->presenter->present($trackedJob)->toArray(),
         ]);
     }
 

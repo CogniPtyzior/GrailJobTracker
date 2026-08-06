@@ -2,6 +2,7 @@
 
 namespace App\ReferenceData\Presentation;
 
+use App\ReferenceData\Presentation\View\ReferenceDataView;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
@@ -18,11 +19,13 @@ final class ReferenceDataController extends AbstractController
     #[Route('', name: 'api_reference_data', methods: ['GET'])]
     public function __invoke(): Response
     {
-        return ApiJsonResponse::success([
-            'contractTypes' => ContractType::values(),
-            'remoteModes' => RemoteMode::values(),
-            'trackedJobStatuses' => TrackedJobStatus::values(),
-            'defaultContractType' => ContractType::CDI->value,
-        ]);
+        $view = new ReferenceDataView(
+            contractTypes: ContractType::values(),
+            remoteModes: RemoteMode::values(),
+            trackedJobStatuses: TrackedJobStatus::values(),
+            defaultContractType: ContractType::CDI->value,
+        );
+
+        return ApiJsonResponse::success($view->toArray());
     }
 }

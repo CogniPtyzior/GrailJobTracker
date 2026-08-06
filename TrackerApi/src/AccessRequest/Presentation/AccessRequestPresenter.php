@@ -4,36 +4,31 @@ namespace App\AccessRequest\Presentation;
 
 use App\AccessRequest\Application\Result\SearchAccessRequestsResult;
 use App\AccessRequest\Domain\Entity\AccessRequest;
+use App\AccessRequest\Presentation\View\AccessRequestListView;
+use App\AccessRequest\Presentation\View\AccessRequestView;
 
 final class AccessRequestPresenter
 {
-    /**
-     * @return array<string, mixed>
-     */
-    public function present(AccessRequest $accessRequest): array
+    public function present(AccessRequest $accessRequest): AccessRequestView
     {
-        return [
-            'id' => $accessRequest->getId()->toRfc4122(),
-            'email' => $accessRequest->getEmail(),
-            'companyName' => $accessRequest->getCompanyName(),
-            'reason' => $accessRequest->reason()->value(),
-            'firstName' => $accessRequest->firstName()?->value(),
-            'lastName' => $accessRequest->lastName()?->value(),
-            'createdAt' => $accessRequest->getCreatedAt()->format(\DateTimeInterface::ATOM),
-        ];
+        return new AccessRequestView(
+            id: $accessRequest->getId()->toRfc4122(),
+            email: $accessRequest->getEmail(),
+            companyName: $accessRequest->getCompanyName(),
+            reason: $accessRequest->reason()->value(),
+            firstName: $accessRequest->firstName()?->value(),
+            lastName: $accessRequest->lastName()?->value(),
+            createdAt: $accessRequest->getCreatedAt()->format(\DateTimeInterface::ATOM),
+        );
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function presentPaginatedResult(SearchAccessRequestsResult $result, int $page, int $pageSize): array
+    public function presentPaginatedResult(SearchAccessRequestsResult $result, int $page, int $pageSize): AccessRequestListView
     {
-        return [
-            'items' => array_map($this->present(...), $result->items),
-            'page' => $page,
-            'pageSize' => $pageSize,
-            'total' => $result->total,
-        ];
+        return new AccessRequestListView(
+            items: array_map($this->present(...), $result->items),
+            page: $page,
+            pageSize: $pageSize,
+            total: $result->total,
+        );
     }
 }
-

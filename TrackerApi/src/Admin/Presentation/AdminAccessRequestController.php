@@ -40,7 +40,7 @@ final class AdminAccessRequestController extends AbstractController
 
         $result = $this->searchAccessRequests->handle($request->query->get('query'), $page, $pageSize);
 
-        return ApiJsonResponse::success($this->presenter->presentPaginatedResult($result, $page, $pageSize));
+        return ApiJsonResponse::success($this->presenter->presentPaginatedResult($result, $page, $pageSize)->toArray());
     }
 
     #[OA\Post(

@@ -54,7 +54,7 @@ final class AdminUserController extends AbstractController
             $pageSize,
         );
 
-        return ApiJsonResponse::success($this->presenter->presentPaginatedResult($result, $page, $pageSize));
+        return ApiJsonResponse::success($this->presenter->presentPaginatedResult($result, $page, $pageSize)->toArray());
     }
 
     #[OA\Post(path: '/api/admin/users', summary: 'Create a user.', tags: ['Admin users'])]
@@ -69,7 +69,7 @@ final class AdminUserController extends AbstractController
             return ApiJsonResponse::error($exception->getMessage(), Response::HTTP_CONFLICT);
         }
 
-        return ApiJsonResponse::success(['item' => $this->presenter->present($user)], Response::HTTP_CREATED);
+        return ApiJsonResponse::success(['item' => $this->presenter->present($user)->toArray()], Response::HTTP_CREATED);
     }
 
     #[OA\Put(path: '/api/admin/users/{id}', summary: 'Update a user.', tags: ['Admin users'])]
@@ -86,7 +86,7 @@ final class AdminUserController extends AbstractController
         $payload = $this->payloads->fromRequest($request, UpdateAdminUserPayload::class);
         $this->updateAdminUser->handle($user, $currentUser, $payload->toInput());
 
-        return ApiJsonResponse::success(['item' => $this->presenter->present($user)]);
+        return ApiJsonResponse::success(['item' => $this->presenter->present($user)->toArray()]);
     }
 
     #[OA\Delete(path: '/api/admin/users/{id}', summary: 'Delete a user.', tags: ['Admin users'])]

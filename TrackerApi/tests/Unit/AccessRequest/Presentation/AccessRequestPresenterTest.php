@@ -3,16 +3,21 @@
 namespace App\Tests\Unit\AccessRequest\Presentation;
 
 use App\AccessRequest\Presentation\AccessRequestPresenter;
+use App\AccessRequest\Presentation\View\AccessRequestView;
 use App\Tests\Support\Builder\AccessRequestBuilder;
 use PHPUnit\Framework\TestCase;
 
 final class AccessRequestPresenterTest extends TestCase
 {
-    public function testPresentMapsAccessRequestToArray(): void
+    public function testPresentMapsAccessRequestToTypedView(): void
     {
         $accessRequest = AccessRequestBuilder::anAccessRequest()->build();
 
-        $presented = (new AccessRequestPresenter())->present($accessRequest);
+        $view = (new AccessRequestPresenter())->present($accessRequest);
+
+        self::assertInstanceOf(AccessRequestView::class, $view);
+
+        $presented = $view->toArray();
 
         self::assertSame($accessRequest->getId()->toRfc4122(), $presented['id']);
         self::assertSame('john.doe@example.com', $presented['email']);

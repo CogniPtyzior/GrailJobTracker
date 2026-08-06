@@ -3,20 +3,25 @@
 namespace App\Tests\Unit\TrackedJob\Presentation;
 
 use App\TrackedJob\Presentation\TrackedJobPresenter;
+use App\TrackedJob\Presentation\View\TrackedJobView;
 use App\Tests\Support\Builder\TrackedJobBuilder;
 use App\Tests\Support\Date\FixedDates;
 use PHPUnit\Framework\TestCase;
 
 final class TrackedJobPresenterTest extends TestCase
 {
-    public function testPresentMapsTrackedJobToArray(): void
+    public function testPresentMapsTrackedJobToTypedView(): void
     {
         $trackedJob = TrackedJobBuilder::aTrackedJob()
             ->withApplicationDate(FixedDates::april1())
             ->withPlannedFollowUpDate(FixedDates::april15())
             ->build();
 
-        $presented = (new TrackedJobPresenter())->present($trackedJob);
+        $view = (new TrackedJobPresenter())->present($trackedJob);
+
+        self::assertInstanceOf(TrackedJobView::class, $view);
+
+        $presented = $view->toArray();
 
         self::assertSame($trackedJob->getId()->toRfc4122(), $presented['id']);
         self::assertSame('Acme', $presented['company']);
