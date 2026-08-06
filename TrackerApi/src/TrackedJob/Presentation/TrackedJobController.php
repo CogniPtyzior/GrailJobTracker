@@ -3,6 +3,7 @@
 namespace App\TrackedJob\Presentation;
 
 use App\Security\Domain\Entity\User;
+use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\TrackedJob\Application\UseCase\CreateTrackedJob;
@@ -16,6 +17,7 @@ use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 use App\TrackedJob\Presentation\Payload\ExportTrackedJobsPayload;
 use App\TrackedJob\Presentation\Payload\TrackedJobPayload;
 use OpenApi\Attributes as OA;
@@ -24,7 +26,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 
 #[Route('/api/tracked-jobs')]
 final class TrackedJobController extends AbstractController
@@ -44,8 +45,9 @@ final class TrackedJobController extends AbstractController
 
     #[OA\Get(path: '/api/tracked-jobs', summary: 'List tracked jobs.', tags: ['Tracked jobs'])]
     #[Route('', name: 'api_tracked_jobs_list', methods: ['GET'])]
-    public function list(Request $request, #[CurrentUser] User $user): Response
+    public function list(Request $request, #[CurrentUser] SecurityUser $securityUser): Response
     {
+        $user = $securityUser->domainUser();
         $page = max((int) $request->query->get('page', 1), 1);
         $pageSize = min(max((int) $request->query->get('pageSize', 10), 1), 100);
         $statusRaw = trim((string) $request->query->get('status', ''));
@@ -74,8 +76,9 @@ final class TrackedJobController extends AbstractController
 
     #[OA\Get(path: '/api/tracked-jobs/company-suggestions', summary: 'Return company suggestions.', tags: ['Tracked jobs'])]
     #[Route('/company-suggestions', name: 'api_tracked_jobs_company_suggestions', methods: ['GET'])]
-    public function companySuggestions(Request $request, #[CurrentUser] User $user): Response
+    public function companySuggestions(Request $request, #[CurrentUser] SecurityUser $securityUser): Response
     {
+        $user = $securityUser->domainUser();
         $query = trim((string) $request->query->get('q', ''));
 
         if (mb_strlen($query) < 3) {
@@ -89,9 +92,9 @@ final class TrackedJobController extends AbstractController
 
     #[OA\Get(path: '/api/tracked-jobs/{id}', summary: 'Get a tracked job.', tags: ['Tracked jobs'])]
     #[Route('/{id}', name: 'api_tracked_jobs_get', methods: ['GET'])]
-    public function get(string $id, #[CurrentUser] User $user): Response
+    public function get(string $id, #[CurrentUser] SecurityUser $securityUser): Response
     {
-        $trackedJob = $this->findTrackedJob($id, $user);
+        $trackedJob = $this->findTrackedJob($id, $securityUser->domainUser());
 
         if (!$trackedJob instanceof TrackedJob) {
             return ApiJsonResponse::error('Tracked job not found.', Response::HTTP_NOT_FOUND);
@@ -104,11 +107,11 @@ final class TrackedJobController extends AbstractController
 
     #[OA\Post(path: '/api/tracked-jobs', summary: 'Create a tracked job.', tags: ['Tracked jobs'])]
     #[Route('', name: 'api_tracked_jobs_create', methods: ['POST'])]
-    public function create(Request $request, #[CurrentUser] User $user): Response
+    public function create(Request $request, #[CurrentUser] SecurityUser $securityUser): Response
     {
         /** @var TrackedJobPayload $payload */
         $payload = $this->payloads->fromRequest($request, TrackedJobPayload::class);
-        $trackedJob = $this->createTrackedJob->handle($user, $payload->toCommand());
+        $trackedJob = $this->createTrackedJob->handle($securityUser->domainUser(), $payload->toCommand());
 
         return ApiJsonResponse::success([
             'item' => $this->presenter->present($trackedJob)->toArray(),
@@ -117,9 +120,9 @@ final class TrackedJobController extends AbstractController
 
     #[OA\Put(path: '/api/tracked-jobs/{id}', summary: 'Update a tracked job.', tags: ['Tracked jobs'])]
     #[Route('/{id}', name: 'api_tracked_jobs_update', methods: ['PUT'])]
-    public function update(string $id, Request $request, #[CurrentUser] User $user): Response
+    public function update(string $id, Request $request, #[CurrentUser] SecurityUser $securityUser): Response
     {
-        $trackedJob = $this->findTrackedJob($id, $user);
+        $trackedJob = $this->findTrackedJob($id, $securityUser->domainUser());
 
         if (!$trackedJob instanceof TrackedJob) {
             return ApiJsonResponse::error('Tracked job not found.', Response::HTTP_NOT_FOUND);
@@ -136,9 +139,9 @@ final class TrackedJobController extends AbstractController
 
     #[OA\Delete(path: '/api/tracked-jobs/{id}', summary: 'Delete a tracked job.', tags: ['Tracked jobs'])]
     #[Route('/{id}', name: 'api_tracked_jobs_delete', methods: ['DELETE'])]
-    public function delete(string $id, #[CurrentUser] User $user): Response
+    public function delete(string $id, #[CurrentUser] SecurityUser $securityUser): Response
     {
-        $trackedJob = $this->findTrackedJob($id, $user);
+        $trackedJob = $this->findTrackedJob($id, $securityUser->domainUser());
 
         if (!$trackedJob instanceof TrackedJob) {
             return ApiJsonResponse::error('Tracked job not found.', Response::HTTP_NOT_FOUND);
@@ -151,11 +154,11 @@ final class TrackedJobController extends AbstractController
 
     #[OA\Post(path: '/api/tracked-jobs/export-csv', summary: 'Export tracked jobs to CSV using active filters.', tags: ['Tracked jobs'])]
     #[Route('/export-csv', name: 'api_tracked_jobs_export_csv', methods: ['POST'])]
-    public function exportCsv(Request $request, #[CurrentUser] User $user): Response
+    public function exportCsv(Request $request, #[CurrentUser] SecurityUser $securityUser): Response
     {
         /** @var ExportTrackedJobsPayload $payload */
         $payload = $this->payloads->fromRequest($request, ExportTrackedJobsPayload::class);
-        $csv = $this->exportTrackedJobsCsv->handle($user, $payload->toInput());
+        $csv = $this->exportTrackedJobsCsv->handle($securityUser->domainUser(), $payload->toInput());
 
         return new Response($csv, Response::HTTP_OK, [
             'Content-Type' => 'text/csv; charset=UTF-8',

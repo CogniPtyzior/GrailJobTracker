@@ -36,6 +36,7 @@ services:
             - '../src/Security/Domain/Entity/'
             - '../src/Security/Domain/ValueObject/'
             - '../src/Security/Infrastructure/Doctrine/Entity/'
+            - '../src/Security/Infrastructure/Security/SecurityUser.php'
             - '../src/TrackedJob/Domain/Entity/'
             - '../src/TrackedJob/Domain/ValueObject/'
             - '../src/TrackedJob/Infrastructure/Doctrine/Entity/'

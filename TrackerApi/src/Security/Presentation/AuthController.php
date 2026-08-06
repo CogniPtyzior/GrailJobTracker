@@ -2,7 +2,7 @@
 
 namespace App\Security\Presentation;
 
-use App\Security\Domain\Entity\User;
+use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -44,11 +44,13 @@ final class AuthController extends AbstractController
     #[OA\Response(response: 200, description: 'Current user returned.')]
     #[OA\Response(response: 401, description: 'Authentication required.')]
     #[Route('/me', name: 'api_auth_me', methods: ['GET'])]
-    public function me(#[CurrentUser] ?User $user): Response
+    public function me(#[CurrentUser] ?SecurityUser $securityUser): Response
     {
-        if (!$user instanceof User) {
+        if (!$securityUser instanceof SecurityUser) {
             return ApiJsonResponse::error('Authentication required.', Response::HTTP_UNAUTHORIZED);
         }
+
+        $user = $securityUser->domainUser();
 
         return ApiJsonResponse::success([
             'user' => [

@@ -9,6 +9,7 @@ use App\Admin\Application\UseCase\SearchUsers;
 use App\Admin\Application\UseCase\UpdateAdminUser;
 use App\Admin\Presentation\AdminUserController;
 use App\Admin\Presentation\UserPresenter;
+use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use App\Tests\Support\Builder\UserBuilder;
 use App\Tests\Support\Fake\InMemoryUserRepository;
@@ -80,7 +81,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
             'firstName' => '  Updated ',
         ], 'PUT');
 
-        $response = $controller->update($bootstrapAdmin->getId()->toRfc4122(), $request, $bootstrapAdmin);
+        $response = $controller->update($bootstrapAdmin->getId()->toRfc4122(), $request, new SecurityUser($bootstrapAdmin));
         $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 
         self::assertSame(200, $response->getStatusCode());
@@ -102,7 +103,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
         ], 'PUT');
 
         try {
-            $controller->update($managedUser->getId()->toRfc4122(), $request, $currentUser);
+            $controller->update($managedUser->getId()->toRfc4122(), $request, new SecurityUser($currentUser));
             self::fail('Expected null boolean flags to be rejected.');
         } catch (BadRequestHttpException $exception) {
             $details = json_decode($exception->getMessage(), true, 512, JSON_THROW_ON_ERROR);
@@ -118,7 +119,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
         $userRepository = new InMemoryUserRepository([$currentUser]);
         $controller = $this->createController($userRepository);
 
-        $response = $controller->delete($currentUser->getId()->toRfc4122(), $currentUser);
+        $response = $controller->delete($currentUser->getId()->toRfc4122(), new SecurityUser($currentUser));
         $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 
         self::assertSame(400, $response->getStatusCode());
@@ -136,7 +137,7 @@ final class AdminUserControllerIntegrationTest extends TestCase
         $userRepository = new InMemoryUserRepository([$bootstrapAdmin, $otherUser]);
         $controller = $this->createController($userRepository, 'admin@example.com');
 
-        $response = $controller->delete($bootstrapAdmin->getId()->toRfc4122(), $otherUser);
+        $response = $controller->delete($bootstrapAdmin->getId()->toRfc4122(), new SecurityUser($otherUser));
         $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 
         self::assertSame(400, $response->getStatusCode());

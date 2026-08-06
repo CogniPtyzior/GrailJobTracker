@@ -15,6 +15,6 @@ final class SymfonyPasswordHasher implements PasswordHasherInterface
 
     public function hash(User $user, string $plainPassword): string
     {
-        return $this->passwordHasher->hashPassword($user, $plainPassword);
+        return $this->passwordHasher->hashPassword(new SecurityUser($user), $plainPassword);
     }
 }

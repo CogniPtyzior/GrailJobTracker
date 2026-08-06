@@ -10,14 +10,14 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use App\Security\Application\Security\PasswordHasherInterface;
 
 #[AsCommand(name: 'app:bootstrap-admin', description: 'Create the bootstrap admin if it does not exist yet.')]
 final class BootstrapAdminCommand extends Command
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
-        private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly PasswordHasherInterface $passwordHasher,
         private readonly Connection $connection,
         private readonly string $adminBootstrapEmail,
         private readonly string $adminBootstrapPasswordFile,
@@ -67,7 +67,7 @@ final class BootstrapAdminCommand extends Command
 
         $user = new User($email);
         $user->grantAdmin();
-        $user->setPasswordHash($this->passwordHasher->hashPassword($user, $password));
+        $user->setPasswordHash($this->passwordHasher->hash($user, $password));
         $this->userRepository->save($user);
         $this->userRepository->flush();
 

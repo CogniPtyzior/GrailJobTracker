@@ -10,7 +10,6 @@ use App\Security\Domain\ValueObject\UserId;
 use App\Security\Domain\ValueObject\UserRoles;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PersonName;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 final class UserTest extends TestCase
 {
@@ -99,7 +98,7 @@ final class UserTest extends TestCase
         self::assertFalse($user->isBootstrapAdmin('other@example.com'));
     }
 
-    public function testPasswordHashIsReturnedForSymfonySecurity(): void
+    public function testPasswordHashIsStored(): void
     {
         $user = new User(EmailAddress::fromString('john@example.com'));
 
@@ -124,47 +123,7 @@ final class UserTest extends TestCase
 
         self::assertSame('Jane@example.com', $user->getEmail());
         self::assertSame('jane@example.com', $user->getNormalizedEmail());
-        self::assertSame('jane@example.com', $user->getUserIdentifier());
-    }
-
-    public function testIsEqualToComparesSecurityRelevantFields(): void
-    {
-        $user = UserBuilder::aUser()->withEmail('john@example.com')->withPasswordHash('hash')->build();
-        $sameUser = UserBuilder::aUser()->withEmail('john@example.com')->withPasswordHash('hash')->build();
-        $differentPassword = UserBuilder::aUser()->withEmail('john@example.com')->withPasswordHash('other')->build();
-        $inactiveUser = UserBuilder::aUser()->withEmail('john@example.com')->withPasswordHash('hash')->inactive()->build();
-        $adminUser = UserBuilder::aUser()
-            ->withEmail('john@example.com')
-            ->withPasswordHash('hash')
-            ->withRoles(['ROLE_ADMIN', 'ROLE_USER'])
-            ->build();
-
-        self::assertTrue($user->isEqualTo($sameUser));
-        self::assertFalse($user->isEqualTo($differentPassword));
-        self::assertFalse($user->isEqualTo($inactiveUser));
-        self::assertFalse($user->isEqualTo($adminUser));
-    }
-
-    public function testIsEqualToRejectsDifferentUserImplementation(): void
-    {
-        $user = UserBuilder::aUser()->build();
-        $otherImplementation = new class implements UserInterface {
-            public function getRoles(): array
-            {
-                return ['ROLE_USER'];
-            }
-
-            public function eraseCredentials(): void
-            {
-            }
-
-            public function getUserIdentifier(): string
-            {
-                return 'john@example.com';
-            }
-        };
-
-        self::assertFalse($user->isEqualTo($otherImplementation));
+        self::assertSame('jane@example.com', $user->getNormalizedEmail());
     }
 
     public function testReconstituteRestoresPersistedStateAndCleansRoles(): void

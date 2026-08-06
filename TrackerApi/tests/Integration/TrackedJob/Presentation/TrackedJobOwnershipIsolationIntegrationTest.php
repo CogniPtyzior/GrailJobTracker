@@ -11,7 +11,7 @@ use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use App\Security\Application\Security\PasswordHasherInterface;
 
 final class TrackedJobOwnershipIsolationIntegrationTest extends WebTestCase
 {
@@ -90,11 +90,11 @@ final class TrackedJobOwnershipIsolationIntegrationTest extends WebTestCase
 
     private function createUser(string $email): User
     {
-        $passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+        $passwordHasher = static::getContainer()->get(PasswordHasherInterface::class);
         $userRepository = static::getContainer()->get(UserRepositoryInterface::class);
         $user = new User(EmailAddress::fromString($email));
 
-        $user->setPasswordHash($passwordHasher->hashPassword($user, self::PASSWORD));
+        $user->setPasswordHash($passwordHasher->hash($user, self::PASSWORD));
 
         $userRepository->save($user);
         $userRepository->flush();

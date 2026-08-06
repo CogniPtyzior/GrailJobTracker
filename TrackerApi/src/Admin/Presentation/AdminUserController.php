@@ -2,15 +2,17 @@
 
 namespace App\Admin\Presentation;
 
-use App\Admin\Application\UseCase\CreateAdminUser;
 use App\Admin\Application\Exception\AdminUserAlreadyExists;
-use App\Admin\Application\UseCase\GetAdminUser;
+use App\Admin\Application\UseCase\CreateAdminUser;
 use App\Admin\Application\UseCase\DeleteAdminUser;
+use App\Admin\Application\UseCase\GetAdminUser;
 use App\Admin\Application\UseCase\SearchUsers;
 use App\Admin\Application\UseCase\UpdateAdminUser;
 use App\Admin\Presentation\Payload\CreateAdminUserPayload;
 use App\Admin\Presentation\Payload\UpdateAdminUserPayload;
 use App\Security\Domain\Entity\User;
+use App\Security\Domain\ValueObject\UserId;
+use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use App\Shared\Infrastructure\Validation\RequestPayloadMapper;
 use OpenApi\Attributes as OA;
@@ -19,7 +21,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use App\Security\Domain\ValueObject\UserId;
 
 #[Route('/api/admin/users')]
 final class AdminUserController extends AbstractController
@@ -74,8 +75,9 @@ final class AdminUserController extends AbstractController
 
     #[OA\Put(path: '/api/admin/users/{id}', summary: 'Update a user.', tags: ['Admin users'])]
     #[Route('/{id}', name: 'api_admin_users_update', methods: ['PUT'])]
-    public function update(string $id, Request $request, #[CurrentUser] User $currentUser): Response
+    public function update(string $id, Request $request, #[CurrentUser] SecurityUser $securityUser): Response
     {
+        $currentUser = $securityUser->domainUser();
         $user = $this->findUser($id);
 
         if (!$user instanceof User) {
@@ -91,8 +93,9 @@ final class AdminUserController extends AbstractController
 
     #[OA\Delete(path: '/api/admin/users/{id}', summary: 'Delete a user.', tags: ['Admin users'])]
     #[Route('/{id}', name: 'api_admin_users_delete', methods: ['DELETE'])]
-    public function delete(string $id, #[CurrentUser] User $currentUser): Response
+    public function delete(string $id, #[CurrentUser] SecurityUser $securityUser): Response
     {
+        $currentUser = $securityUser->domainUser();
         $user = $this->findUser($id);
 
         if (!$user instanceof User) {

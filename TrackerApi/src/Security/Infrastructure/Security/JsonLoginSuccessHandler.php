@@ -2,7 +2,7 @@
 
 namespace App\Security\Infrastructure\Security;
 
-use App\Security\Domain\Entity\User;
+use App\Security\Infrastructure\Security\SecurityUser;
 use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Infrastructure\Http\ApiJsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,8 +17,9 @@ final class JsonLoginSuccessHandler implements AuthenticationSuccessHandlerInter
 
     public function onAuthenticationSuccess(\Symfony\Component\HttpFoundation\Request $request, TokenInterface $token): ?Response
     {
-        /** @var User $user */
-        $user = $token->getUser();
+        /** @var SecurityUser $securityUser */
+        $securityUser = $token->getUser();
+        $user = $securityUser->domainUser();
         $user->markLoggedIn(new \DateTimeImmutable('now', new \DateTimeZone('UTC')));
         $this->userRepository->save($user);
         $this->userRepository->flush();

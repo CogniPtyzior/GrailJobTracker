@@ -6,11 +6,8 @@ use App\Security\Domain\ValueObject\UserId;
 use App\Security\Domain\ValueObject\UserRoles;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PersonName;
-use Symfony\Component\Security\Core\User\EquatableInterface;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 
-final class User implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
+final class User
 {
     private UserId $id;
     private EmailAddress $email;
@@ -151,27 +148,6 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
     public function setPasswordHash(string $passwordHash): void
     {
         $this->passwordHash = $passwordHash;
-    }
-
-    public function eraseCredentials(): void
-    {
-    }
-
-    public function isEqualTo(UserInterface $user): bool
-    {
-        if (!$user instanceof self) {
-            return false;
-        }
-
-        return $this->email->equals($user->email)
-            && $this->passwordHash === $user->passwordHash
-            && $this->isActive === $user->isActive
-            && $this->roles->equals($user->roles);
-    }
-
-    public function getUserIdentifier(): string
-    {
-        return $this->email->normalizedValue();
     }
 
     public function getCreatedAt(): \DateTimeImmutable

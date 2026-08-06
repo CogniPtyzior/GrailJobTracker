@@ -2,7 +2,7 @@
 
 namespace App\Security\Infrastructure\Security;
 
-use App\Security\Domain\Entity\User;
+
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\DisabledException;
 use Symfony\Component\Security\Core\User\UserCheckerInterface;
@@ -22,7 +22,7 @@ final class ActiveUserChecker implements UserCheckerInterface
 
     private function checkIsActive(UserInterface $user): void
     {
-        if (!$user instanceof User || $user->isActive()) {
+        if (!$user instanceof SecurityUser || $user->domainUser()->isActive()) {
             return;
         }
 

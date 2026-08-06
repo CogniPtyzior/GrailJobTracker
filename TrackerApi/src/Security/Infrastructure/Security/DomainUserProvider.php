@@ -26,37 +26,38 @@ final class DomainUserProvider implements UserProviderInterface, PasswordUpgrade
             throw new UserNotFoundException(sprintf('User "%s" was not found.', $identifier));
         }
 
-        return $user;
+        return new SecurityUser($user);
     }
 
     public function refreshUser(UserInterface $user): UserInterface
     {
-        if (!$user instanceof User) {
+        if (!$user instanceof SecurityUser) {
             throw new UnsupportedUserException(sprintf('Unsupported user class "%s".', $user::class));
         }
 
-        $refreshedUser = $this->userRepository->getById($user->getId());
+        $refreshedUser = $this->userRepository->getById($user->domainUser()->getId());
 
         if (!$refreshedUser instanceof User) {
             throw new UserNotFoundException('User no longer exists.');
         }
 
-        return $refreshedUser;
+        return new SecurityUser($refreshedUser);
     }
 
     public function supportsClass(string $class): bool
     {
-        return $class === User::class || is_subclass_of($class, User::class);
+        return $class === SecurityUser::class || is_subclass_of($class, SecurityUser::class);
     }
 
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
-        if (!$user instanceof User) {
+        if (!$user instanceof SecurityUser) {
             throw new UnsupportedUserException(sprintf('Unsupported user class "%s".', $user::class));
         }
 
-        $user->setPasswordHash($newHashedPassword);
-        $this->userRepository->save($user);
+        $domainUser = $user->domainUser();
+        $domainUser->setPasswordHash($newHashedPassword);
+        $this->userRepository->save($domainUser);
         $this->userRepository->flush();
     }
 }
