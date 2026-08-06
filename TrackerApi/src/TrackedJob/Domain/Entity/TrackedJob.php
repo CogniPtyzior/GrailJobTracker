@@ -6,92 +6,35 @@ use App\Security\Domain\Entity\User;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
 use App\TrackedJob\Domain\Enum\TrackedJobStatus;
-use App\TrackedJob\Infrastructure\Doctrine\TrackedJobRepository;
-use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
 /**
  * Domain entity that owns tracked-job state transitions and normalization rules.
  */
-#[ORM\Entity(repositoryClass: TrackedJobRepository::class)]
-#[ORM\Table(name: 'tracked_jobs', schema: 'trackers')]
-#[ORM\Index(columns: ['status'], name: 'idx_tracked_jobs_status')]
-#[ORM\Index(columns: ['contract_type'], name: 'idx_tracked_jobs_contract_type')]
-#[ORM\Index(columns: ['remote_mode'], name: 'idx_tracked_jobs_remote_mode')]
-#[ORM\Index(columns: ['application_date'], name: 'idx_tracked_jobs_application_date')]
-#[ORM\Index(columns: ['planned_follow_up_date'], name: 'idx_tracked_jobs_followup_date')]
-#[ORM\Index(columns: ['subjective_relevance'], name: 'idx_tracked_jobs_relevance')]
-#[ORM\Index(columns: ['owner_id'], name: 'idx_tracked_jobs_owner')]
 final class TrackedJob
 {
-    #[ORM\Id]
-    #[ORM\Column(type: UuidType::NAME, unique: true)]
     private Uuid $id;
-
-    #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'owner_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private User $owner;
-
-    #[ORM\Column(length: 255, nullable: true)]
     private ?string $company = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
     private ?string $title = null;
-
-    #[ORM\Column(enumType: ContractType::class, nullable: true)]
     private ?ContractType $contractType = ContractType::CDI;
-
-    #[ORM\Column(length: 255, nullable: true)]
     private ?string $location = null;
-
-    #[ORM\Column(enumType: RemoteMode::class, nullable: true)]
     private ?RemoteMode $remoteMode = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
     private ?string $remuneration = null;
-
-    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $offerUrl = null;
-
-    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notes = null;
-
-    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $applicationDate = null;
-
-    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $plannedFollowUpDate = null;
-
-    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $effectiveFollowUpDate = null;
-
-    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $firstContactDate = null;
-
-    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $preliminaryInterviewDate = null;
-
-    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $secondInterviewDate = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
     private ?string $hrContactName = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
     private ?string $businessContactName = null;
-
-    #[ORM\Column(nullable: true)]
     private ?int $subjectiveRelevance = null;
-
-    #[ORM\Column(enumType: TrackedJobStatus::class)]
     private TrackedJobStatus $status = TrackedJobStatus::DRAFT;
-
-    #[ORM\Column]
     private \DateTimeImmutable $createdAt;
-
-    #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
     public function __construct(User $owner)
@@ -101,6 +44,56 @@ final class TrackedJob
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $this->createdAt = $now;
         $this->updatedAt = $now;
+    }
+
+    public static function reconstitute(
+        Uuid $id,
+        User $owner,
+        ?string $company,
+        ?string $title,
+        ?ContractType $contractType,
+        ?string $location,
+        ?RemoteMode $remoteMode,
+        ?string $remuneration,
+        ?string $offerUrl,
+        ?string $notes,
+        ?\DateTimeImmutable $applicationDate,
+        ?\DateTimeImmutable $plannedFollowUpDate,
+        ?\DateTimeImmutable $effectiveFollowUpDate,
+        ?\DateTimeImmutable $firstContactDate,
+        ?\DateTimeImmutable $preliminaryInterviewDate,
+        ?\DateTimeImmutable $secondInterviewDate,
+        ?string $hrContactName,
+        ?string $businessContactName,
+        ?int $subjectiveRelevance,
+        TrackedJobStatus $status,
+        \DateTimeImmutable $createdAt,
+        \DateTimeImmutable $updatedAt,
+    ): self {
+        $trackedJob = new self($owner);
+        $trackedJob->id = $id;
+        $trackedJob->company = self::trimOrNull($company);
+        $trackedJob->title = self::trimOrNull($title);
+        $trackedJob->contractType = $contractType ?? ContractType::CDI;
+        $trackedJob->location = self::trimOrNull($location);
+        $trackedJob->remoteMode = $remoteMode;
+        $trackedJob->remuneration = self::trimOrNull($remuneration);
+        $trackedJob->offerUrl = self::trimOrNull($offerUrl);
+        $trackedJob->notes = self::trimOrNull($notes);
+        $trackedJob->applicationDate = $applicationDate;
+        $trackedJob->plannedFollowUpDate = $plannedFollowUpDate;
+        $trackedJob->effectiveFollowUpDate = $effectiveFollowUpDate;
+        $trackedJob->firstContactDate = $firstContactDate;
+        $trackedJob->preliminaryInterviewDate = $preliminaryInterviewDate;
+        $trackedJob->secondInterviewDate = $secondInterviewDate;
+        $trackedJob->hrContactName = self::trimOrNull($hrContactName);
+        $trackedJob->businessContactName = self::trimOrNull($businessContactName);
+        $trackedJob->subjectiveRelevance = $subjectiveRelevance;
+        $trackedJob->status = $status;
+        $trackedJob->createdAt = $createdAt;
+        $trackedJob->updatedAt = $updatedAt;
+
+        return $trackedJob;
     }
 
     public function touch(): void
@@ -172,6 +165,11 @@ final class TrackedJob
     public function getId(): Uuid
     {
         return $this->id;
+    }
+
+    public function getOwner(): User
+    {
+        return $this->owner;
     }
 
     public function getCompany(): ?string

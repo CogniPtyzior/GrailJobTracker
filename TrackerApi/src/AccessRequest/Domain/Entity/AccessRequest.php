@@ -2,45 +2,21 @@
 
 namespace App\AccessRequest\Domain\Entity;
 
-use App\AccessRequest\Infrastructure\Doctrine\AccessRequestRepository;
-use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
 /**
  * Domain entity that represents and normalizes a public access request.
  */
-#[ORM\Entity(repositoryClass: AccessRequestRepository::class)]
-#[ORM\Table(name: 'access_requests', schema: 'trackers')]
-#[ORM\Index(columns: ['normalized_email'], name: 'idx_access_requests_normalized_email')]
-#[ORM\Index(columns: ['company_name'], name: 'idx_access_requests_company_name')]
-#[ORM\Index(columns: ['created_at'], name: 'idx_access_requests_created_at')]
 final class AccessRequest
 {
-    #[ORM\Id]
-    #[ORM\Column(type: UuidType::NAME, unique: true)]
     private Uuid $id;
-
-    #[ORM\Column(length: 180)]
     private string $email;
-
-    #[ORM\Column(name: 'normalized_email', length: 180)]
     private string $normalizedEmail;
-
-    #[ORM\Column(length: 255)]
     private string $companyName;
-
-    #[ORM\Column(type: 'text')]
     private string $reason;
-
-    #[ORM\Column(length: 120, nullable: true)]
     private ?string $firstName = null;
-
-    #[ORM\Column(length: 120, nullable: true)]
     private ?string $lastName = null;
-
-    #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
     public function __construct(string $email, string $normalizedEmail, string $companyName, string $reason)
@@ -63,6 +39,25 @@ final class AccessRequest
     ): self {
         $accessRequest = new self($email, $normalizedEmail, $companyName, $reason);
         $accessRequest->updateRequesterName($firstName, $lastName);
+
+        return $accessRequest;
+    }
+
+    public static function reconstitute(
+        Uuid $id,
+        string $email,
+        string $normalizedEmail,
+        string $companyName,
+        string $reason,
+        ?string $firstName,
+        ?string $lastName,
+        \DateTimeImmutable $createdAt,
+    ): self {
+        $accessRequest = new self($email, $normalizedEmail, $companyName, $reason);
+        $accessRequest->id = $id;
+        $accessRequest->firstName = $accessRequest->trimOrNull($firstName);
+        $accessRequest->lastName = $accessRequest->trimOrNull($lastName);
+        $accessRequest->createdAt = $createdAt;
 
         return $accessRequest;
     }

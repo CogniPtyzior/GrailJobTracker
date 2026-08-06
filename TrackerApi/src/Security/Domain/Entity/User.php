@@ -2,53 +2,26 @@
 
 namespace App\Security\Domain\Entity;
 
-use App\Security\Infrastructure\Doctrine\UserRepository;
-use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
-#[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'users', schema: 'trackers')]
-#[ORM\Index(columns: ['normalized_email'], name: 'idx_users_normalized_email')]
-#[ORM\Index(columns: ['is_active'], name: 'idx_users_is_active')]
 final class User implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
-    #[ORM\Id]
-    #[ORM\Column(type: UuidType::NAME, unique: true)]
     private Uuid $id;
-
-    #[ORM\Column(length: 180)]
     private string $email;
-
-    #[ORM\Column(name: 'normalized_email', length: 180, unique: true)]
     private string $normalizedEmail;
-
-    #[ORM\Column(length: 120, nullable: true)]
     private ?string $firstName = null;
-
-    #[ORM\Column(length: 120, nullable: true)]
     private ?string $lastName = null;
-
-    #[ORM\Column]
     private bool $isActive = true;
 
-    /**
-     * @var list<string>
-     */
-    #[ORM\Column(type: 'json')]
+    /** @var list<string> */
     private array $roles = ['ROLE_USER'];
 
-    #[ORM\Column]
     private string $passwordHash;
-
-    #[ORM\Column]
     private \DateTimeImmutable $createdAt;
-
-    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $lastLoginAt = null;
 
     public function __construct(string $email, string $normalizedEmail)
@@ -57,6 +30,31 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
         $this->email = $email;
         $this->normalizedEmail = $normalizedEmail;
         $this->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+    }
+
+    /** @param list<string> $roles */
+    public static function reconstitute(
+        Uuid $id,
+        string $email,
+        string $normalizedEmail,
+        ?string $firstName,
+        ?string $lastName,
+        bool $isActive,
+        array $roles,
+        string $passwordHash,
+        \DateTimeImmutable $createdAt,
+        ?\DateTimeImmutable $lastLoginAt,
+    ): self {
+        $user = new self($email, $normalizedEmail);
+        $user->id = $id;
+        $user->updateProfile($firstName, $lastName);
+        $user->isActive = $isActive;
+        $user->replaceRoles($roles);
+        $user->passwordHash = $passwordHash;
+        $user->createdAt = $createdAt;
+        $user->lastLoginAt = $lastLoginAt;
+
+        return $user;
     }
 
     public function getId(): Uuid
@@ -116,9 +114,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
         return $this->normalizedEmail === mb_strtolower(trim($bootstrapEmail));
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function getRoles(): array
     {
         $roles = $this->roles;
@@ -197,9 +193,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
         $this->lastLoginAt = $loggedAt;
     }
 
-    /**
-     * @param list<string> $roles
-     */
+    /** @param list<string> $roles */
     private function replaceRoles(array $roles): void
     {
         $cleanRoles = array_values(array_unique(array_filter(array_map('trim', $roles))));
