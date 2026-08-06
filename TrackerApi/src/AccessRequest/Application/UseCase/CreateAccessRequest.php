@@ -3,7 +3,7 @@
 namespace App\AccessRequest\Application\UseCase;
 
 use App\AccessRequest\Application\Input\CreateAccessRequestInput;
-use App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcher;
+use App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
@@ -15,7 +15,7 @@ final class CreateAccessRequest
 {
     public function __construct(
         private readonly AccessRequestRepositoryInterface $accessRequestRepository,
-        private readonly AccessRequestNotificationDispatcher $notificationDispatcher,
+        private readonly AccessRequestNotificationDispatcherInterface $notificationDispatcher,
     ) {
     }
 

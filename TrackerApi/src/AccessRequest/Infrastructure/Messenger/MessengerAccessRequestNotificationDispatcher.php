@@ -1,15 +1,13 @@
 <?php
 
-namespace App\AccessRequest\Application\Notification;
+namespace App\AccessRequest\Infrastructure\Messenger;
 
 use App\AccessRequest\Application\Message\SendAccessRequestNotification;
+use App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-/**
- * Application boundary that hides Messenger from the HTTP layer.
- */
-final class AccessRequestNotificationDispatcher
+final class MessengerAccessRequestNotificationDispatcher implements AccessRequestNotificationDispatcherInterface
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,

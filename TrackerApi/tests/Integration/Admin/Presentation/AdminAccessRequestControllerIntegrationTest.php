@@ -15,8 +15,7 @@ use App\Tests\Support\Fake\InMemoryAccessRequestRepository;
 use App\Tests\Support\Fake\InMemoryUserRepository;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use App\Security\Application\Security\PasswordHasherInterface;
 use Symfony\Component\Validator\Validation;
 
 final class AdminAccessRequestControllerIntegrationTest extends TestCase
@@ -117,22 +116,12 @@ final class AdminAccessRequestControllerIntegrationTest extends TestCase
         );
     }
 
-    private function passwordHasherStub(): UserPasswordHasherInterface
+    private function passwordHasherStub(): PasswordHasherInterface
     {
-        return new class implements UserPasswordHasherInterface {
-            public function hashPassword(PasswordAuthenticatedUserInterface $user, string $plainPassword): string
+        return new class implements PasswordHasherInterface {
+            public function hash(\App\Security\Domain\Entity\User $user, string $plainPassword): string
             {
                 return 'hashed::'.$plainPassword;
-            }
-
-            public function isPasswordValid(PasswordAuthenticatedUserInterface $user, string $plainPassword): bool
-            {
-                return $user->getPassword() === 'hashed::'.$plainPassword;
-            }
-
-            public function needsRehash(PasswordAuthenticatedUserInterface $user): bool
-            {
-                return false;
             }
         };
     }

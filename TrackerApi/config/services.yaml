@@ -19,6 +19,12 @@ services:
     App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface:
         alias: App\TrackedJob\Infrastructure\Doctrine\Repository\DoctrineTrackedJobRepository
 
+    App\Security\Application\Security\PasswordHasherInterface:
+        alias: App\Security\Infrastructure\Security\SymfonyPasswordHasher
+
+    App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface:
+        alias: App\AccessRequest\Infrastructure\Messenger\MessengerAccessRequestNotificationDispatcher
+
     App\:
         resource: '../src/'
         exclude:

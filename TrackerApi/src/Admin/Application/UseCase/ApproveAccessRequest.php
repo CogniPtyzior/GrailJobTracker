@@ -8,7 +8,7 @@ use App\Admin\Application\Input\ApproveAccessRequestInput;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use App\Security\Application\Security\PasswordHasherInterface;
 
 /**
  * Application use case that approves an access request and provisions the related user.
@@ -18,7 +18,7 @@ final class ApproveAccessRequest
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly AccessRequestRepositoryInterface $accessRequestRepository,
-        private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly PasswordHasherInterface $passwordHasher,
     ) {
     }
 
@@ -37,7 +37,7 @@ final class ApproveAccessRequest
         );
         $user->activate();
         $user->assignRegularUser();
-        $user->setPasswordHash($this->passwordHasher->hashPassword($user, $payload->password));
+        $user->setPasswordHash($this->passwordHasher->hash($user, $payload->password));
 
         $this->userRepository->save($user);
         $this->accessRequestRepository->remove($accessRequest);
