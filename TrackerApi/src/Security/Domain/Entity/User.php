@@ -196,7 +196,28 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface, E
     /** @param list<string> $roles */
     private function replaceRoles(array $roles): void
     {
-        $cleanRoles = array_values(array_unique(array_filter(array_map('trim', $roles))));
+        $cleanRoles = self::cleanRoles($roles);
         $this->roles = $cleanRoles === [] ? ['ROLE_USER'] : $cleanRoles;
+    }
+
+    /**
+     * @param list<string> $roles
+     * @return list<string>
+     */
+    private static function cleanRoles(array $roles): array
+    {
+        $cleanRoles = [];
+
+        foreach ($roles as $role) {
+            $role = trim($role);
+
+            if ($role === '' || in_array($role, $cleanRoles, true)) {
+                continue;
+            }
+
+            $cleanRoles[] = $role;
+        }
+
+        return $cleanRoles;
     }
 }
