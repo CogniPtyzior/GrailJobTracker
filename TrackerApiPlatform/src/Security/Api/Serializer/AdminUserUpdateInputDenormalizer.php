@@ -60,7 +60,13 @@ final readonly class AdminUserUpdateInputDenormalizer implements DenormalizerInt
 
     private function nullableBool(mixed $value): ?bool
     {
-        return $value === null ? null : (bool) $value;
+        if ($value === null || is_bool($value)) {
+            return $value;
+        }
+
+        return null;
     }
 }
+
+
 

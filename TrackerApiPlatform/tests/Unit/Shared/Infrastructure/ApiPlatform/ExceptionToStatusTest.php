@@ -7,6 +7,7 @@ declare(strict_types=1);
  * They prove transport status codes are configured at the API boundary instead of inside domain or application code.
  */
 
+use App\Shared\Application\Exception\ApplicationBadRequest;
 use App\Shared\Application\Exception\ApplicationConflict;
 use App\Shared\Application\Exception\ApplicationException;
 use App\Shared\Application\Exception\ApplicationNotFound;
@@ -25,13 +26,17 @@ it('maps shared business exceptions through API Platform configuration', functio
     expect($exceptionStatuses)
         ->toHaveKey(ApplicationNotFound::class, 404)
         ->toHaveKey(ApplicationConflict::class, 409)
+        ->toHaveKey(ApplicationBadRequest::class, 400)
         ->toHaveKey(InvalidApplicationCommand::class, 422)
         ->toHaveKey(ApplicationException::class, 400)
         ->toHaveKey(DomainException::class, 400);
 
     expect(array_search(ApplicationNotFound::class, $exceptionOrder, true))->toBeLessThan($applicationParentIndex)
         ->and(array_search(ApplicationConflict::class, $exceptionOrder, true))->toBeLessThan($applicationParentIndex)
+        ->and(array_search(ApplicationBadRequest::class, $exceptionOrder, true))->toBeLessThan($applicationParentIndex)
         ->and(array_search(InvalidApplicationCommand::class, $exceptionOrder, true))->toBeLessThan($applicationParentIndex);
 });
+
+
 
 

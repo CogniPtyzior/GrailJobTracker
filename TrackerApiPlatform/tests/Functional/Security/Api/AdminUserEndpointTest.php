@@ -100,6 +100,79 @@ it('denies admin user endpoints to non-admin authenticated users', function (): 
     expect($client->getResponse()->getStatusCode())->toBe(403);
 });
 
+it('rejects duplicate admin user emails with a conflict response', function (): void {
+    skipAdminUserEndpointIfPdoMissing();
+    $client = self::createClient();
+    ensureAdminUserEndpointDatabaseAvailable();
+    deleteAdminUserEndpointData();
+    loginAdminUserEndpointUser($client, true);
+    persistAdminUserEndpointUser('duplicate@example.com');
+
+    $client->request(
+        'POST',
+        '/api/admin/users',
+        server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+        content: json_encode([
+            'email' => ADMIN_USER_EMAIL_PREFIX.'duplicate@example.com',
+            'password' => 'Password1!',
+        ], JSON_THROW_ON_ERROR),
+    );
+
+    expect($client->getResponse()->getStatusCode())->toBe(409)
+        ->and(countAdminUserEndpointUsersByEmail(ADMIN_USER_EMAIL_PREFIX.'duplicate@example.com'))->toBe(1);
+});
+
+it('rejects invalid create and update admin user payloads through API Platform validation', function (): void {
+    skipAdminUserEndpointIfPdoMissing();
+    $client = self::createClient();
+    ensureAdminUserEndpointDatabaseAvailable();
+    deleteAdminUserEndpointData();
+    loginAdminUserEndpointUser($client, true);
+    $managed = persistAdminUserEndpointUser('validation@example.com');
+
+    $client->request(
+        'POST',
+        '/api/admin/users',
+        server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+        content: json_encode(['email' => 'invalid', 'password' => 'password'], JSON_THROW_ON_ERROR),
+    );
+
+    expect($client->getResponse()->getStatusCode())->toBe(422);
+
+    $client->request(
+        'PUT',
+        '/api/admin/users/'.$managed->getId()->toRfc4122(),
+        server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+        content: json_encode(['isActive' => null, 'isAdmin' => null, 'password' => 'Password'], JSON_THROW_ON_ERROR),
+    );
+
+    expect($client->getResponse()->getStatusCode())->toBe(422);
+});
+
+it('preserves bootstrap admin deletion protection', function (): void {
+    skipAdminUserEndpointIfPdoMissing();
+    $client = self::createClient();
+    ensureAdminUserEndpointDatabaseAvailable();
+    deleteAdminUserEndpointData();
+    $admin = loginAdminUserEndpointUser($client, true);
+
+    $client->request('DELETE', '/api/admin/users/'.$admin->getId()->toRfc4122(), server: [
+        'HTTP_ACCEPT' => 'application/json',
+    ]);
+
+    expect($client->getResponse()->getStatusCode())->toBe(400)
+        ->and(countAdminUserEndpointUsersByEmail($admin->getEmail()))->toBe(1);
+});
+
+it('requires authentication before admin user authorization', function (): void {
+    skipAdminUserEndpointIfPdoMissing();
+    $client = self::createClient();
+    ensureAdminUserEndpointDatabaseAvailable();
+
+    $client->request('GET', '/api/admin/users', server: ['HTTP_ACCEPT' => 'application/json']);
+
+    expect($client->getResponse()->getStatusCode())->toBe(401);
+});
 function loginAdminUserEndpointUser(KernelBrowser $client, bool $isAdmin): User
 {
     $email = ADMIN_USER_EMAIL_PREFIX.($isAdmin ? 'admin' : 'user').'@example.com';
@@ -193,5 +266,6 @@ function adminUserEndpointConnection(): Connection
 {
     return test()->getContainer()->get(Connection::class);
 }
+
 
 

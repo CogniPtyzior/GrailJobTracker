@@ -16,7 +16,7 @@ use App\Security\Application\UseCase\GetAdminUser;
 use App\Security\Application\UseCase\UpdateAdminUser;
 use App\Security\Domain\Entity\User;
 use App\Shared\Application\Exception\ApplicationConflict;
-use App\Shared\Application\Exception\InvalidApplicationCommand;
+use App\Shared\Application\Exception\ApplicationBadRequest;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PersonName;
 use App\Tests\Support\Fake\InMemoryUserRepository;
@@ -90,7 +90,7 @@ it('deletes non-bootstrap users and rejects bootstrap deletion', function (): vo
 
     expect($users->getById($managed->getId()))->toBeNull()
         ->and(fn () => $delete->handle($admin, $admin))
-        ->toThrow(InvalidApplicationCommand::class, 'The bootstrap admin cannot be deleted.');
+        ->toThrow(ApplicationBadRequest::class, 'The bootstrap admin cannot be deleted.');
 });
 
 it('loads admin users by id through the repository port', function (): void {
@@ -128,3 +128,4 @@ function adminUserUseCaseRepositoryWith(User ...$users): InMemoryUserRepository
 
     return $repository;
 }
+
