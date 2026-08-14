@@ -1,3 +1,7 @@
+parameters:
+    env(ACCESS_REQUEST_NOTIFICATION_TO): 'admin@example.local'
+    env(MAILER_FROM_EMAIL): 'no-reply@example.local'
+    env(MAILER_FROM_NAME): 'GrailJob Tracker'
 services:
     _defaults:
         autowire: true
@@ -21,7 +25,12 @@ services:
     App\AccessRequest\Api\RateLimit\AccessRequestSubmissionLimiterInterface:
         alias: App\AccessRequest\Api\RateLimit\AccessRequestSubmissionLimiter
 
-    # The Messenger dispatcher replaces this no-op adapter in P20.
     App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface:
-        alias: App\AccessRequest\Application\Notification\NullAccessRequestNotificationDispatcher
+        alias: App\AccessRequest\Infrastructure\Messenger\MessengerAccessRequestNotificationDispatcher
+
+    App\AccessRequest\Infrastructure\Notification\AccessRequestNotificationSender:
+        arguments:
+            $recipientEmail: '%env(ACCESS_REQUEST_NOTIFICATION_TO)%'
+            $fromEmail: '%env(MAILER_FROM_EMAIL)%'
+            $fromName: '%env(MAILER_FROM_NAME)%'
 

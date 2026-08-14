@@ -15,18 +15,16 @@ use App\AccessRequest\Api\RateLimit\AccessRequestSubmissionLimiterInterface;
 use App\AccessRequest\Application\UseCase\CreateAccessRequest;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
-use App\AccessRequest\Domain\ValueObject\AccessRequestCompanyName;
-use App\AccessRequest\Domain\ValueObject\AccessRequestReason;
-use App\AccessRequest\Application\Notification\NullAccessRequestNotificationDispatcher;
+use App\AccessRequest\Domain\ValueObject\AccessRequestId;
 use App\Shared\Application\Exception\InvalidApplicationCommand;
-use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Tests\Support\Fake\FakeAccessRequestNotificationDispatcher;
 
 it('creates an access request and returns the frontend-compatible empty JSON response', function (): void {
-    $repository = new ProcessorAccessRequestRepository();
+    $repository = processorAccessRequestRepository();
     $processor = new CreateAccessRequestProcessor(
-        new ProcessorAccessRequestLimiter(),
+        processorAccessRequestLimiter(),
         new AccessRequestInputMapper(),
-        new CreateAccessRequest($repository, new NullAccessRequestNotificationDispatcher()),
+        new CreateAccessRequest($repository, new FakeAccessRequestNotificationDispatcher()),
     );
     $input = new CreateAccessRequestInput();
     $input->email = 'p19-processor@example.com';
@@ -42,11 +40,11 @@ it('creates an access request and returns the frontend-compatible empty JSON res
 
 it('rejects invalid processor payload objects', function (): void {
     $processor = new CreateAccessRequestProcessor(
-        new ProcessorAccessRequestLimiter(),
+        processorAccessRequestLimiter(),
         new AccessRequestInputMapper(),
         new CreateAccessRequest(
-            new ProcessorAccessRequestRepository(),
-            new NullAccessRequestNotificationDispatcher(),
+            processorAccessRequestRepository(),
+            new FakeAccessRequestNotificationDispatcher(),
         ),
     );
 
@@ -54,48 +52,48 @@ it('rejects invalid processor payload objects', function (): void {
         ->toThrow(InvalidApplicationCommand::class, 'Invalid access request create payload.');
 });
 
-final class ProcessorAccessRequestLimiter implements AccessRequestSubmissionLimiterInterface
+function processorAccessRequestLimiter(): AccessRequestSubmissionLimiterInterface
 {
-    public function __construct()
-    {
-    }
-
-    public function enforce(): void
-    {
-    }
+    return new class implements AccessRequestSubmissionLimiterInterface {
+        public function enforce(): void
+        {
+        }
+    };
 }
 
-final class ProcessorAccessRequestRepository implements AccessRequestRepositoryInterface
+function processorAccessRequestRepository(): AccessRequestRepositoryInterface
 {
-    /** @var list<AccessRequest> */
-    public array $saved = [];
+    return new class implements AccessRequestRepositoryInterface {
+        /** @var list<AccessRequest> */
+        public array $saved = [];
 
-    public function getById(\App\AccessRequest\Domain\ValueObject\AccessRequestId $id): ?AccessRequest
-    {
-        foreach ($this->saved as $accessRequest) {
-            if ($accessRequest->getId()->equals($id)) {
-                return $accessRequest;
+        public function getById(AccessRequestId $id): ?AccessRequest
+        {
+            foreach ($this->saved as $accessRequest) {
+                if ($accessRequest->getId()->equals($id)) {
+                    return $accessRequest;
+                }
             }
+
+            return null;
         }
 
-        return null;
-    }
+        public function search(?string $query, int $page, int $pageSize): array
+        {
+            return ['items' => $this->saved, 'total' => count($this->saved)];
+        }
 
-    public function search(?string $query, int $page, int $pageSize): array
-    {
-        return ['items' => $this->saved, 'total' => count($this->saved)];
-    }
+        public function save(AccessRequest $accessRequest): void
+        {
+            $this->saved[] = $accessRequest;
+        }
 
-    public function save(AccessRequest $accessRequest): void
-    {
-        $this->saved[] = $accessRequest;
-    }
+        public function remove(AccessRequest $accessRequest): void
+        {
+        }
 
-    public function remove(AccessRequest $accessRequest): void
-    {
-    }
-
-    public function flush(): void
-    {
-    }
+        public function flush(): void
+        {
+        }
+    };
 }
