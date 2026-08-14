@@ -12,3 +12,5 @@ services:
     App\Security\Domain\Repository\UserRepositoryInterface:
         alias: App\Security\Infrastructure\Doctrine\Repository\DoctrineUserRepository
 
+    App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface:
+        alias: App\TrackedJob\Infrastructure\Doctrine\Repository\DoctrineTrackedJobRepository
