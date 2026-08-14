@@ -25,6 +25,9 @@ services:
     App\AccessRequest\Api\RateLimit\AccessRequestSubmissionLimiterInterface:
         alias: App\AccessRequest\Api\RateLimit\AccessRequestSubmissionLimiter
 
+    App\Security\Application\Security\PasswordHasherInterface:
+        alias: App\Security\Infrastructure\Security\SymfonyPasswordHasher
+
     App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface:
         alias: App\AccessRequest\Infrastructure\Messenger\MessengerAccessRequestNotificationDispatcher
 
