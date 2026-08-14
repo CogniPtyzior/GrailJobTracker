@@ -26,6 +26,8 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 !.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
 
 ########################################
 # Root local environment / secrets

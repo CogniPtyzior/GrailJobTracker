@@ -1,0 +1,16 @@
+{
+  "intelephense.environment.includePaths": [
+    "${workspaceFolder}/TrackerApi/vendor",
+    "${workspaceFolder}/TrackerApiPlatform/vendor"
+  ],
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/vendor": true,
+    "**/var": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/vendor/**": true,
+    "**/var/**": true
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TrackerApiPlatform: composer install",
+      "type": "shell",
+      "command": "composer install",
+      "options": {
+        "cwd": "${workspaceFolder}/TrackerApiPlatform"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "TrackerApiPlatform: console",
+      "type": "shell",
+      "command": "php bin/console",
+      "options": {
+        "cwd": "${workspaceFolder}/TrackerApiPlatform"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "TrackerApiPlatform: tests",
+      "type": "shell",
+      "command": "php vendor/bin/pest",
+      "options": {
+        "cwd": "${workspaceFolder}/TrackerApiPlatform"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
