@@ -9,3 +9,6 @@ services:
     App\Shared\Application\Clock\ClockInterface:
         alias: App\Shared\Infrastructure\Clock\SystemClock
 
+    App\Security\Domain\Repository\UserRepositoryInterface:
+        alias: App\Security\Infrastructure\Doctrine\Repository\DoctrineUserRepository
+
