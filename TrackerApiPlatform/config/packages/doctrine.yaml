@@ -20,6 +20,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/TrackedJob/Infrastructure/Doctrine/Entity'
                 prefix: 'App\TrackedJob\Infrastructure\Doctrine\Entity'
                 alias: TrackedJobRecords
+            AccessRequestRecords:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/AccessRequest/Infrastructure/Doctrine/Entity'
+                prefix: 'App\AccessRequest\Infrastructure\Doctrine\Entity'
+                alias: AccessRequestRecords
 
 
 when@prod:

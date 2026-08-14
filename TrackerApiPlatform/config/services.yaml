@@ -5,9 +5,6 @@ services:
 
     App\:
         resource: '../src/'
-        # AccessRequest use cases are enabled once the Doctrine repository adapter exists in P18.
-        exclude:
-            - '../src/AccessRequest/Application/UseCase/'
 
     App\Shared\Application\Clock\ClockInterface:
         alias: App\Shared\Infrastructure\Clock\SystemClock
@@ -17,6 +14,9 @@ services:
 
     App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface:
         alias: App\TrackedJob\Infrastructure\Doctrine\Repository\DoctrineTrackedJobRepository
+
+    App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface:
+        alias: App\AccessRequest\Infrastructure\Doctrine\Repository\DoctrineAccessRequestRepository
 
     # The Messenger dispatcher replaces this no-op adapter in P20.
     App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface:
