@@ -7,3 +7,8 @@
 /public/bundles/
 /.env.dev
 /config/reference.php
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
