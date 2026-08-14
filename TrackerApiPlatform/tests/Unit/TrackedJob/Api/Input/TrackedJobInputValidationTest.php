@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 use App\TrackedJob\Api\Input\CreateTrackedJobInput;
+use App\TrackedJob\Api\Input\ExportTrackedJobsInput;
 use Symfony\Component\Validator\Validation;
 
 it('accepts the frontend ISO date format', function (): void {
@@ -53,6 +54,22 @@ it('preserves legacy constraints on enums lengths URLs and relevance', function 
         ->and($paths)->toContain('status');
 });
 
+
+it('preserves export filter enum validation', function (): void {
+    $input = new ExportTrackedJobsInput();
+    $input->status = 'INVALID';
+    $input->contractType = 'INVALID';
+    $input->remoteMode = 'INVALID';
+
+    $paths = array_map(
+        static fn ($violation): string => $violation->getPropertyPath(),
+        iterator_to_array(validatorViolations($input)),
+    );
+
+    expect($paths)->toContain('status')
+        ->and($paths)->toContain('contractType')
+        ->and($paths)->toContain('remoteMode');
+});
 function validatorViolations(object $input): \Symfony\Component\Validator\ConstraintViolationListInterface
 {
     return Validation::createValidatorBuilder()

@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 /*
- * Unit tests for tracked job output serializer groups.
- * They make the API Platform read contracts explicit and reviewable.
+ * Unit tests for tracked job output and input serializer groups.
+ * They make the API Platform contracts explicit across read, suggestions and export operations.
  */
 
+use App\TrackedJob\Api\Input\ExportTrackedJobsInput;
 use App\TrackedJob\Api\Output\TrackedJobCollectionOutput;
+use App\TrackedJob\Api\Output\TrackedJobCompanySuggestionsOutput;
 use App\TrackedJob\Api\Output\TrackedJobItemOutput;
 use App\TrackedJob\Api\Output\TrackedJobOutput;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -30,6 +32,18 @@ it('exposes tracked job fields through the shared read group', function (): void
     expectGroups(TrackedJobOutput::class, 'notes', ['tracked_job:read']);
     expectGroups(TrackedJobOutput::class, 'hrContactName', ['tracked_job:read']);
     expectGroups(TrackedJobOutput::class, 'businessContactName', ['tracked_job:read']);
+});
+
+it('keeps company suggestions in their own output group', function (): void {
+    expectGroups(TrackedJobCompanySuggestionsOutput::class, 'items', ['tracked_job:suggestions']);
+});
+
+it('keeps CSV export filters in their own input group', function (): void {
+    expectGroups(ExportTrackedJobsInput::class, 'search', ['tracked_job:export']);
+    expectGroups(ExportTrackedJobsInput::class, 'company', ['tracked_job:export']);
+    expectGroups(ExportTrackedJobsInput::class, 'status', ['tracked_job:export']);
+    expectGroups(ExportTrackedJobsInput::class, 'contractType', ['tracked_job:export']);
+    expectGroups(ExportTrackedJobsInput::class, 'remoteMode', ['tracked_job:export']);
 });
 
 function expectGroups(string $class, string $property, array $groups): void

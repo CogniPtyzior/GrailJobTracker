@@ -8,6 +8,8 @@ declare(strict_types=1);
  */
 
 use App\TrackedJob\Api\Input\CreateTrackedJobInput;
+use App\TrackedJob\Api\Input\ExportTrackedJobsInput;
+use App\TrackedJob\Api\Mapper\TrackedJobExportInputMapper;
 use App\TrackedJob\Api\Mapper\TrackedJobInputMapper;
 use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\Enum\RemoteMode;
@@ -56,4 +58,19 @@ it('maps blank optional strings to null where the legacy API accepted blanks', f
         ->and($command->remuneration)->toBeNull()
         ->and($command->offerUrl)->toBeNull()
         ->and($command->subjectiveRelevance)->toBeNull();
+});
+it('maps export filters to an application export input', function (): void {
+    $input = new ExportTrackedJobsInput();
+    $input->search = ' backend ';
+    $input->company = ' Acme ';
+    $input->contractType = 'CDD';
+    $input->remoteMode = 'FULL';
+
+    $filters = (new TrackedJobExportInputMapper())->toApplicationInput($input)->toFilters();
+
+    expect($filters['search'])->toBe('backend')
+        ->and($filters['company'])->toBe('Acme')
+        ->and($filters['contractType'])->toBe(ContractType::CDD)
+        ->and($filters['remoteMode'])->toBe(RemoteMode::FULL)
+        ->and($filters['status'])->toBeNull();
 });

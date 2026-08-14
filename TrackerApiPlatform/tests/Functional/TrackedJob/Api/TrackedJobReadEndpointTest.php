@@ -28,3 +28,30 @@ it('requires authentication for tracked job item reads', function (): void {
     expect($client->getResponse()->getStatusCode())->toBe(401)
         ->and($client->getResponse()->getContent())->toBe('{"message":"Authentication required.","details":[]}');
 });
+
+it('requires authentication for company suggestions', function (): void {
+    $client = self::createClient();
+
+    $client->request(
+        'GET',
+        '/api/tracked-jobs/company-suggestions?q=acme',
+        server: ['HTTP_ACCEPT' => 'application/json'],
+    );
+
+    expect($client->getResponse()->getStatusCode())->toBe(401)
+        ->and($client->getResponse()->getContent())->toBe('{"message":"Authentication required.","details":[]}');
+});
+
+it('requires authentication for CSV export', function (): void {
+    $client = self::createClient();
+
+    $client->request(
+        'POST',
+        '/api/tracked-jobs/export-csv',
+        server: ['HTTP_ACCEPT' => 'application/json', 'CONTENT_TYPE' => 'application/json'],
+        content: '{}',
+    );
+
+    expect($client->getResponse()->getStatusCode())->toBe(401)
+        ->and($client->getResponse()->getContent())->toBe('{"message":"Authentication required.","details":[]}');
+});

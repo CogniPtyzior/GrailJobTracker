@@ -11,9 +11,10 @@ use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Domain\ValueObject\EmailAddress;
+use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 const TRACKED_JOB_WRITE_EMAIL_PREFIX = 'tracked-p14-';
 const TRACKED_JOB_WRITE_PASSWORD = 'Password1!';
@@ -95,37 +96,49 @@ it('rejects invalid tracked job write payloads through Symfony validation', func
 
 it('keeps foreign tracked job item operations hidden behind not found responses', function (): void {
     skipTrackedJobWriteIfPdoMissing();
-    $client = self::createClient();
+    $ownerClient = self::createClient();
     ensureTrackedJobWriteDatabaseAvailable();
     deleteTrackedJobWriteData();
     createTrackedJobWriteUser(TRACKED_JOB_WRITE_EMAIL_PREFIX.'owner@example.com');
-    createTrackedJobWriteUser(TRACKED_JOB_WRITE_EMAIL_PREFIX.'foreign@example.com');
-    loginTrackedJobWriteUser($client, TRACKED_JOB_WRITE_EMAIL_PREFIX.'owner@example.com');
+    $foreignUser = createTrackedJobWriteUser(TRACKED_JOB_WRITE_EMAIL_PREFIX.'foreign@example.com');
+    loginTrackedJobWriteUser($ownerClient, TRACKED_JOB_WRITE_EMAIL_PREFIX.'owner@example.com');
 
-    $client->request(
+    $ownerClient->request(
         'POST',
         '/api/tracked-jobs',
         server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
         content: json_encode(['company' => 'Owner Corp', 'title' => 'Owner Job'], JSON_THROW_ON_ERROR),
     );
 
-    expect($client->getResponse()->getStatusCode())->toBe(201);
-    $id = trackedJobWriteJson($client)['item']['id'];
-    loginTrackedJobWriteUser($client, TRACKED_JOB_WRITE_EMAIL_PREFIX.'foreign@example.com');
+    expect($ownerClient->getResponse()->getStatusCode())->toBe(201);
+    $id = trackedJobWriteJson($ownerClient)['item']['id'];
+    $storedOwnerEmail = trackedJobWriteConnection()->fetchOne(
+        'SELECT u.normalized_email FROM trackers.tracked_jobs tj JOIN trackers.users u ON u.id = tj.owner_id WHERE tj.id = ?',
+        [$id],
+    );
+    expect($storedOwnerEmail)->toBe(TRACKED_JOB_WRITE_EMAIL_PREFIX.'owner@example.com');
 
-    $client->request('GET', '/api/tracked-jobs/'.$id, server: ['HTTP_ACCEPT' => 'application/json']);
-    expect($client->getResponse()->getStatusCode())->toBe(404);
+    $trackedJobs = test()->getContainer()->get(TrackedJobRepositoryInterface::class);
+    $foreignScopedJob = $trackedJobs->getByIdForOwner(TrackedJobId::fromString($id), $foreignUser->getId());
+    expect($foreignScopedJob)->toBeNull();
 
-    $client->request(
+    self::ensureKernelShutdown();
+    $foreignClient = self::createClient();
+    $foreignClient->loginUser(new SecurityUser($foreignUser));
+
+    $foreignClient->request('GET', '/api/tracked-jobs/'.$id, server: ['HTTP_ACCEPT' => 'application/json']);
+    expect($foreignClient->getResponse()->getStatusCode())->toBe(404);
+
+    $foreignClient->request(
         'PUT',
         '/api/tracked-jobs/'.$id,
         server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
         content: json_encode(['company' => 'Foreign Update'], JSON_THROW_ON_ERROR),
     );
-    expect($client->getResponse()->getStatusCode())->toBe(404);
+    expect($foreignClient->getResponse()->getStatusCode())->toBe(404);
 
-    $client->request('DELETE', '/api/tracked-jobs/'.$id, server: ['HTTP_ACCEPT' => 'application/json']);
-    expect($client->getResponse()->getStatusCode())->toBe(404);
+    $foreignClient->request('DELETE', '/api/tracked-jobs/'.$id, server: ['HTTP_ACCEPT' => 'application/json']);
+    expect($foreignClient->getResponse()->getStatusCode())->toBe(404);
 });
 
 function skipTrackedJobWriteIfPdoMissing(): void
@@ -145,17 +158,17 @@ function ensureTrackedJobWriteDatabaseAvailable(): void
     }
 }
 
-function createTrackedJobWriteUser(string $email): void
+function createTrackedJobWriteUser(string $email): User
 {
     /** @var UserRepositoryInterface $users */
     $users = test()->getContainer()->get(UserRepositoryInterface::class);
-    /** @var UserPasswordHasherInterface $passwordHasher */
-    $passwordHasher = test()->getContainer()->get(UserPasswordHasherInterface::class);
     $user = new User(EmailAddress::fromString($email));
 
-    $user->setPasswordHash($passwordHasher->hashPassword(new SecurityUser($user), TRACKED_JOB_WRITE_PASSWORD));
+    $user->setPasswordHash(password_hash(TRACKED_JOB_WRITE_PASSWORD, PASSWORD_BCRYPT, ['cost' => 4]));
     $users->save($user);
     $users->flush();
+
+    return $user;
 }
 
 function loginTrackedJobWriteUser(KernelBrowser $client, string $email): void
@@ -168,6 +181,9 @@ function loginTrackedJobWriteUser(KernelBrowser $client, string $email): void
     );
 
     expect($client->getResponse()->getStatusCode())->toBe(200);
+
+    $payload = trackedJobWriteJson($client);
+    expect($payload['user']['email'])->toBe($email);
 }
 
 /** @return array<string, mixed> */
@@ -206,3 +222,15 @@ function trackedJobWriteConnection(): Connection
 {
     return test()->getContainer()->get(Connection::class);
 }
+
+
+
+
+
+
+
+
+
+
+
+

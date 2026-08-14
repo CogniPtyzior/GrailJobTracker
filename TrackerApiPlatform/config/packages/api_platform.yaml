@@ -9,8 +9,9 @@ api_platform:
         jsonopenapi: ['application/vnd.openapi+json']
         html: ['text/html']
     exception_to_status:
-        App\Shared\Domain\Exception\DomainException: 400
-        App\Shared\Application\Exception\ApplicationException: 400
         App\Shared\Application\Exception\ApplicationNotFound: 404
         App\Shared\Application\Exception\ApplicationConflict: 409
         App\Shared\Application\Exception\InvalidApplicationCommand: 422
+        App\Shared\Application\Exception\ApplicationException: 400
+        App\Shared\Domain\Exception\DomainException: 400
+

@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 /*
- * API Platform resource exposing tracked job read and write operations.
- * It is separate from the domain aggregate so API metadata and serialization groups stay in the inbound adapter.
+ * API Platform resource exposing tracked job operations.
+ * It stays separate from the domain aggregate so API metadata and serializer groups remain in the inbound adapter.
  */
 
 namespace App\TrackedJob\Api\Resource;
@@ -15,13 +15,17 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\TrackedJob\Api\Input\CreateTrackedJobInput;
+use App\TrackedJob\Api\Input\ExportTrackedJobsInput;
 use App\TrackedJob\Api\Input\UpdateTrackedJobInput;
 use App\TrackedJob\Api\Output\TrackedJobCollectionOutput;
+use App\TrackedJob\Api\Output\TrackedJobCompanySuggestionsOutput;
 use App\TrackedJob\Api\Output\TrackedJobItemOutput;
 use App\TrackedJob\Api\Processor\CreateTrackedJobProcessor;
 use App\TrackedJob\Api\Processor\DeleteTrackedJobProcessor;
+use App\TrackedJob\Api\Processor\ExportTrackedJobsCsvProcessor;
 use App\TrackedJob\Api\Processor\UpdateTrackedJobProcessor;
 use App\TrackedJob\Api\Provider\TrackedJobCollectionProvider;
+use App\TrackedJob\Api\Provider\TrackedJobCompanySuggestionsProvider;
 use App\TrackedJob\Api\Provider\TrackedJobItemProvider;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -32,10 +36,29 @@ use Symfony\Component\HttpFoundation\Response;
             uriTemplate: '/tracked-jobs',
             output: TrackedJobCollectionOutput::class,
             normalizationContext: ['groups' => ['tracked_job:list', 'tracked_job:read']],
-            read: false,
             provider: TrackedJobCollectionProvider::class,
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
             name: 'tracked_job_list',
+        ),
+        new Get(
+            uriTemplate: '/tracked-jobs/company-suggestions',
+            output: TrackedJobCompanySuggestionsOutput::class,
+            normalizationContext: ['groups' => ['tracked_job:suggestions']],
+            provider: TrackedJobCompanySuggestionsProvider::class,
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            name: 'tracked_job_company_suggestions',
+        ),
+        new Post(
+            uriTemplate: '/tracked-jobs/export-csv',
+            input: ExportTrackedJobsInput::class,
+            output: false,
+            inputFormats: ['json' => ['application/json']],
+            outputFormats: ['csv' => ['text/csv']],
+            denormalizationContext: ['groups' => ['tracked_job:export']],
+            read: false,
+            processor: ExportTrackedJobsCsvProcessor::class,
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            name: 'tracked_job_export_csv',
         ),
         new Post(
             uriTemplate: '/tracked-jobs',
@@ -52,7 +75,6 @@ use Symfony\Component\HttpFoundation\Response;
             uriTemplate: '/tracked-jobs/{id}',
             output: TrackedJobItemOutput::class,
             normalizationContext: ['groups' => ['tracked_job:item', 'tracked_job:read']],
-            read: false,
             provider: TrackedJobItemProvider::class,
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
             name: 'tracked_job_get',
@@ -81,3 +103,6 @@ use Symfony\Component\HttpFoundation\Response;
 final class TrackedJobResource
 {
 }
+
+
+

@@ -81,8 +81,8 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
             return [];
         }
 
-        $companies = $this->createQueryBuilder('t')
-            ->select('DISTINCT t.company')
+        $rows = $this->createQueryBuilder('t')
+            ->select('DISTINCT t.company AS company')
             ->andWhere('t.owner = :owner')
             ->andWhere('t.company IS NOT NULL')
             ->andWhere('LOWER(t.company) LIKE :term')
@@ -91,10 +91,12 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
             ->orderBy('t.company', 'ASC')
             ->setMaxResults($limit)
             ->getQuery()
-            ->getSingleColumnResult();
+            ->getScalarResult();
 
-        /** @var list<string> $companies */
-        return $companies;
+        return array_values(array_filter(
+            array_map(static fn (array $row): string => (string) $row['company'], $rows),
+            static fn (string $company): bool => $company !== '',
+        ));
     }
 
     public function save(TrackedJob $trackedJob): void
@@ -210,3 +212,4 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
             .' ELSE 11 END AS HIDDEN statusPriority';
     }
 }
+

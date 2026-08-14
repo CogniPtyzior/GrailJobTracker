@@ -16,9 +16,11 @@ use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\InMemoryTrackedJobRepository;
 use App\TrackedJob\Api\Mapper\TrackedJobApiMapper;
 use App\TrackedJob\Api\Provider\TrackedJobCollectionProvider;
+use App\TrackedJob\Api\Provider\TrackedJobCompanySuggestionsProvider;
 use App\TrackedJob\Api\Provider\TrackedJobItemProvider;
 use App\TrackedJob\Application\UseCase\GetTrackedJob;
 use App\TrackedJob\Application\UseCase\SearchTrackedJobs;
+use App\TrackedJob\Application\UseCase\SuggestTrackedJobCompanies;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
 use Symfony\Component\HttpFoundation\Request;
@@ -62,6 +64,45 @@ it('provides an owner-filtered tracked job collection from query parameters', fu
         ->and($repository->lastSearch['filters']['statusInvalid'])->toBeTrue();
 });
 
+
+it('returns no company suggestions when the query is shorter than three characters', function (): void {
+    [, $tokenStorage] = trackedJobProviderUser();
+    $repository = new InMemoryTrackedJobRepository();
+    $requestStack = new RequestStack();
+    $requestStack->push(Request::create('/api/tracked-jobs/company-suggestions', 'GET', ['q' => 'ac']));
+
+    $provider = new TrackedJobCompanySuggestionsProvider(
+        new AuthenticatedUserResolver($tokenStorage),
+        new SuggestTrackedJobCompanies($repository),
+        $requestStack,
+    );
+
+    $output = $provider->provide(new Get());
+
+    expect($output->items)->toBe([])
+        ->and($repository->lastSearch)->toBe([]);
+});
+
+it('provides company suggestions for the authenticated owner', function (): void {
+    [$user, $tokenStorage] = trackedJobProviderUser();
+    $repository = new InMemoryTrackedJobRepository();
+    $repository->companySuggestions = ['Acme', 'Acme Digital'];
+    $requestStack = new RequestStack();
+    $requestStack->push(Request::create('/api/tracked-jobs/company-suggestions', 'GET', ['q' => ' acm ']));
+
+    $provider = new TrackedJobCompanySuggestionsProvider(
+        new AuthenticatedUserResolver($tokenStorage),
+        new SuggestTrackedJobCompanies($repository),
+        $requestStack,
+    );
+
+    $output = $provider->provide(new Get());
+
+    expect($output->items)->toBe(['Acme', 'Acme Digital'])
+        ->and($repository->lastSearch['ownerId'])->toBe($user->getId()->toRfc4122())
+        ->and($repository->lastSearch['query'])->toBe('acm')
+        ->and($repository->lastSearch['limit'])->toBe(10);
+});
 it('provides a tracked job item for the authenticated owner when the voter grants access', function (): void {
     [$user, $tokenStorage] = trackedJobProviderUser();
     $repository = new InMemoryTrackedJobRepository();

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 /*
  * Integration tests for tracked job API Platform route exposure.
- * They verify frontend-compatible paths and operation metadata for read and write routes.
+ * They verify frontend-compatible paths and operation metadata for read, write and extra routes.
  */
 
 use ApiPlatform\Metadata\ApiResource;
 use App\TrackedJob\Api\Resource\TrackedJobResource;
 use Symfony\Component\Routing\RouterInterface;
 
-it('exposes frontend-compatible tracked job read and write routes', function (): void {
+it('exposes frontend-compatible tracked job routes', function (): void {
     self::bootKernel();
 
     /** @var RouterInterface $router */
@@ -19,11 +19,14 @@ it('exposes frontend-compatible tracked job read and write routes', function ():
 
     $router->getContext()->setMethod('GET');
     expect($router->match('/api/tracked-jobs')['_route'])->toContain('tracked_job_list')
+        ->and($router->match('/api/tracked-jobs/company-suggestions')['_route'])
+        ->toContain('tracked_job_company_suggestions')
         ->and($router->match('/api/tracked-jobs/018f6d6f-0000-7000-8000-000000000004')['_route'])
         ->toContain('tracked_job_get');
 
     $router->getContext()->setMethod('POST');
-    expect($router->match('/api/tracked-jobs')['_route'])->toContain('tracked_job_create');
+    expect($router->match('/api/tracked-jobs')['_route'])->toContain('tracked_job_create')
+        ->and($router->match('/api/tracked-jobs/export-csv')['_route'])->toContain('tracked_job_export_csv');
 
     $router->getContext()->setMethod('PUT');
     expect($router->match('/api/tracked-jobs/018f6d6f-0000-7000-8000-000000000004')['_route'])
@@ -34,11 +37,19 @@ it('exposes frontend-compatible tracked job read and write routes', function ():
         ->toContain('tracked_job_delete');
 });
 
-it('combines envelope and shared read groups on tracked job output operations', function (): void {
+it('keeps read suggestions and export serializer groups separate', function (): void {
     $operations = trackedJobOperationsByName();
 
     expect($operations['tracked_job_list']->getNormalizationContext())
         ->toBe(['groups' => ['tracked_job:list', 'tracked_job:read']])
+        ->and($operations['tracked_job_company_suggestions']->getNormalizationContext())
+        ->toBe(['groups' => ['tracked_job:suggestions']])
+        ->and($operations['tracked_job_export_csv']->getDenormalizationContext())
+        ->toBe(['groups' => ['tracked_job:export']])
+        ->and($operations['tracked_job_export_csv']->getInputFormats())
+        ->toBe(['json' => ['application/json']])
+        ->and($operations['tracked_job_export_csv']->getOutputFormats())
+        ->toBe(['csv' => ['text/csv']])
         ->and($operations['tracked_job_create']->getNormalizationContext())
         ->toBe(['groups' => ['tracked_job:item', 'tracked_job:read']])
         ->and($operations['tracked_job_get']->getNormalizationContext())
@@ -60,3 +71,5 @@ function trackedJobOperationsByName(): array
 
     return $operations;
 }
+
+

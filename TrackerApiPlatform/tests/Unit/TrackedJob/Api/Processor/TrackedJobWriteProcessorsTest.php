@@ -17,15 +17,20 @@ use App\Shared\Application\Exception\ApplicationNotFound;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\InMemoryTrackedJobRepository;
 use App\TrackedJob\Api\Input\CreateTrackedJobInput;
+use App\TrackedJob\Api\Input\ExportTrackedJobsInput;
 use App\TrackedJob\Api\Input\UpdateTrackedJobInput;
 use App\TrackedJob\Api\Mapper\TrackedJobApiMapper;
+use App\TrackedJob\Api\Mapper\TrackedJobExportInputMapper;
 use App\TrackedJob\Api\Mapper\TrackedJobInputMapper;
 use App\TrackedJob\Api\Processor\CreateTrackedJobProcessor;
 use App\TrackedJob\Api\Processor\DeleteTrackedJobProcessor;
+use App\TrackedJob\Api\Processor\ExportTrackedJobsCsvProcessor;
 use App\TrackedJob\Api\Processor\UpdateTrackedJobProcessor;
+use App\TrackedJob\Application\Export\TrackedJobCsvExporter;
 use App\TrackedJob\Application\Factory\TrackedJobFactory;
 use App\TrackedJob\Application\Service\TrackedJobCommandApplier;
 use App\TrackedJob\Application\UseCase\CreateTrackedJob;
+use App\TrackedJob\Application\UseCase\ExportTrackedJobsCsv;
 use App\TrackedJob\Application\UseCase\DeleteTrackedJob;
 use App\TrackedJob\Application\UseCase\GetTrackedJob;
 use App\TrackedJob\Application\UseCase\UpdateTrackedJob;
@@ -58,6 +63,27 @@ it('creates a tracked job and returns the API item output', function (): void {
         ->toBeInstanceOf(TrackedJob::class);
 });
 
+
+it('exports tracked jobs as a CSV file response', function (): void {
+    [$owner, $resolver] = writeProcessorUserContext();
+    $repository = new InMemoryTrackedJobRepository();
+    $trackedJob = TrackedJob::openFor($owner->getId());
+    $repository->save($trackedJob);
+    $input = new ExportTrackedJobsInput();
+    $input->company = ' Acme ';
+
+    $response = (new ExportTrackedJobsCsvProcessor(
+        $resolver,
+        new TrackedJobExportInputMapper(),
+        new ExportTrackedJobsCsv($repository, new TrackedJobCsvExporter()),
+    ))->process($input, new Post());
+
+    expect($response->getStatusCode())->toBe(200)
+        ->and($response->headers->get('Content-Type'))->toContain('text/csv')
+        ->and($response->headers->get('Content-Disposition'))->toBe('attachment; filename="tracked-jobs.csv"')
+        ->and($response->getContent())->toContain($trackedJob->getId()->toRfc4122())
+        ->and($repository->lastSearch['filters']['company'])->toBe('Acme');
+});
 it('updates an owner-scoped tracked job when the voter grants access', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();

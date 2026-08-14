@@ -21,10 +21,6 @@ doctrine:
                 prefix: 'App\TrackedJob\Infrastructure\Doctrine\Entity'
                 alias: TrackedJobRecords
 
-when@test:
-    doctrine:
-        dbal:
-            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
 
 when@prod:
     doctrine:
@@ -43,3 +39,4 @@ when@prod:
                     adapter: cache.app
                 doctrine.system_cache_pool:
                     adapter: cache.system
+
