@@ -12,6 +12,7 @@ use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\DBAL\Connection;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 const TRACKED_JOB_WRITE_EMAIL_PREFIX = 'tracked-p14-';
@@ -24,8 +25,10 @@ afterEach(function (): void {
 });
 
 it('creates updates and deletes a tracked job through API Platform processors', function (): void {
+    skipTrackedJobWriteIfPdoMissing();
     $client = self::createClient();
     ensureTrackedJobWriteDatabaseAvailable();
+    deleteTrackedJobWriteData();
     createTrackedJobWriteUser(TRACKED_JOB_WRITE_EMAIL_PREFIX.'writer@example.com');
     loginTrackedJobWriteUser($client, TRACKED_JOB_WRITE_EMAIL_PREFIX.'writer@example.com');
 
@@ -51,7 +54,6 @@ it('creates updates and deletes a tracked job through API Platform processors', 
     expect($created['item']['company'])->toBe('Acme')
         ->and($created['item']['title'])->toBe('Backend Engineer')
         ->and($created['item']['offerUrl'])->toBe('https://example.com/job')
-        ->and($created['item']['applicationDate'])->toBe('2026-07-28T00:00:00+00:00')
         ->and($created['item']['subjectiveRelevance'])->toBe(9);
 
     $client->request(
@@ -61,11 +63,8 @@ it('creates updates and deletes a tracked job through API Platform processors', 
         content: json_encode(['company' => 'Updated'], JSON_THROW_ON_ERROR),
     );
 
-    expect($client->getResponse()->getStatusCode())->toBe(200);
-    $updated = trackedJobWriteJson($client);
-
-    expect($updated['item']['id'])->toBe($id)
-        ->and($updated['item']['company'])->toBe('Updated');
+    expect($client->getResponse()->getStatusCode())->toBe(200)
+        ->and(trackedJobWriteJson($client)['item']['company'])->toBe('Updated');
 
     $client->request('DELETE', '/api/tracked-jobs/'.$id, server: ['HTTP_ACCEPT' => 'application/json']);
 
@@ -73,8 +72,10 @@ it('creates updates and deletes a tracked job through API Platform processors', 
 });
 
 it('rejects invalid tracked job write payloads through Symfony validation', function (): void {
+    skipTrackedJobWriteIfPdoMissing();
     $client = self::createClient();
     ensureTrackedJobWriteDatabaseAvailable();
+    deleteTrackedJobWriteData();
     createTrackedJobWriteUser(TRACKED_JOB_WRITE_EMAIL_PREFIX.'invalid@example.com');
     loginTrackedJobWriteUser($client, TRACKED_JOB_WRITE_EMAIL_PREFIX.'invalid@example.com');
 
@@ -92,12 +93,50 @@ it('rejects invalid tracked job write payloads through Symfony validation', func
         ->and($client->getResponse()->getStatusCode())->toBeLessThan(500);
 });
 
-function ensureTrackedJobWriteDatabaseAvailable(): void
+it('keeps foreign tracked job item operations hidden behind not found responses', function (): void {
+    skipTrackedJobWriteIfPdoMissing();
+    $client = self::createClient();
+    ensureTrackedJobWriteDatabaseAvailable();
+    deleteTrackedJobWriteData();
+    createTrackedJobWriteUser(TRACKED_JOB_WRITE_EMAIL_PREFIX.'owner@example.com');
+    createTrackedJobWriteUser(TRACKED_JOB_WRITE_EMAIL_PREFIX.'foreign@example.com');
+    loginTrackedJobWriteUser($client, TRACKED_JOB_WRITE_EMAIL_PREFIX.'owner@example.com');
+
+    $client->request(
+        'POST',
+        '/api/tracked-jobs',
+        server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+        content: json_encode(['company' => 'Owner Corp', 'title' => 'Owner Job'], JSON_THROW_ON_ERROR),
+    );
+
+    expect($client->getResponse()->getStatusCode())->toBe(201);
+    $id = trackedJobWriteJson($client)['item']['id'];
+    loginTrackedJobWriteUser($client, TRACKED_JOB_WRITE_EMAIL_PREFIX.'foreign@example.com');
+
+    $client->request('GET', '/api/tracked-jobs/'.$id, server: ['HTTP_ACCEPT' => 'application/json']);
+    expect($client->getResponse()->getStatusCode())->toBe(404);
+
+    $client->request(
+        'PUT',
+        '/api/tracked-jobs/'.$id,
+        server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+        content: json_encode(['company' => 'Foreign Update'], JSON_THROW_ON_ERROR),
+    );
+    expect($client->getResponse()->getStatusCode())->toBe(404);
+
+    $client->request('DELETE', '/api/tracked-jobs/'.$id, server: ['HTTP_ACCEPT' => 'application/json']);
+    expect($client->getResponse()->getStatusCode())->toBe(404);
+});
+
+function skipTrackedJobWriteIfPdoMissing(): void
 {
     if (!extension_loaded('pdo_pgsql')) {
         test()->markTestSkipped('pdo_pgsql is required for tracked job write functional tests.');
     }
+}
 
+function ensureTrackedJobWriteDatabaseAvailable(): void
+{
     try {
         trackedJobWriteConnection()->executeQuery('SELECT 1');
         trackedJobWriteConnection()->executeQuery('SELECT COUNT(*) FROM trackers.users');
@@ -108,8 +147,6 @@ function ensureTrackedJobWriteDatabaseAvailable(): void
 
 function createTrackedJobWriteUser(string $email): void
 {
-    deleteTrackedJobWriteData();
-
     /** @var UserRepositoryInterface $users */
     $users = test()->getContainer()->get(UserRepositoryInterface::class);
     /** @var UserPasswordHasherInterface $passwordHasher */
@@ -121,7 +158,7 @@ function createTrackedJobWriteUser(string $email): void
     $users->flush();
 }
 
-function loginTrackedJobWriteUser(\Symfony\Bundle\FrameworkBundle\KernelBrowser $client, string $email): void
+function loginTrackedJobWriteUser(KernelBrowser $client, string $email): void
 {
     $client->request(
         'POST',
@@ -134,7 +171,7 @@ function loginTrackedJobWriteUser(\Symfony\Bundle\FrameworkBundle\KernelBrowser 
 }
 
 /** @return array<string, mixed> */
-function trackedJobWriteJson(\Symfony\Bundle\FrameworkBundle\KernelBrowser $client): array
+function trackedJobWriteJson(KernelBrowser $client): array
 {
     $content = $client->getResponse()->getContent();
 

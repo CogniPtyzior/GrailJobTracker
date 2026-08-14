@@ -13,9 +13,12 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Security\Api\Security\AuthenticatedUserResolver;
 use App\Shared\Application\Exception\ApplicationNotFound;
+use App\TrackedJob\Api\Security\TrackedJobVoter;
 use App\TrackedJob\Application\UseCase\DeleteTrackedJob;
 use App\TrackedJob\Application\UseCase\GetTrackedJob;
 use App\TrackedJob\Domain\ValueObject\TrackedJobId;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Throwable;
 
 /** @implements ProcessorInterface<mixed, null> */
@@ -25,6 +28,7 @@ final readonly class DeleteTrackedJobProcessor implements ProcessorInterface
         private AuthenticatedUserResolver $authenticatedUserResolver,
         private GetTrackedJob $getTrackedJob,
         private DeleteTrackedJob $deleteTrackedJob,
+        private AuthorizationCheckerInterface $authorizationChecker,
     ) {
     }
 
@@ -40,6 +44,10 @@ final readonly class DeleteTrackedJobProcessor implements ProcessorInterface
 
         if ($trackedJob === null) {
             throw new ApplicationNotFound('Tracked job not found.');
+        }
+
+        if (!$this->authorizationChecker->isGranted(TrackedJobVoter::DELETE, $trackedJob)) {
+            throw new AccessDeniedException('Access denied.');
         }
 
         $this->deleteTrackedJob->handle($trackedJob);

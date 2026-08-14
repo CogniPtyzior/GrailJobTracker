@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 /*
  * Unit tests for tracked job API providers.
- * They verify query parsing, owner scoping and item not-found behavior without HTTP or Doctrine.
+ * They verify query parsing, owner scoping, voter checks and item not-found behavior without HTTP or Doctrine.
  */
 
 use ApiPlatform\Metadata\Get;
 use App\Security\Api\Security\AuthenticatedUserResolver;
 use App\Security\Domain\Entity\User;
 use App\Security\Infrastructure\Security\SecurityUser;
+use App\Shared\Application\Exception\ApplicationNotFound;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\InMemoryTrackedJobRepository;
 use App\TrackedJob\Api\Mapper\TrackedJobApiMapper;
 use App\TrackedJob\Api\Provider\TrackedJobCollectionProvider;
@@ -19,12 +21,12 @@ use App\TrackedJob\Application\UseCase\GetTrackedJob;
 use App\TrackedJob\Application\UseCase\SearchTrackedJobs;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\Enum\ContractType;
-use App\Shared\Application\Exception\ApplicationNotFound;
-use App\Shared\Domain\ValueObject\EmailAddress;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 it('provides an owner-filtered tracked job collection from query parameters', function (): void {
     [$user, $tokenStorage] = trackedJobProviderUser();
@@ -60,7 +62,7 @@ it('provides an owner-filtered tracked job collection from query parameters', fu
         ->and($repository->lastSearch['filters']['statusInvalid'])->toBeTrue();
 });
 
-it('provides a tracked job item for the authenticated owner', function (): void {
+it('provides a tracked job item for the authenticated owner when the voter grants access', function (): void {
     [$user, $tokenStorage] = trackedJobProviderUser();
     $repository = new InMemoryTrackedJobRepository();
     $trackedJob = TrackedJob::openFor($user->getId());
@@ -69,6 +71,7 @@ it('provides a tracked job item for the authenticated owner', function (): void 
         new AuthenticatedUserResolver($tokenStorage),
         new GetTrackedJob($repository),
         new TrackedJobApiMapper(),
+        trackedJobAuthorization(),
     );
 
     $output = $provider->provide(new Get(), ['id' => $trackedJob->getId()->toRfc4122()]);
@@ -76,12 +79,28 @@ it('provides a tracked job item for the authenticated owner', function (): void 
     expect($output->item->id)->toBe($trackedJob->getId()->toRfc4122());
 });
 
+it('denies a tracked job item when the voter rejects the loaded object', function (): void {
+    [$user, $tokenStorage] = trackedJobProviderUser();
+    $repository = new InMemoryTrackedJobRepository();
+    $trackedJob = TrackedJob::openFor($user->getId());
+    $repository->save($trackedJob);
+    $provider = new TrackedJobItemProvider(
+        new AuthenticatedUserResolver($tokenStorage),
+        new GetTrackedJob($repository),
+        new TrackedJobApiMapper(),
+        trackedJobAuthorization(false),
+    );
+
+    $provider->provide(new Get(), ['id' => $trackedJob->getId()->toRfc4122()]);
+})->throws(AccessDeniedException::class, 'Access denied.');
+
 it('throws an application not found exception for unknown item ids', function (): void {
     [, $tokenStorage] = trackedJobProviderUser();
     $provider = new TrackedJobItemProvider(
         new AuthenticatedUserResolver($tokenStorage),
         new GetTrackedJob(new InMemoryTrackedJobRepository()),
         new TrackedJobApiMapper(),
+        trackedJobAuthorization(),
     );
 
     $provider->provide(new Get(), ['id' => 'not-a-uuid']);
@@ -95,4 +114,18 @@ function trackedJobProviderUser(): array
     $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($user), 'main', ['ROLE_USER']));
 
     return [$user, $tokenStorage];
+}
+
+function trackedJobAuthorization(bool $granted = true): AuthorizationCheckerInterface
+{
+    return new class($granted) implements AuthorizationCheckerInterface {
+        public function __construct(private readonly bool $granted)
+        {
+        }
+
+        public function isGranted(mixed $attribute, mixed $subject = null): bool
+        {
+            return $this->granted;
+        }
+    };
 }

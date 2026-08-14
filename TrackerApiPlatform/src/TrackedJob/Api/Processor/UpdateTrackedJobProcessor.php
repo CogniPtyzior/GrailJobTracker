@@ -18,10 +18,13 @@ use App\TrackedJob\Api\Input\UpdateTrackedJobInput;
 use App\TrackedJob\Api\Mapper\TrackedJobApiMapper;
 use App\TrackedJob\Api\Mapper\TrackedJobInputMapper;
 use App\TrackedJob\Api\Output\TrackedJobItemOutput;
+use App\TrackedJob\Api\Security\TrackedJobVoter;
 use App\TrackedJob\Application\UseCase\GetTrackedJob;
 use App\TrackedJob\Application\UseCase\UpdateTrackedJob;
 use App\TrackedJob\Domain\Entity\TrackedJob;
 use App\TrackedJob\Domain\ValueObject\TrackedJobId;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Throwable;
 
 /** @implements ProcessorInterface<UpdateTrackedJobInput, TrackedJobItemOutput> */
@@ -33,6 +36,7 @@ final readonly class UpdateTrackedJobProcessor implements ProcessorInterface
         private TrackedJobInputMapper $inputMapper,
         private UpdateTrackedJob $updateTrackedJob,
         private TrackedJobApiMapper $apiMapper,
+        private AuthorizationCheckerInterface $authorizationChecker,
     ) {
     }
 
@@ -43,6 +47,10 @@ final readonly class UpdateTrackedJobProcessor implements ProcessorInterface
         }
 
         $trackedJob = $this->loadTrackedJob($uriVariables);
+
+        if (!$this->authorizationChecker->isGranted(TrackedJobVoter::UPDATE, $trackedJob)) {
+            throw new AccessDeniedException('Access denied.');
+        }
         $updated = $this->updateTrackedJob->handle($trackedJob, $this->inputMapper->toCommand($data));
 
         return $this->apiMapper->toItemOutput($updated);

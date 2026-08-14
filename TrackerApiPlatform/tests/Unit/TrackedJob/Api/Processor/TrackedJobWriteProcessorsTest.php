@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * Unit tests for tracked job write processors.
- * They verify API Platform processors delegate to application use cases and keep owner-scoped loading.
+ * They verify API Platform processors delegate to use cases and enforce object authorization before mutations.
  */
 
 use ApiPlatform\Metadata\Delete;
@@ -14,6 +14,7 @@ use App\Security\Api\Security\AuthenticatedUserResolver;
 use App\Security\Domain\Entity\User;
 use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Application\Exception\ApplicationNotFound;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\InMemoryTrackedJobRepository;
 use App\TrackedJob\Api\Input\CreateTrackedJobInput;
 use App\TrackedJob\Api\Input\UpdateTrackedJobInput;
@@ -29,9 +30,11 @@ use App\TrackedJob\Application\UseCase\DeleteTrackedJob;
 use App\TrackedJob\Application\UseCase\GetTrackedJob;
 use App\TrackedJob\Application\UseCase\UpdateTrackedJob;
 use App\TrackedJob\Domain\Entity\TrackedJob;
-use App\Shared\Domain\ValueObject\EmailAddress;
+use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 it('creates a tracked job and returns the API item output', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
@@ -51,13 +54,11 @@ it('creates a tracked job and returns the API item output', function (): void {
         ->and($output->item->title)->toBe('Backend Engineer')
         ->and($repository->saveCalls)->toBe(1)
         ->and($repository->flushCalls)->toBe(1)
-        ->and($repository->getByIdForOwner(
-            \App\TrackedJob\Domain\ValueObject\TrackedJobId::fromString($output->item->id),
-            $owner->getId(),
-        ))->toBeInstanceOf(TrackedJob::class);
+        ->and($repository->getByIdForOwner(TrackedJobId::fromString($output->item->id), $owner->getId()))
+        ->toBeInstanceOf(TrackedJob::class);
 });
 
-it('updates an owner-scoped tracked job and returns the API item output', function (): void {
+it('updates an owner-scoped tracked job when the voter grants access', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
     $trackedJob = TrackedJob::openFor($owner->getId());
@@ -73,6 +74,7 @@ it('updates an owner-scoped tracked job and returns the API item output', functi
         new TrackedJobInputMapper(),
         new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository),
         new TrackedJobApiMapper(),
+        trackedJobWriteAuthorization(),
     ))->process($input, new Put(), ['id' => $trackedJob->getId()->toRfc4122()]);
 
     expect($output->item->id)->toBe($trackedJob->getId()->toRfc4122())
@@ -81,7 +83,26 @@ it('updates an owner-scoped tracked job and returns the API item output', functi
         ->and($repository->flushCalls)->toBe(1);
 });
 
-it('deletes an owner-scoped tracked job', function (): void {
+it('does not update a loaded tracked job when the voter denies access', function (): void {
+    [$owner, $resolver] = writeProcessorUserContext();
+    $repository = new InMemoryTrackedJobRepository();
+    $trackedJob = TrackedJob::openFor($owner->getId());
+    $repository->save($trackedJob);
+    $repository->saveCalls = 0;
+    $input = new UpdateTrackedJobInput();
+    $input->company = 'Denied';
+
+    (new UpdateTrackedJobProcessor(
+        $resolver,
+        new GetTrackedJob($repository),
+        new TrackedJobInputMapper(),
+        new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository),
+        new TrackedJobApiMapper(),
+        trackedJobWriteAuthorization(false),
+    ))->process($input, new Put(), ['id' => $trackedJob->getId()->toRfc4122()]);
+})->throws(AccessDeniedException::class, 'Access denied.');
+
+it('deletes an owner-scoped tracked job when the voter grants access', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
     $trackedJob = TrackedJob::openFor($owner->getId());
@@ -93,6 +114,7 @@ it('deletes an owner-scoped tracked job', function (): void {
         $resolver,
         new GetTrackedJob($repository),
         new DeleteTrackedJob($repository),
+        trackedJobWriteAuthorization(),
     ))->process(null, new Delete(), ['id' => $trackedJob->getId()->toRfc4122()]);
 
     expect($result)->toBeNull()
@@ -101,8 +123,22 @@ it('deletes an owner-scoped tracked job', function (): void {
         ->and($repository->getByIdForOwner($trackedJob->getId(), $owner->getId()))->toBeNull();
 });
 
-it('returns not found for update when the tracked job does not belong to the user', function (): void {
+it('does not delete a loaded tracked job when the voter denies access', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
+    $repository = new InMemoryTrackedJobRepository();
+    $trackedJob = TrackedJob::openFor($owner->getId());
+    $repository->save($trackedJob);
+
+    (new DeleteTrackedJobProcessor(
+        $resolver,
+        new GetTrackedJob($repository),
+        new DeleteTrackedJob($repository),
+        trackedJobWriteAuthorization(false),
+    ))->process(null, new Delete(), ['id' => $trackedJob->getId()->toRfc4122()]);
+})->throws(AccessDeniedException::class, 'Access denied.');
+
+it('returns not found for update when the tracked job does not belong to the user', function (): void {
+    [, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
     $foreignOwner = new User(EmailAddress::fromString('foreign@example.com'));
     $trackedJob = TrackedJob::openFor($foreignOwner->getId());
@@ -116,6 +152,7 @@ it('returns not found for update when the tracked job does not belong to the use
         new TrackedJobInputMapper(),
         new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository),
         new TrackedJobApiMapper(),
+        trackedJobWriteAuthorization(),
     ))->process($input, new Put(), ['id' => $trackedJob->getId()->toRfc4122()]);
 })->throws(ApplicationNotFound::class, 'Tracked job not found.');
 
@@ -127,4 +164,18 @@ function writeProcessorUserContext(): array
     $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($user), 'main', ['ROLE_USER']));
 
     return [$user, new AuthenticatedUserResolver($tokenStorage)];
+}
+
+function trackedJobWriteAuthorization(bool $granted = true): AuthorizationCheckerInterface
+{
+    return new class($granted) implements AuthorizationCheckerInterface {
+        public function __construct(private readonly bool $granted)
+        {
+        }
+
+        public function isGranted(mixed $attribute, mixed $subject = null): bool
+        {
+            return $this->granted;
+        }
+    };
 }
