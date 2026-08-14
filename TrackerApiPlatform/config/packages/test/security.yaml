@@ -1,0 +1,5 @@
+security:
+    firewalls:
+        main:
+            login_throttling:
+                max_attempts: 2

@@ -33,7 +33,6 @@ use App\Security\Api\Provider\CurrentUserProvider;
         new Get(
             uriTemplate: '/auth/me',
             output: AuthenticatedUserOutput::class,
-            read: false,
             provider: CurrentUserProvider::class,
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
             name: 'auth_me',
@@ -43,3 +42,5 @@ use App\Security\Api\Provider\CurrentUserProvider;
 final class AuthenticationResource
 {
 }
+
+
