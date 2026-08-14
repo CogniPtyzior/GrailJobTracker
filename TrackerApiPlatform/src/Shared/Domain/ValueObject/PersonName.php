@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Domain\ValueObject;
 
-use InvalidArgumentException;
+use App\Shared\Domain\Exception\InvalidDomainData;
 
 final readonly class PersonName
 {
@@ -18,11 +18,11 @@ final readonly class PersonName
     private function __construct(private string $value)
     {
         if ($value === '') {
-            throw new InvalidArgumentException('Person name cannot be blank.');
+            throw new InvalidDomainData('Person name cannot be blank.');
         }
 
         if (mb_strlen($value) > self::MAX_LENGTH) {
-            throw new InvalidArgumentException(sprintf('Person name cannot exceed %d characters.', self::MAX_LENGTH));
+            throw new InvalidDomainData(sprintf('Person name cannot exceed %d characters.', self::MAX_LENGTH));
         }
     }
 
@@ -42,3 +42,4 @@ final readonly class PersonName
         return $this->value;
     }
 }
+
