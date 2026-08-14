@@ -18,6 +18,9 @@ services:
     App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface:
         alias: App\AccessRequest\Infrastructure\Doctrine\Repository\DoctrineAccessRequestRepository
 
+    App\AccessRequest\Api\RateLimit\AccessRequestSubmissionLimiterInterface:
+        alias: App\AccessRequest\Api\RateLimit\AccessRequestSubmissionLimiter
+
     # The Messenger dispatcher replaces this no-op adapter in P20.
     App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface:
         alias: App\AccessRequest\Application\Notification\NullAccessRequestNotificationDispatcher
