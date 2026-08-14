@@ -5,3 +5,7 @@ services:
 
     App\:
         resource: '../src/'
+
+    App\Shared\Application\Clock\ClockInterface:
+        alias: App\Shared\Infrastructure\Clock\SystemClock
+
