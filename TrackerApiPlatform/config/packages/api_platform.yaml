@@ -1,0 +1,10 @@
+api_platform:
+    title: GrailJob Tracker API Platform
+    version: 0.1.0
+    defaults:
+        stateless: false
+    formats:
+        json: ['application/json']
+    docs_formats:
+        jsonopenapi: ['application/vnd.openapi+json']
+        html: ['text/html']

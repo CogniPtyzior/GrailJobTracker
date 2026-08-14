@@ -1,0 +1,3 @@
+# yaml-language-server: $schema=../vendor/symfony/routing/Loader/schema/routing.schema.json
+
+# API Platform routes are imported from config/routes/api_platform.yaml.

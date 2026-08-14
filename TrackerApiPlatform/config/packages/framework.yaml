@@ -1,0 +1,7 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    handle_all_throwables: true
+
+when@test:
+    framework:
+        test: true
