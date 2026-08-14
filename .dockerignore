@@ -15,3 +15,10 @@ TrackerApi/.env.local
 TrackerApi/.env.*.local
 TrackerApi/phpunit.result.cache
 **/.DS_Store
+TrackerApiPlatform/vendor
+TrackerApiPlatform/var/cache
+TrackerApiPlatform/var/log
+TrackerApiPlatform/var/sessions
+TrackerApiPlatform/var/runtime
+TrackerApiPlatform/.env.local
+TrackerApiPlatform/.env.*.local

@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-APP_DIR="/var/www/tracker-api"
+APP_DIR="${APP_DIR:-/var/www/tracker-api}"
+APP_LOG_PREFIX="${APP_LOG_PREFIX:-tracker-api}"
 APP_RUNTIME_MODE="${APP_RUNTIME_MODE:-php-fpm}"
 BACKEND_READY_FILE="${BACKEND_READY_FILE:-var/runtime/backend-ready}"
 WAIT_FOR_DB_TIMEOUT="${WAIT_FOR_DB_TIMEOUT:-60}"
@@ -14,7 +15,7 @@ AUTO_BOOTSTRAP_ADMIN="${AUTO_BOOTSTRAP_ADMIN:-1}"
 XDEBUG_RUNTIME_INI="/usr/local/etc/php/conf.d/zzz-xdebug-runtime.ini"
 
 log() {
-  printf '%s\n' "[tracker-api] $*"
+  printf '%s\n' "[${APP_LOG_PREFIX}] $*"
 }
 
 urlencode() {
@@ -60,6 +61,7 @@ configure_xdebug() {
 
   cat > "$XDEBUG_RUNTIME_INI" <<EOF
 xdebug.client_host=${XDEBUG_CLIENT_HOST}
+xdebug.client_port=${XDEBUG_CLIENT_PORT:-9003}
 EOF
 }
 
@@ -310,7 +312,7 @@ if [ "$APP_RUNTIME_MODE" = "worker" ]; then
   exec php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M
 fi
 
-echo "[tracker-api] Preparing PHP session directory..."
+log "Preparing PHP session directory..."
 prepare_writable_dirs
 
 log "Starting PHP-FPM..."
