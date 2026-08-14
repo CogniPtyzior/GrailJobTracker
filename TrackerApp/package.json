@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --port 4200",
+    "start": "npm run start:legacy",
+    "start:legacy": "ng serve --port 4200 --proxy-config proxy.legacy.json",
+    "start:api-platform": "ng serve --port 4200 --proxy-config proxy.api-platform.json",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "vitest run"
