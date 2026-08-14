@@ -6,7 +6,13 @@ The application helps a user centralize an active job search: companies, roles, 
 
 ## Goals
 
-The project is intentionally more structured than a simple CRUD demo. The backend is organized to keep business rules readable, testable and isolated from framework concerns where it matters, while still staying pragmatic with Symfony and Doctrine.
+The project is intentionally more structured than a simple CRUD demo. The original Symfony backend keeps business rules
+readable, testable and isolated from framework concerns where it matters, while still staying pragmatic with Symfony and
+Doctrine.
+
+The repository also contains `TrackerApiPlatform`, a clean API Platform backend migration. It is built to preserve the
+existing frontend contract while demonstrating a Symfony/API Platform-native architecture with DDD and pragmatic
+hexagonal boundaries.
 
 Main engineering goals:
 
@@ -14,6 +20,7 @@ Main engineering goals:
 - keep domain rules close to aggregates and value objects;
 - keep Symfony, Doctrine, Messenger and Mailer concerns in infrastructure or presentation adapters;
 - expose a usable Angular application backed by a Symfony API;
+- migrate the backend toward an API Platform-native implementation without changing the frontend contract;
 - provide a reproducible Docker workflow for local and production-oriented execution;
 - cover domain behavior, payload validation, authentication, access control and API flows with tests.
 
@@ -47,7 +54,9 @@ Admin users can manage users, activation state, admin role assignment and pendin
 
 ## Architecture
 
-The Symfony backend follows a modular structure by functional area:
+The repository currently contains two Symfony backends.
+
+`TrackerApi` is the legacy backend. It follows a modular structure by functional area:
 
 ```txt
 TrackerApi/src/
@@ -80,6 +89,34 @@ Important current choices:
 
 This is not strict academic DDD. It is a pragmatic Symfony architecture designed to be understandable in a production team review.
 
+`TrackerApiPlatform` is the new backend under migration. It keeps the same business behavior and database schema, but
+uses API Platform as the HTTP/API adapter:
+
+```txt
+TrackerApiPlatform/src/
+|-- AccessRequest/
+|-- ReferenceData/
+|-- Security/
+|-- Shared/
+`-- TrackedJob/
+```
+
+The target flow is:
+
+```txt
+API Platform Resource/Input
+  -> Provider or Processor
+  -> Application Query or Command Use Case
+  -> Domain Model
+  -> Repository Port
+  -> Infrastructure Adapter
+  -> Doctrine Record
+```
+
+API Platform metadata, serializer groups, input DTOs, output DTOs, providers, processors, filters and voters belong to
+the module `Api` layer. Domain entities remain framework-free and Doctrine records are not exposed as core API
+resources.
+
 ## Tech Stack
 
 ### Backend
@@ -94,6 +131,8 @@ This is not strict academic DDD. It is a pragmatic Symfony architecture designed
 - Symfony Validator
 - Nelmio API Doc
 - PHPUnit 13
+- API Platform in `TrackerApiPlatform`
+- Pest PHP in `TrackerApiPlatform`
 
 ### Frontend
 
@@ -118,6 +157,14 @@ This is not strict academic DDD. It is a pragmatic Symfony architecture designed
 ```txt
 GrailJobTracker/
 |-- TrackerApi/              Symfony backend
+|   |-- config/
+|   |-- migrations/
+|   |-- public/
+|   |-- src/
+|   |-- tests/
+|   `-- composer.json
+|
+|-- TrackerApiPlatform/      API Platform backend migration
 |   |-- config/
 |   |-- migrations/
 |   |-- public/
@@ -160,10 +207,16 @@ Start or rebuild the backend stack:
 docker compose up --build -d
 ```
 
-The API is exposed through Nginx at:
+The legacy API is exposed through Nginx at:
 
 ```txt
 http://127.0.0.1:8081
+```
+
+The API Platform backend is exposed through Nginx at:
+
+```txt
+http://127.0.0.1:8082
 ```
 
 Useful backend commands:
@@ -176,6 +229,23 @@ docker compose exec tracker-api-php ./vendor/bin/phpunit
 
 The Messenger worker runs in a dedicated `tracker-api-worker` container.
 
+Useful API Platform backend commands:
+
+```bash
+docker compose exec tracker-api-platform-php php bin/console doctrine:migrations:migrate
+docker compose exec tracker-api-platform-php php bin/console app:bootstrap-admin
+docker compose exec tracker-api-platform-php ./vendor/bin/pest
+```
+
+The API Platform worker can be started explicitly with:
+
+```bash
+docker compose --profile api-platform-worker up -d tracker-api-platform-worker
+```
+
+Both backends share the same PostgreSQL database and schema during the migration. Database migrations must therefore
+remain compatible with both runtimes.
+
 ## Frontend Workflow
 
 From `TrackerApp`:
@@ -183,15 +253,21 @@ From `TrackerApp`:
 ```bash
 npm install
 npm start
+npm run start:api-platform
 npm test
 npm run build
 ```
 
 The Angular dev server runs on port `4200` by default.
 
+Frontend backend selection is handled through Angular dev-server proxy files while keeping `API_BASE_URL = '/api'`:
+
+- `npm start` or `npm run start:legacy` proxies `/api` to the legacy backend on `127.0.0.1:8081`;
+- `npm run start:api-platform` proxies `/api` to the API Platform backend on `127.0.0.1:8082`.
+
 ## Testing
 
-Backend tests cover unit and integration behavior across the main modules:
+Legacy backend tests cover unit and integration behavior across the main modules:
 
 - domain entities and value objects;
 - tracked job status and timeline rules;
@@ -207,6 +283,15 @@ Run backend tests with:
 ```bash
 docker compose exec tracker-api-php ./vendor/bin/phpunit
 ```
+
+Run API Platform backend tests with:
+
+```bash
+docker compose exec tracker-api-platform-php ./vendor/bin/pest
+```
+
+The API Platform test suite mirrors the legacy behavioral coverage and adds focused tests for API Platform resources,
+serializer groups, providers, processors, voters, exception mapping and frontend-compatible endpoint contracts.
 
 Run frontend tests with:
 
