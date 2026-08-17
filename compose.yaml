@@ -95,8 +95,9 @@ services:
       PHP_IDE_CONFIG: ${PHP_IDE_CONFIG_PLATFORM:-serverName=tracker-api-platform}
       DEFAULT_URI: http://127.0.0.1:8082
       XDEBUG_CLIENT_PORT: 9004
-      AUTO_MIGRATE: 0
-      AUTO_BOOTSTRAP_ADMIN: 0
+      AUTO_MIGRATE: 1
+      AUTO_BOOTSTRAP_ADMIN: 1
+      ADMIN_BOOTSTRAP_PASSWORD_FILE: /run/secrets/tracker_admin_password
     volumes:
       - tracker-api-platform-runtime:/var/www/tracker-api-platform/var/runtime
       - ./credentials/password.secret:/run/secrets/tracker_admin_password:ro

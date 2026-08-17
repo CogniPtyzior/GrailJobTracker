@@ -9,6 +9,7 @@
     "ext-iconv": "*",
     "api-platform/core": "^4.2",
     "doctrine/doctrine-bundle": "^3.3",
+    "doctrine/doctrine-migrations-bundle": "^3.7",
     "doctrine/orm": "^3.6",
     "symfony/console": "7.4.*",
     "symfony/doctrine-messenger": "7.4.*",

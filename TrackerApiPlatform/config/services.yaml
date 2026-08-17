@@ -1,5 +1,7 @@
 parameters:
+    env(TRACKER_SCHEMA): 'trackers'
     env(ADMIN_BOOTSTRAP_EMAIL): 'admin@example.local'
+    env(ADMIN_BOOTSTRAP_PASSWORD_FILE): ''
     env(ACCESS_REQUEST_NOTIFICATION_TO): 'admin@example.local'
     env(MAILER_FROM_EMAIL): 'no-reply@example.local'
     env(MAILER_FROM_NAME): 'GrailJob Tracker'
@@ -38,7 +40,6 @@ services:
             $fromEmail: '%env(MAILER_FROM_EMAIL)%'
             $fromName: '%env(MAILER_FROM_NAME)%'
 
-
     App\Security\Application\UseCase\UpdateAdminUser:
         arguments:
             $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
@@ -46,4 +47,10 @@ services:
     App\Security\Application\UseCase\DeleteAdminUser:
         arguments:
             $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
+
+    App\Security\Infrastructure\Console\BootstrapAdminCommand:
+        arguments:
+            $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
+            $adminBootstrapPasswordFile: '%env(ADMIN_BOOTSTRAP_PASSWORD_FILE)%'
+            $trackerSchema: '%env(TRACKER_SCHEMA)%'
 
