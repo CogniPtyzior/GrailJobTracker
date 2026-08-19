@@ -5,6 +5,8 @@ api_platform:
         stateless: false
     formats:
         json: ['application/json']
+    error_formats:
+        json: ['application/json']
     docs_formats:
         jsonopenapi: ['application/vnd.openapi+json']
         html: ['text/html']

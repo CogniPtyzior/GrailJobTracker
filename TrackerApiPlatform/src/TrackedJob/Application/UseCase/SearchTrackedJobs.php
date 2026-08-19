@@ -12,10 +12,16 @@ namespace App\TrackedJob\Application\UseCase;
 use App\Security\Domain\Entity\User;
 use App\TrackedJob\Application\Result\SearchTrackedJobsResult;
 use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
+use App\Shared\Application\Metrics\MetricsInterface;
+use Psr\Log\LoggerInterface;
 
 final readonly class SearchTrackedJobs
 {
-    public function __construct(private TrackedJobRepositoryInterface $trackedJobRepository)
+    public function __construct(
+        private TrackedJobRepositoryInterface $trackedJobRepository,
+        private MetricsInterface $metrics,
+        private LoggerInterface $logger
+    )
     {
     }
 
@@ -23,6 +29,13 @@ final readonly class SearchTrackedJobs
     public function handle(User $owner, array $filters, int $page, int $pageSize): SearchTrackedJobsResult
     {
         $result = $this->trackedJobRepository->search($owner->getId(), $filters, $page, $pageSize);
+
+        $this->metrics->increment(
+            'grailjob.tracked_jobs.searched',
+            attributes: [
+                'source' => 'api',
+            ]
+        );
 
         return new SearchTrackedJobsResult($result['items'], $result['hasMore']);
     }

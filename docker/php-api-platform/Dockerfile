@@ -13,9 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         opcache \
         pdo_pgsql \
         zip \
-    && pecl install xdebug \
+    && pecl install xdebug opentelemetry \
     && rm -f /usr/local/etc/php/conf.d/*xdebug*.ini \
-    && docker-php-ext-enable xdebug \
+    && docker-php-ext-enable xdebug opentelemetry \
     && mkdir -p /tmp/sessions \
     && rm -rf /var/lib/apt/lists/*
 

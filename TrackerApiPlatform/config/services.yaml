@@ -34,6 +34,9 @@ services:
     App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface:
         alias: App\AccessRequest\Infrastructure\Messenger\MessengerAccessRequestNotificationDispatcher
 
+    App\Shared\Application\Transaction\TransactionManagerInterface:
+        alias: App\Shared\Infrastructure\Transaction\DoctrineTransactionManager
+
     App\AccessRequest\Infrastructure\Notification\AccessRequestNotificationSender:
         arguments:
             $recipientEmail: '%env(ACCESS_REQUEST_NOTIFICATION_TO)%'
@@ -53,4 +56,9 @@ services:
             $adminBootstrapEmail: '%env(ADMIN_BOOTSTRAP_EMAIL)%'
             $adminBootstrapPasswordFile: '%env(ADMIN_BOOTSTRAP_PASSWORD_FILE)%'
             $trackerSchema: '%env(TRACKER_SCHEMA)%'
+
+    OpenTelemetry\Contrib\Logs\Monolog\Handler:
+        factory:
+        - App\Shared\Infrastructure\Logging\OpenTelemetryMonologHandlerFactory
+        - create
 
