@@ -13,14 +13,12 @@ use App\Security\Domain\Entity\User;
 use App\TrackedJob\Application\Result\SearchTrackedJobsResult;
 use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 use App\Shared\Application\Metrics\MetricsInterface;
-use Psr\Log\LoggerInterface;
 
 final readonly class SearchTrackedJobs
 {
     public function __construct(
         private TrackedJobRepositoryInterface $trackedJobRepository,
-        private MetricsInterface $metrics,
-        private LoggerInterface $logger
+        private MetricsInterface $metrics
     )
     {
     }

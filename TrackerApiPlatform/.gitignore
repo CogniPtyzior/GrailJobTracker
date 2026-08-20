@@ -12,3 +12,6 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+
+/coverage/
+coverage.txt

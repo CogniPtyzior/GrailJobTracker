@@ -26,6 +26,7 @@ use App\TrackedJob\Domain\Enum\ContractType;
 use App\TrackedJob\Domain\ValueObject\CompanyName;
 use App\TrackedJob\Domain\ValueObject\JobTitle;
 use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Application\Metrics\MetricsInterface;
 
 it('creates a tracked job for the owner and persists it', function (): void {
     $repository = new InMemoryTrackedJobRepository();
@@ -89,7 +90,9 @@ it('searches tracked jobs for the owner and returns pagination metadata', functi
     $repository->save($trackedJob);
     $repository->hasMore = true;
 
-    $result = (new SearchTrackedJobs($repository))->handle($owner, ['status' => 'APPLIED'], 2, 25);
+    $metrics = $this->createStub(MetricsInterface::class);
+
+    $result = (new SearchTrackedJobs($repository, $metrics))->handle($owner, ['status' => 'APPLIED'], 2, 25);
 
     expect($result->items)->toBe([$trackedJob])
         ->and($result->hasMore)->toBeTrue()
