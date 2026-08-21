@@ -15,11 +15,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class SecurityJsonResponseFactory
 {
+    /**
+    * @param array<string, mixed> $data
+    */
     public function success(array $data = [], int $status = Response::HTTP_OK): JsonResponse
     {
         return new JsonResponse($data, $status);
     }
 
+    /**
+    * @param array<string, mixed> $details
+    */
     public function error(string $message, int $status, array $details = []): JsonResponse
     {
         return new JsonResponse([

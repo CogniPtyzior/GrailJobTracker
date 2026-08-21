@@ -18,6 +18,9 @@ use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<UserRecord>
+ */
 final class DoctrineUserRepository extends ServiceEntityRepository implements UserRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry, private readonly UserRecordMapper $mapper)

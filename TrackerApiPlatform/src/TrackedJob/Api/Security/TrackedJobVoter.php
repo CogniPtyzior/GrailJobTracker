@@ -14,6 +14,9 @@ use App\TrackedJob\Domain\Entity\TrackedJob;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
+/**
+* @extends Voter<string, TrackedJob>
+*/
 final class TrackedJobVoter extends Voter
 {
     public const string VIEW = 'TRACKED_JOB_VIEW';
@@ -30,7 +33,7 @@ final class TrackedJobVoter extends Voter
     {
         $user = $token->getUser();
 
-        if (!$user instanceof SecurityUser || !$subject instanceof TrackedJob) {
+        if (!$user instanceof SecurityUser) {
             return false;
         }
 

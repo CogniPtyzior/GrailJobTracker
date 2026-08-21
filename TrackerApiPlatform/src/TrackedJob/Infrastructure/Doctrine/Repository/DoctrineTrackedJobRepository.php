@@ -24,6 +24,10 @@ use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use RuntimeException;
 
+
+/**
+ * @extends ServiceEntityRepository<TrackedJobRecord>
+ */
 final class DoctrineTrackedJobRepository extends ServiceEntityRepository implements TrackedJobRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry, private readonly TrackedJobRecordMapper $mapper)
@@ -153,6 +157,9 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
             ->addOrderBy('t.updatedAt', 'DESC');
     }
 
+    /**
+     * @param array<string, mixed> $filters
+     */
     private function applyFilters(QueryBuilder $qb, array $filters): void
     {
         if (($filters['statusInvalid'] ?? false)

@@ -1,0 +1,14 @@
+parameters:
+    level: 6
+    paths:
+        - bin/
+        - config/
+        - public/
+        - src/
+        - tests/
+
+    ignoreErrors:
+        -
+            identifier: instanceof.alwaysTrue
+            path: src/*/Api/Processor/*Processor.php
+

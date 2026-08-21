@@ -15,3 +15,9 @@
 
 /coverage/
 coverage.txt
+
+###> phpstan/phpstan ###
+phpstan.neon
+###< phpstan/phpstan ###
+
+phpstan-report.json

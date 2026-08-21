@@ -32,7 +32,7 @@ final class JsonLoginAuthenticator extends AbstractAuthenticator
     ) {
     }
 
-    public function supports(Request $request): ?bool
+    public function supports(Request $request): bool
     {
         return $request->isMethod(Request::METHOD_POST) && $request->getPathInfo() === '/api/auth/login';
     }
@@ -46,7 +46,7 @@ final class JsonLoginAuthenticator extends AbstractAuthenticator
         return new Passport(new UserBadge($email), new PasswordCredentials($password));
     }
 
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
+    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): Response
     {
         $securityUser = $token->getUser();
 
@@ -62,7 +62,7 @@ final class JsonLoginAuthenticator extends AbstractAuthenticator
         return $this->responseFactory->authenticatedUser($user);
     }
 
-    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
+    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
     {
         if ($exception instanceof TooManyLoginAttemptsAuthenticationException) {
             return $this->responseFactory->error(

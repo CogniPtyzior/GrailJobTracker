@@ -60,7 +60,7 @@ final readonly class TrackedJobDateParser
         }
 
         [$year, $month, $day] = array_map('intval', explode('-', $matches['date']));
-        $hasOffset = ($matches['timezone'] ?? 'Z') !== 'Z';
+        $hasOffset = $matches['timezone'] !== 'Z';
 
         return checkdate($month, $day, $year)
             && (int) $matches['hour'] <= 23

@@ -20,7 +20,7 @@ final readonly class JsonAccessDeniedHandler implements AccessDeniedHandlerInter
     {
     }
 
-    public function handle(Request $request, AccessDeniedException $accessDeniedException): ?Response
+    public function handle(Request $request, AccessDeniedException $accessDeniedException): Response
     {
         return $this->responseFactory->error('Access denied.', Response::HTTP_FORBIDDEN);
     }

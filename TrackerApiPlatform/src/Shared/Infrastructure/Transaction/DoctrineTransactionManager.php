@@ -16,6 +16,7 @@ final readonly class DoctrineTransactionManager implements TransactionManagerInt
 
     public function transactional(callable $operation): mixed
     {
+        // @phpstan-ignore argument.templateType
         return $this->connection->transactional($operation);
     }
 }

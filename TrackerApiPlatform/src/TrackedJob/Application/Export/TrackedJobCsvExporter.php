@@ -33,7 +33,7 @@ final class TrackedJobCsvExporter
                 $item->company()?->value(),
                 $item->title()?->value(),
                 $item->getStatus()->value,
-                $item->getContractType()?->value,
+                $item->getContractType()->value,
                 $item->getLocation(),
                 $item->getRemoteMode()?->value,
                 $item->getRemuneration(),

@@ -17,6 +17,9 @@ use App\AccessRequest\Infrastructure\Doctrine\Mapper\AccessRequestRecordMapper;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<AccessRequestRecord>
+ */
 final class DoctrineAccessRequestRepository extends ServiceEntityRepository implements AccessRequestRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry, private readonly AccessRequestRecordMapper $mapper)
