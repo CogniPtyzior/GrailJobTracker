@@ -29,6 +29,4 @@ interface TrackedJobRepositoryInterface
     public function save(TrackedJob $trackedJob): void;
 
     public function remove(TrackedJob $trackedJob): void;
-
-    public function flush(): void;
 }

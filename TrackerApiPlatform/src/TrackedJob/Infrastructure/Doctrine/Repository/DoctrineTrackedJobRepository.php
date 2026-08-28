@@ -125,10 +125,6 @@ final class DoctrineTrackedJobRepository extends ServiceEntityRepository impleme
         }
     }
 
-    public function flush(): void
-    {
-        $this->getEntityManager()->flush();
-    }
 
     private function findUserRecord(UserId $ownerId): ?UserRecord
     {

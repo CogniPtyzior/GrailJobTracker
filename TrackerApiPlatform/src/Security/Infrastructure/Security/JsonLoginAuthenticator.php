@@ -11,6 +11,7 @@ namespace App\Security\Infrastructure\Security;
 
 use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Application\Clock\ClockInterface;
+use App\Shared\Application\Transaction\TransactionManagerInterface;
 use JsonException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,6 +29,7 @@ final class JsonLoginAuthenticator extends AbstractAuthenticator
     public function __construct(
         private readonly ClockInterface $clock,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly TransactionManagerInterface $transactionManager,
         private readonly SecurityJsonResponseFactory $responseFactory,
     ) {
     }
@@ -55,9 +57,10 @@ final class JsonLoginAuthenticator extends AbstractAuthenticator
         }
 
         $user = $securityUser->domainUser();
-        $user->markLoggedIn($this->clock->now());
-        $this->userRepository->save($user);
-        $this->userRepository->flush();
+        $this->transactionManager->transactional(function () use ($user): void {
+            $user->markLoggedIn($this->clock->now());
+            $this->userRepository->save($user);
+        });
 
         return $this->responseFactory->authenticatedUser($user);
     }
@@ -102,5 +105,3 @@ final class JsonLoginAuthenticator extends AbstractAuthenticator
         return $value;
     }
 }
-
-

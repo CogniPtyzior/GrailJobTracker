@@ -15,6 +15,7 @@ use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use App\Security\Application\Security\PasswordHasherInterface;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Shared\Application\Transaction\TransactionManagerInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
 
 final readonly class ApproveAccessRequest
@@ -23,26 +24,28 @@ final readonly class ApproveAccessRequest
         private UserRepositoryInterface $userRepository,
         private AccessRequestRepositoryInterface $accessRequestRepository,
         private PasswordHasherInterface $passwordHasher,
+        private TransactionManagerInterface $transactionManager,
     ) {
     }
 
     public function handle(AccessRequest $accessRequest, ApproveAccessRequestInput $input): User
     {
-        $email = EmailAddress::fromString($accessRequest->getEmail());
-        $user = $this->userRepository->findOneByEmail($email) ?? new User($email);
+        return $this->transactionManager->transactional(function () use ($accessRequest, $input): User {
+            $email = EmailAddress::fromString($accessRequest->getEmail());
+            $user = $this->userRepository->findOneByEmail($email) ?? new User($email);
 
-        $user->updateProfile(
-            $input->firstName ?? $accessRequest->firstName(),
-            $input->lastName ?? $accessRequest->lastName(),
-        );
-        $user->activate();
-        $user->assignRegularUser();
-        $user->setPasswordHash($this->passwordHasher->hash($user, $input->password));
+            $user->updateProfile(
+                $input->firstName ?? $accessRequest->firstName(),
+                $input->lastName ?? $accessRequest->lastName(),
+            );
+            $user->activate();
+            $user->assignRegularUser();
+            $user->setPasswordHash($this->passwordHasher->hash($user, $input->password));
 
-        $this->userRepository->save($user);
-        $this->accessRequestRepository->remove($accessRequest);
-        $this->accessRequestRepository->flush();
+            $this->userRepository->save($user);
+            $this->accessRequestRepository->remove($accessRequest);
 
-        return $user;
+            return $user;
+        });
     }
 }

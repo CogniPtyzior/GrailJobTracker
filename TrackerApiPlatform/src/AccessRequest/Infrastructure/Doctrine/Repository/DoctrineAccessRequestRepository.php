@@ -82,8 +82,4 @@ final class DoctrineAccessRequestRepository extends ServiceEntityRepository impl
         }
     }
 
-    public function flush(): void
-    {
-        $this->getEntityManager()->flush();
-    }
 }

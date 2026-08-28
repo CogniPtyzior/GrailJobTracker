@@ -91,10 +91,6 @@ final class DoctrineUserRepository extends ServiceEntityRepository implements Us
         }
     }
 
-    public function flush(): void
-    {
-        $this->getEntityManager()->flush();
-    }
 
     private function nameSearchExpression(): string
     {

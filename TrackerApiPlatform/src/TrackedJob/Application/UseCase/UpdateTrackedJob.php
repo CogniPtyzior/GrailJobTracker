@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace App\TrackedJob\Application\UseCase;
 
+use App\Shared\Application\Transaction\TransactionManagerInterface;
 use App\TrackedJob\Application\Command\TrackedJobCommand;
 use App\TrackedJob\Application\Service\TrackedJobCommandApplier;
 use App\TrackedJob\Domain\Entity\TrackedJob;
@@ -19,15 +20,17 @@ final readonly class UpdateTrackedJob
     public function __construct(
         private TrackedJobCommandApplier $commandApplier,
         private TrackedJobRepositoryInterface $trackedJobRepository,
+        private TransactionManagerInterface $transactionManager,
     ) {
     }
 
     public function handle(TrackedJob $trackedJob, TrackedJobCommand $command): TrackedJob
     {
-        $this->commandApplier->apply($trackedJob, $command);
-        $this->trackedJobRepository->save($trackedJob);
-        $this->trackedJobRepository->flush();
+        return $this->transactionManager->transactional(function () use ($trackedJob, $command): TrackedJob {
+            $this->commandApplier->apply($trackedJob, $command);
+            $this->trackedJobRepository->save($trackedJob);
 
-        return $trackedJob;
+            return $trackedJob;
+        });
     }
 }

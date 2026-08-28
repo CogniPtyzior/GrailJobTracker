@@ -22,6 +22,4 @@ interface AccessRequestRepositoryInterface
     public function save(AccessRequest $accessRequest): void;
 
     public function remove(AccessRequest $accessRequest): void;
-
-    public function flush(): void;
 }

@@ -25,6 +25,4 @@ interface UserRepositoryInterface
     public function save(User $user): void;
 
     public function remove(User $user): void;
-
-    public function flush(): void;
 }

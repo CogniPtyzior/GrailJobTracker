@@ -11,16 +11,20 @@ namespace App\AccessRequest\Application\UseCase;
 
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
+use App\Shared\Application\Transaction\TransactionManagerInterface;
 
 final readonly class DeleteAccessRequest
 {
-    public function __construct(private AccessRequestRepositoryInterface $accessRequestRepository)
-    {
+    public function __construct(
+        private AccessRequestRepositoryInterface $accessRequestRepository,
+        private TransactionManagerInterface $transactionManager,
+    ) {
     }
 
     public function handle(AccessRequest $accessRequest): void
     {
-        $this->accessRequestRepository->remove($accessRequest);
-        $this->accessRequestRepository->flush();
+        $this->transactionManager->transactional(function () use ($accessRequest): void {
+            $this->accessRequestRepository->remove($accessRequest);
+        });
     }
 }

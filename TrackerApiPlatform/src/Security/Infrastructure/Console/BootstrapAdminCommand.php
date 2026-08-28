@@ -12,6 +12,7 @@ namespace App\Security\Infrastructure\Console;
 use App\Security\Application\Security\PasswordHasherInterface;
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Shared\Application\Transaction\TransactionManagerInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -26,6 +27,7 @@ final class BootstrapAdminCommand extends Command
         private readonly UserRepositoryInterface $userRepository,
         private readonly PasswordHasherInterface $passwordHasher,
         private readonly Connection $connection,
+        private readonly TransactionManagerInterface $transactionManager,
         private readonly string $adminBootstrapEmail,
         private readonly string $adminBootstrapPasswordFile,
         private readonly string $trackerSchema,
@@ -71,24 +73,27 @@ final class BootstrapAdminCommand extends Command
         $existingUser = $this->userRepository->findOneByEmail($email);
 
         if ($existingUser instanceof User) {
-            $existingUser->grantAdmin();
+            $this->transactionManager->transactional(function () use ($existingUser): void {
+                $existingUser->grantAdmin();
 
-            if (!$existingUser->isActive()) {
-                $existingUser->activate();
-            }
+                if (!$existingUser->isActive()) {
+                    $existingUser->activate();
+                }
 
-            $this->userRepository->save($existingUser);
-            $this->userRepository->flush();
+                $this->userRepository->save($existingUser);
+            });
+
             $output->writeln('<info>Bootstrap admin already exists.</info>');
 
             return Command::SUCCESS;
         }
 
-        $user = new User($email);
-        $user->grantAdmin();
-        $user->setPasswordHash($this->passwordHasher->hash($user, $password));
-        $this->userRepository->save($user);
-        $this->userRepository->flush();
+        $this->transactionManager->transactional(function () use ($email, $password): void {
+            $user = new User($email);
+            $user->grantAdmin();
+            $user->setPasswordHash($this->passwordHasher->hash($user, $password));
+            $this->userRepository->save($user);
+        });
 
         $output->writeln('<info>Bootstrap admin created.</info>');
 

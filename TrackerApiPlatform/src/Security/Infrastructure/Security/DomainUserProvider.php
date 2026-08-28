@@ -11,6 +11,7 @@ namespace App\Security\Infrastructure\Security;
 
 use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
+use App\Shared\Application\Transaction\TransactionManagerInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
@@ -24,8 +25,10 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
  */
 final readonly class DomainUserProvider implements UserProviderInterface, PasswordUpgraderInterface
 {
-    public function __construct(private UserRepositoryInterface $userRepository)
-    {
+    public function __construct(
+        private UserRepositoryInterface $userRepository,
+        private TransactionManagerInterface $transactionManager,
+    ) {
     }
 
     public function loadUserByIdentifier(string $identifier): UserInterface
@@ -33,7 +36,7 @@ final readonly class DomainUserProvider implements UserProviderInterface, Passwo
         $user = $this->userRepository->findOneByEmail(EmailAddress::fromString($identifier));
 
         if (!$user instanceof User) {
-            throw new UserNotFoundException(sprintf('User "%s" was not found.', $identifier));
+            throw new UserNotFoundException(sprintf('User  %s was not found.', $identifier));
         }
 
         return new SecurityUser($user);
@@ -42,7 +45,7 @@ final readonly class DomainUserProvider implements UserProviderInterface, Passwo
     public function refreshUser(UserInterface $user): UserInterface
     {
         if (!$user instanceof SecurityUser) {
-            throw new UnsupportedUserException(sprintf('Unsupported user class "%s".', $user::class));
+            throw new UnsupportedUserException(sprintf('Unsupported user class %s.', $user::class));
         }
 
         $refreshedUser = $this->userRepository->getById($user->domainUser()->getId());
@@ -62,12 +65,13 @@ final readonly class DomainUserProvider implements UserProviderInterface, Passwo
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
         if (!$user instanceof SecurityUser) {
-            throw new UnsupportedUserException(sprintf('Unsupported user class "%s".', $user::class));
+            throw new UnsupportedUserException(sprintf('Unsupported user class %s.', $user::class));
         }
 
-        $domainUser = $user->domainUser();
-        $domainUser->setPasswordHash($newHashedPassword);
-        $this->userRepository->save($domainUser);
-        $this->userRepository->flush();
+        $this->transactionManager->transactional(function () use ($user, $newHashedPassword): void {
+            $domainUser = $user->domainUser();
+            $domainUser->setPasswordHash($newHashedPassword);
+            $this->userRepository->save($domainUser);
+        });
     }
 }

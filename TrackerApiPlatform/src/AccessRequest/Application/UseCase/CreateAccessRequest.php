@@ -13,9 +13,9 @@ use App\AccessRequest\Application\Input\CreateAccessRequestInput;
 use App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface;
 use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
+use App\Shared\Application\Metrics\MetricsInterface;
 use App\Shared\Application\Transaction\TransactionManagerInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
-use App\Shared\Application\Metrics\MetricsInterface;
 
 final readonly class CreateAccessRequest
 {
@@ -29,7 +29,7 @@ final readonly class CreateAccessRequest
 
     public function handle(CreateAccessRequestInput $input): AccessRequest
     {
-         $accessRequest = $this->transactionManager->transactional(
+        $accessRequest = $this->transactionManager->transactional(
             function () use ($input): AccessRequest {
                 $accessRequest = AccessRequest::submit(
                     EmailAddress::fromString($input->email),
@@ -40,8 +40,6 @@ final readonly class CreateAccessRequest
                 );
 
                 $this->accessRequestRepository->save($accessRequest);
-                $this->accessRequestRepository->flush();
-
                 $this->notificationDispatcher->dispatchCreated($accessRequest);
 
                 return $accessRequest;

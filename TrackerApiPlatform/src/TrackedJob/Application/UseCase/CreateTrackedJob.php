@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace App\TrackedJob\Application\UseCase;
 
 use App\Security\Domain\Entity\User;
+use App\Shared\Application\Transaction\TransactionManagerInterface;
 use App\TrackedJob\Application\Command\TrackedJobCommand;
 use App\TrackedJob\Application\Factory\TrackedJobFactory;
 use App\TrackedJob\Application\Service\TrackedJobCommandApplier;
@@ -22,17 +23,19 @@ final readonly class CreateTrackedJob
         private TrackedJobFactory $trackedJobFactory,
         private TrackedJobCommandApplier $commandApplier,
         private TrackedJobRepositoryInterface $trackedJobRepository,
+        private TransactionManagerInterface $transactionManager,
     ) {
     }
 
     public function handle(User $owner, TrackedJobCommand $command): TrackedJob
     {
-        $trackedJob = $this->trackedJobFactory->create($owner);
-        $this->commandApplier->apply($trackedJob, $command);
+        return $this->transactionManager->transactional(function () use ($owner, $command): TrackedJob {
+            $trackedJob = $this->trackedJobFactory->create($owner);
+            $this->commandApplier->apply($trackedJob, $command);
 
-        $this->trackedJobRepository->save($trackedJob);
-        $this->trackedJobRepository->flush();
+            $this->trackedJobRepository->save($trackedJob);
 
-        return $trackedJob;
+            return $trackedJob;
+        });
     }
 }
