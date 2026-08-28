@@ -12,11 +12,10 @@ namespace App\AccessRequest\Infrastructure\Messenger;
 use App\AccessRequest\Application\Message\SendAccessRequestNotification;
 use App\AccessRequest\Application\Notification\AccessRequestNotificationDispatcherInterface;
 use App\AccessRequest\Domain\Entity\AccessRequest;
-use Symfony\Component\Messenger\MessageBusInterface;
 use App\Shared\Infrastructure\Messenger\Stamp\OpenTelemetryTraceStamp;
 use OpenTelemetry\API\Globals;
-use Symfony\Component\Messenger\Envelope;
 use OpenTelemetry\API\Trace\SpanKind;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final readonly class MessengerAccessRequestNotificationDispatcher implements AccessRequestNotificationDispatcherInterface
 {
@@ -26,7 +25,7 @@ final readonly class MessengerAccessRequestNotificationDispatcher implements Acc
 
     public function dispatchCreated(AccessRequest $accessRequest): void
     {
-         $tracer = Globals::tracerProvider()
+        $tracer = Globals::tracerProvider()
             ->getTracer('grailjob.messenger');
 
         $span = $tracer
@@ -42,14 +41,8 @@ final readonly class MessengerAccessRequestNotificationDispatcher implements Acc
             Globals::propagator()->inject($carrier);
 
             $this->messageBus->dispatch(
-                new Envelope(
-                    new SendAccessRequestNotification(
-                        $accessRequest->getId()->toRfc4122(),
-                    ),
-                    [
-                        new OpenTelemetryTraceStamp($carrier),
-                    ],
-                ),
+                new SendAccessRequestNotification($accessRequest->getId()->toRfc4122()),
+                [new OpenTelemetryTraceStamp($carrier)],
             );
         } finally {
             $scope->detach();
