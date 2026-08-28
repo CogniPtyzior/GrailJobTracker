@@ -14,6 +14,7 @@ use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Application\Clock\ClockInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\InMemoryUserRepository;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
@@ -59,7 +60,6 @@ it('marks users as logged in on success', function (): void {
 
     expect($user->getLastLoginAt())->toBe($loggedAt)
         ->and($repository->saveCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1)
         ->and($response?->getStatusCode())->toBe(200);
 });
 
@@ -90,7 +90,7 @@ function createJsonLoginAuthenticator(
         }
     };
 
-    return new JsonLoginAuthenticator($clock, $repository ?? new InMemoryUserRepository(), new SecurityJsonResponseFactory());
+    return new JsonLoginAuthenticator($clock, $repository ?? new InMemoryUserRepository(), new InMemoryTransactionManager(), new SecurityJsonResponseFactory());
 }
 
 

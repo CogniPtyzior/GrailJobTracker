@@ -11,6 +11,7 @@ use App\Security\Application\Security\PasswordHasherInterface;
 use App\Security\Domain\Entity\User;
 use App\Security\Infrastructure\Console\BootstrapAdminCommand;
 use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 use App\Tests\Support\Fake\InMemoryUserRepository;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Console\Command\Command;
@@ -18,6 +19,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 it('skips bootstrap admin creation when the password file is missing', function (): void {
     $repository = new InMemoryUserRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $connection = $this->createMock(Connection::class);
     $connection->expects($this->never())->method('executeStatement');
 
@@ -25,6 +27,7 @@ it('skips bootstrap admin creation when the password file is missing', function 
         $repository,
         staticPasswordHasher(),
         $connection,
+        $transactionManager,
         'admin@example.local',
         __DIR__.'/missing.secret',
         'trackers',
@@ -33,7 +36,7 @@ it('skips bootstrap admin creation when the password file is missing', function 
     expect($tester->execute([]))->toBe(Command::SUCCESS)
         ->and($tester->getDisplay())->toContain('Bootstrap password file is missing or unreadable.')
         ->and($repository->saveCalls)->toBe(0)
-        ->and($repository->flushCalls)->toBe(0);
+        ->and($transactionManager->transactionCalls)->toBe(0);
 });
 
 it('rejects unsafe tracker schema names before running SQL', function (): void {
@@ -44,6 +47,7 @@ it('rejects unsafe tracker schema names before running SQL', function (): void {
         new InMemoryUserRepository(),
         staticPasswordHasher(),
         $connection,
+        new InMemoryTransactionManager(),
         'admin@example.local',
         createBootstrapPasswordFile('secret-password'),
         'trackers;drop',
@@ -55,6 +59,7 @@ it('rejects unsafe tracker schema names before running SQL', function (): void {
 
 it('creates the bootstrap admin when the users table exists and no admin exists yet', function (): void {
     $repository = new InMemoryUserRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $connection = connectionForExistingUsersTable();
     $passwordFile = createBootstrapPasswordFile('secret-password');
 
@@ -62,6 +67,7 @@ it('creates the bootstrap admin when the users table exists and no admin exists 
         $repository,
         staticPasswordHasher(),
         $connection,
+        $transactionManager,
         'admin@example.local',
         $passwordFile,
         'trackers',
@@ -69,7 +75,7 @@ it('creates the bootstrap admin when the users table exists and no admin exists 
 
     expect($tester->execute([]))->toBe(Command::SUCCESS)
         ->and($tester->getDisplay())->toContain('Bootstrap admin created.')
-        ->and($repository->flushCalls)->toBe(1);
+        ->and($transactionManager->transactionCalls)->toBe(1);
 
     $admin = $repository->findOneByEmail(EmailAddress::fromString('admin@example.local'));
 
@@ -81,6 +87,7 @@ it('creates the bootstrap admin when the users table exists and no admin exists 
 
 it('reactivates and promotes an existing bootstrap admin', function (): void {
     $repository = new InMemoryUserRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $admin = new User(EmailAddress::fromString('admin@example.local'));
     $admin->deactivate();
     $admin->assignRegularUser();
@@ -90,6 +97,7 @@ it('reactivates and promotes an existing bootstrap admin', function (): void {
         $repository,
         staticPasswordHasher(),
         connectionForExistingUsersTable(),
+        $transactionManager,
         'admin@example.local',
         createBootstrapPasswordFile('secret-password'),
         'trackers',
@@ -99,7 +107,7 @@ it('reactivates and promotes an existing bootstrap admin', function (): void {
         ->and($tester->getDisplay())->toContain('Bootstrap admin already exists.')
         ->and($admin->isActive())->toBeTrue()
         ->and($admin->getRoles())->toContain('ROLE_ADMIN')
-        ->and($repository->flushCalls)->toBe(1);
+        ->and($transactionManager->transactionCalls)->toBe(1);
 });
 
 function createBootstrapPasswordFile(string $password): string

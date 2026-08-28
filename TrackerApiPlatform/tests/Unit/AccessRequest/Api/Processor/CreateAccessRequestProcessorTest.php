@@ -17,14 +17,16 @@ use App\AccessRequest\Domain\Entity\AccessRequest;
 use App\AccessRequest\Domain\Repository\AccessRequestRepositoryInterface;
 use App\AccessRequest\Domain\ValueObject\AccessRequestId;
 use App\Shared\Application\Exception\InvalidApplicationCommand;
+use App\Shared\Application\Metrics\MetricsInterface;
 use App\Tests\Support\Fake\FakeAccessRequestNotificationDispatcher;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 
 it('creates an access request and returns the frontend-compatible empty JSON response', function (): void {
     $repository = processorAccessRequestRepository();
     $processor = new CreateAccessRequestProcessor(
         processorAccessRequestLimiter(),
         new AccessRequestInputMapper(),
-        new CreateAccessRequest($repository, new FakeAccessRequestNotificationDispatcher()),
+        new CreateAccessRequest($repository, new FakeAccessRequestNotificationDispatcher(), new InMemoryTransactionManager(), $this->createStub(MetricsInterface::class)),
     );
     $input = new CreateAccessRequestInput();
     $input->email = 'p19-processor@example.com';
@@ -45,6 +47,8 @@ it('rejects invalid processor payload objects', function (): void {
         new CreateAccessRequest(
             processorAccessRequestRepository(),
             new FakeAccessRequestNotificationDispatcher(),
+            new InMemoryTransactionManager(),
+            $this->createStub(MetricsInterface::class),
         ),
     );
 
@@ -59,7 +63,7 @@ function processorAccessRequestLimiter(): AccessRequestSubmissionLimiterInterfac
         {
         }
     };
-}
+    };
 
 function processorAccessRequestRepository(): AccessRequestRepositoryInterface
 {
@@ -92,8 +96,5 @@ function processorAccessRequestRepository(): AccessRequestRepositoryInterface
         {
         }
 
-        public function flush(): void
-        {
-        }
     };
 }

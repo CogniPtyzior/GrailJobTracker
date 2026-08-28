@@ -24,6 +24,7 @@ use App\Security\Application\UseCase\SearchUsers;
 use App\Security\Domain\Entity\User;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\InMemoryUserRepository;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
@@ -43,7 +44,7 @@ it('maps admin user collections with pagination metadata', function (): void {
 it('creates admin users through the creation processor', function (): void {
     $users = new InMemoryUserRepository();
     $processor = new CreateAdminUserProcessor(
-        new CreateAdminUser($users, adminUserApiPasswordHasher()),
+        new CreateAdminUser($users, adminUserApiPasswordHasher(), new InMemoryTransactionManager()),
         new AdminUserInputMapper(),
         new AdminUserApiMapper(),
     );
@@ -67,7 +68,7 @@ it('deletes admin users through the deletion processor', function (): void {
     $processor = new DeleteAdminUserProcessor(
         adminUserApiResolver($admin),
         new GetAdminUser($users),
-        new DeleteAdminUser($users, 'admin@example.com'),
+        new DeleteAdminUser($users, 'admin@example.com', new InMemoryTransactionManager()),
     );
 
     $processor->process(null, new Delete(), ['id' => $managed->getId()->toRfc4122()]);

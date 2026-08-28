@@ -16,6 +16,7 @@ use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Application\Exception\ApplicationNotFound;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\InMemoryTrackedJobRepository;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 use App\TrackedJob\Api\Input\CreateTrackedJobInput;
 use App\TrackedJob\Api\Input\ExportTrackedJobsInput;
 use App\TrackedJob\Api\Input\UpdateTrackedJobInput;
@@ -44,6 +45,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 it('creates a tracked job and returns the API item output', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $input = new CreateTrackedJobInput();
     $input->company = 'Acme';
     $input->title = 'Backend Engineer';
@@ -51,14 +53,14 @@ it('creates a tracked job and returns the API item output', function (): void {
     $output = (new CreateTrackedJobProcessor(
         $resolver,
         new TrackedJobInputMapper(),
-        new CreateTrackedJob(new TrackedJobFactory(), new TrackedJobCommandApplier(), $repository),
+        new CreateTrackedJob(new TrackedJobFactory(), new TrackedJobCommandApplier(), $repository, $transactionManager),
         new TrackedJobApiMapper(),
     ))->process($input, new Post());
 
     expect($output->item->company)->toBe('Acme')
         ->and($output->item->title)->toBe('Backend Engineer')
         ->and($repository->saveCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1)
+        ->and($transactionManager->transactionCalls)->toBe(1)
         ->and($repository->getByIdForOwner(TrackedJobId::fromString($output->item->id), $owner->getId()))
         ->toBeInstanceOf(TrackedJob::class);
 });
@@ -67,6 +69,7 @@ it('creates a tracked job and returns the API item output', function (): void {
 it('exports tracked jobs as a CSV file response', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $trackedJob = TrackedJob::openFor($owner->getId());
     $repository->save($trackedJob);
     $input = new ExportTrackedJobsInput();
@@ -87,10 +90,10 @@ it('exports tracked jobs as a CSV file response', function (): void {
 it('updates an owner-scoped tracked job when the voter grants access', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $trackedJob = TrackedJob::openFor($owner->getId());
     $repository->save($trackedJob);
     $repository->saveCalls = 0;
-    $repository->flushCalls = 0;
     $input = new UpdateTrackedJobInput();
     $input->company = 'Updated';
 
@@ -98,7 +101,7 @@ it('updates an owner-scoped tracked job when the voter grants access', function 
         $resolver,
         new GetTrackedJob($repository),
         new TrackedJobInputMapper(),
-        new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository),
+        new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository, $transactionManager),
         new TrackedJobApiMapper(),
         trackedJobWriteAuthorization(),
     ))->process($input, new Put(), ['id' => $trackedJob->getId()->toRfc4122()]);
@@ -106,12 +109,13 @@ it('updates an owner-scoped tracked job when the voter grants access', function 
     expect($output->item->id)->toBe($trackedJob->getId()->toRfc4122())
         ->and($output->item->company)->toBe('Updated')
         ->and($repository->saveCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1);
+        ->and($transactionManager->transactionCalls)->toBe(1);
 });
 
 it('does not update a loaded tracked job when the voter denies access', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $trackedJob = TrackedJob::openFor($owner->getId());
     $repository->save($trackedJob);
     $repository->saveCalls = 0;
@@ -122,7 +126,7 @@ it('does not update a loaded tracked job when the voter denies access', function
         $resolver,
         new GetTrackedJob($repository),
         new TrackedJobInputMapper(),
-        new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository),
+        new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository, $transactionManager),
         new TrackedJobApiMapper(),
         trackedJobWriteAuthorization(false),
     ))->process($input, new Put(), ['id' => $trackedJob->getId()->toRfc4122()]);
@@ -131,34 +135,35 @@ it('does not update a loaded tracked job when the voter denies access', function
 it('deletes an owner-scoped tracked job when the voter grants access', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $trackedJob = TrackedJob::openFor($owner->getId());
     $repository->save($trackedJob);
     $repository->removeCalls = 0;
-    $repository->flushCalls = 0;
 
     $result = (new DeleteTrackedJobProcessor(
         $resolver,
         new GetTrackedJob($repository),
-        new DeleteTrackedJob($repository),
+        new DeleteTrackedJob($repository, $transactionManager),
         trackedJobWriteAuthorization(),
     ))->process(null, new Delete(), ['id' => $trackedJob->getId()->toRfc4122()]);
 
     expect($result)->toBeNull()
         ->and($repository->removeCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1)
+        ->and($transactionManager->transactionCalls)->toBe(1)
         ->and($repository->getByIdForOwner($trackedJob->getId(), $owner->getId()))->toBeNull();
 });
 
 it('does not delete a loaded tracked job when the voter denies access', function (): void {
     [$owner, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $trackedJob = TrackedJob::openFor($owner->getId());
     $repository->save($trackedJob);
 
     (new DeleteTrackedJobProcessor(
         $resolver,
         new GetTrackedJob($repository),
-        new DeleteTrackedJob($repository),
+        new DeleteTrackedJob($repository, $transactionManager),
         trackedJobWriteAuthorization(false),
     ))->process(null, new Delete(), ['id' => $trackedJob->getId()->toRfc4122()]);
 })->throws(AccessDeniedException::class, 'Access denied.');
@@ -166,6 +171,7 @@ it('does not delete a loaded tracked job when the voter denies access', function
 it('returns not found for update when the tracked job does not belong to the user', function (): void {
     [, $resolver] = writeProcessorUserContext();
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $foreignOwner = new User(EmailAddress::fromString('foreign@example.com'));
     $trackedJob = TrackedJob::openFor($foreignOwner->getId());
     $repository->save($trackedJob);
@@ -176,7 +182,7 @@ it('returns not found for update when the tracked job does not belong to the use
         $resolver,
         new GetTrackedJob($repository),
         new TrackedJobInputMapper(),
-        new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository),
+        new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository, $transactionManager),
         new TrackedJobApiMapper(),
         trackedJobWriteAuthorization(),
     ))->process($input, new Put(), ['id' => $trackedJob->getId()->toRfc4122()]);

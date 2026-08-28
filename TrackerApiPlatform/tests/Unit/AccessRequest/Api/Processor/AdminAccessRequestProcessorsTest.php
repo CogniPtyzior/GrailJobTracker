@@ -19,6 +19,7 @@ use App\AccessRequest\Application\UseCase\GetAccessRequest;
 use App\Shared\Application\Exception\ApplicationNotFound;
 use App\Tests\Support\Fake\InMemoryAccessRequestRepository;
 use App\Tests\Support\Fake\InMemoryUserRepository;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 
 it('approves an access request and returns the created user envelope', function (): void {
     $accessRequest = adminProcessorAccessRequest('processor@example.com');
@@ -26,7 +27,7 @@ it('approves an access request and returns the created user envelope', function 
     $users = new InMemoryUserRepository();
     $processor = new ApproveAccessRequestProcessor(
         new GetAccessRequest($accessRequests),
-        new ApproveAccessRequest($users, $accessRequests, adminProcessorPasswordHasher()),
+        new ApproveAccessRequest($users, $accessRequests, adminProcessorPasswordHasher(), new InMemoryTransactionManager()),
         new AccessRequestApiMapper(),
     );
     $input = new ApiApproveAccessRequestInput();
@@ -43,7 +44,7 @@ it('deletes an access request by id', function (): void {
     $accessRequests = new InMemoryAccessRequestRepository([$accessRequest]);
     $processor = new DeleteAccessRequestProcessor(
         new GetAccessRequest($accessRequests),
-        new DeleteAccessRequest($accessRequests),
+        new DeleteAccessRequest($accessRequests, new InMemoryTransactionManager()),
     );
 
     $processor->process(null, new Delete(), ['id' => $accessRequest->getId()->toRfc4122()]);
@@ -55,7 +56,7 @@ it('returns application not found for invalid admin access request ids', functio
     $accessRequests = new InMemoryAccessRequestRepository();
     $processor = new DeleteAccessRequestProcessor(
         new GetAccessRequest($accessRequests),
-        new DeleteAccessRequest($accessRequests),
+        new DeleteAccessRequest($accessRequests, new InMemoryTransactionManager()),
     );
 
     expect(fn () => $processor->process(null, new Delete(), ['id' => 'invalid']))
