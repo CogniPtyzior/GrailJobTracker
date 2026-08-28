@@ -17,6 +17,7 @@ use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PersonName;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 const ADMIN_ACCESS_REQUEST_EMAIL_PREFIX = 'p21-admin-';
@@ -119,7 +120,7 @@ function persistAdminAccessRequest(
     );
 
     $repository->save($accessRequest);
-    $repository->flush();
+    test()->getContainer()->get(EntityManagerInterface::class)->flush();
 
     return $accessRequest;
 }
@@ -131,7 +132,7 @@ function loginAdminAccessRequestUser(KernelBrowser $client, bool $isAdmin): void
     $user->updateAdminRole($isAdmin);
     $user->setPasswordHash(adminAccessRequestPasswordHasher()->hash($user, 'Password1!'));
     adminAccessRequestUsers()->save($user);
-    adminAccessRequestUsers()->flush();
+    test()->getContainer()->get(EntityManagerInterface::class)->flush();
 
     $client->request(
         'POST',

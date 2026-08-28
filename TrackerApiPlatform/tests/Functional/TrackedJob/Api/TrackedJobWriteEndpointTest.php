@@ -14,6 +14,7 @@ use App\Shared\Domain\ValueObject\EmailAddress;
 use App\TrackedJob\Domain\Repository\TrackedJobRepositoryInterface;
 use App\TrackedJob\Domain\ValueObject\TrackedJobId;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 const TRACKED_JOB_WRITE_EMAIL_PREFIX = 'tracked-p14-';
@@ -166,7 +167,7 @@ function createTrackedJobWriteUser(string $email): User
 
     $user->setPasswordHash(password_hash(TRACKED_JOB_WRITE_PASSWORD, PASSWORD_BCRYPT, ['cost' => 4]));
     $users->save($user);
-    $users->flush();
+    test()->getContainer()->get(EntityManagerInterface::class)->flush();
 
     return $user;
 }

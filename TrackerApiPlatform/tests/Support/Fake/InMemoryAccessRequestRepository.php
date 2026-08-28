@@ -20,7 +20,6 @@ final class InMemoryAccessRequestRepository implements AccessRequestRepositoryIn
 
     public int $saveCalls = 0;
     public int $removeCalls = 0;
-    public int $flushCalls = 0;
 
     /** @var array<string, mixed> */
     public array $lastSearch = [];
@@ -77,8 +76,4 @@ final class InMemoryAccessRequestRepository implements AccessRequestRepositoryIn
         ++$this->removeCalls;
     }
 
-    public function flush(): void
-    {
-        ++$this->flushCalls;
-    }
 }

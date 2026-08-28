@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 use App\Security\Domain\Entity\User;
 use App\Tests\Support\Fake\InMemoryTrackedJobRepository;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 use App\TrackedJob\Application\Command\TrackedJobCommand;
 use App\TrackedJob\Application\Export\TrackedJobCsvExporter;
 use App\TrackedJob\Application\Factory\TrackedJobFactory;
@@ -30,6 +31,7 @@ use App\Shared\Application\Metrics\MetricsInterface;
 
 it('creates a tracked job for the owner and persists it', function (): void {
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $owner = new User(EmailAddress::fromString('owner@example.com'));
     $command = new TrackedJobCommand(
         company: CompanyName::fromNullable('Acme'),
@@ -37,31 +39,33 @@ it('creates a tracked job for the owner and persists it', function (): void {
         contractType: ContractType::CDD,
     );
 
-    $trackedJob = (new CreateTrackedJob(new TrackedJobFactory(), new TrackedJobCommandApplier(), $repository))
+    $trackedJob = (new CreateTrackedJob(new TrackedJobFactory(), new TrackedJobCommandApplier(), $repository, $transactionManager))
         ->handle($owner, $command);
 
     expect($trackedJob->ownerId()->equals($owner->getId()))->toBeTrue()
         ->and($trackedJob->company()?->value())->toBe('Acme')
         ->and($trackedJob->getContractType())->toBe(ContractType::CDD)
         ->and($repository->saveCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1);
+        ->and($transactionManager->transactionCalls)->toBe(1);
 });
 
 it('updates an existing tracked job and persists changes', function (): void {
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $trackedJob = TrackedJob::openFor((new User(EmailAddress::fromString('owner@example.com')))->getId());
     $command = new TrackedJobCommand(company: CompanyName::fromNullable('Updated'));
 
-    $updated = (new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository))->handle($trackedJob, $command);
+    $updated = (new UpdateTrackedJob(new TrackedJobCommandApplier(), $repository, $transactionManager))->handle($trackedJob, $command);
 
     expect($updated)->toBe($trackedJob)
         ->and($updated->company()?->value())->toBe('Updated')
         ->and($repository->saveCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1);
+        ->and($transactionManager->transactionCalls)->toBe(1);
 });
 
 it('loads a tracked job only for its owner', function (): void {
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $owner = new User(EmailAddress::fromString('owner@example.com'));
     $otherOwner = new User(EmailAddress::fromString('other@example.com'));
     $trackedJob = TrackedJob::openFor($owner->getId());
@@ -75,12 +79,13 @@ it('loads a tracked job only for its owner', function (): void {
 
 it('deletes a tracked job through the repository port', function (): void {
     $repository = new InMemoryTrackedJobRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $trackedJob = TrackedJob::openFor((new User(EmailAddress::fromString('owner@example.com')))->getId());
 
-    (new DeleteTrackedJob($repository))->handle($trackedJob);
+    (new DeleteTrackedJob($repository, $transactionManager))->handle($trackedJob);
 
     expect($repository->removeCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1);
+        ->and($transactionManager->transactionCalls)->toBe(1);
 });
 
 it('searches tracked jobs for the owner and returns pagination metadata', function (): void {

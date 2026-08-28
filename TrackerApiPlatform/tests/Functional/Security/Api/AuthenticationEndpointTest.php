@@ -12,6 +12,7 @@ use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 const AUTH_ENDPOINT_EMAIL_PREFIX = 'p24-auth-';
@@ -85,7 +86,7 @@ it('rejects an existing session after user deactivation', function (): void {
     expect($managedUser)->toBeInstanceOf(User::class);
     $managedUser->deactivate();
     authEndpointUsers()->save($managedUser);
-    authEndpointUsers()->flush();
+    test()->getContainer()->get(EntityManagerInterface::class)->flush();
 
     $client->request('GET', '/api/auth/me', server: ['HTTP_ACCEPT' => 'application/json']);
     $payload = authEndpointJson($client);
@@ -124,7 +125,7 @@ function persistAuthEndpointUser(string $email, bool $isActive = true): User
     $isActive ? $user->activate() : $user->deactivate();
     $user->setPasswordHash(authEndpointPasswordHasher()->hash($user, AUTH_ENDPOINT_PASSWORD));
     authEndpointUsers()->save($user);
-    authEndpointUsers()->flush();
+    test()->getContainer()->get(EntityManagerInterface::class)->flush();
 
     return $user;
 }

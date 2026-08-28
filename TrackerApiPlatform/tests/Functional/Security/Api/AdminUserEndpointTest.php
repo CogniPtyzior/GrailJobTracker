@@ -12,6 +12,7 @@ use App\Security\Domain\Entity\User;
 use App\Security\Domain\Repository\UserRepositoryInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 const ADMIN_USER_EMAIL_PREFIX = 'p22-admin-user-';
@@ -197,7 +198,7 @@ function persistAdminUserEndpointUser(string $emailSuffix, bool $isAdmin = false
     $user->updateAdminRole($isAdmin);
     $user->setPasswordHash(adminUserEndpointPasswordHasher()->hash($user, 'Password1!'));
     adminUserEndpointUsers()->save($user);
-    adminUserEndpointUsers()->flush();
+    test()->getContainer()->get(EntityManagerInterface::class)->flush();
 
     return $user;
 }

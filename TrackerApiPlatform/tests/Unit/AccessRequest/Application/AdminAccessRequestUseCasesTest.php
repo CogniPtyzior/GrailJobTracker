@@ -19,12 +19,14 @@ use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PersonName;
 use App\Tests\Support\Fake\InMemoryAccessRequestRepository;
 use App\Tests\Support\Fake\InMemoryUserRepository;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 
 it('approves an access request by creating an active regular user and removing the request', function (): void {
     $accessRequest = adminUseCaseAccessRequest('Candidate@example.com', 'RequestFirst', 'RequestLast');
     $accessRequests = new InMemoryAccessRequestRepository([$accessRequest]);
     $users = new InMemoryUserRepository();
-    $useCase = new ApproveAccessRequest($users, $accessRequests, adminUseCasePasswordHasher());
+    $transactionManager = new InMemoryTransactionManager();
+    $useCase = new ApproveAccessRequest($users, $accessRequests, adminUseCasePasswordHasher(), $transactionManager);
 
     $user = $useCase->handle($accessRequest, new ApproveAccessRequestInput('Password1!', null, null));
 
@@ -43,11 +45,12 @@ it('approves an access request by reusing existing users and preferring payload 
     $accessRequest = adminUseCaseAccessRequest('Candidate@example.com', 'RequestFirst', 'RequestLast');
     $accessRequests = new InMemoryAccessRequestRepository([$accessRequest]);
     $users = new InMemoryUserRepository();
+    $transactionManager = new InMemoryTransactionManager();
     $existingUser = new User(EmailAddress::fromString('candidate@example.com'));
     $existingUser->deactivate();
     $existingUser->grantAdmin();
     $users->add($existingUser);
-    $useCase = new ApproveAccessRequest($users, $accessRequests, adminUseCasePasswordHasher());
+    $useCase = new ApproveAccessRequest($users, $accessRequests, adminUseCasePasswordHasher(), $transactionManager);
 
     $user = $useCase->handle(
         $accessRequest,
@@ -69,12 +72,13 @@ it('approves an access request by reusing existing users and preferring payload 
 it('deletes an access request through the repository port', function (): void {
     $accessRequest = adminUseCaseAccessRequest('delete@example.com');
     $repository = new InMemoryAccessRequestRepository([$accessRequest]);
+    $transactionManager = new InMemoryTransactionManager();
 
-    (new DeleteAccessRequest($repository))->handle($accessRequest);
+    (new DeleteAccessRequest($repository, $transactionManager))->handle($accessRequest);
 
     expect($repository->getById($accessRequest->getId()))->toBeNull()
         ->and($repository->removeCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1);
+        ->and($transactionManager->transactionCalls)->toBe(1);
 });
 
 function adminUseCaseAccessRequest(

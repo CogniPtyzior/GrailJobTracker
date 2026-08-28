@@ -34,7 +34,7 @@ it('persists, loads and removes access requests through Doctrine', function (): 
     );
 
     $repository->save($accessRequest);
-    $repository->flush();
+    $entityManager->flush();
 
     $loaded = $repository->getById($accessRequest->getId());
 
@@ -43,7 +43,7 @@ it('persists, loads and removes access requests through Doctrine', function (): 
         ->and($loaded?->companyName()->value())->toBe('Acme Repository');
 
     $repository->remove($accessRequest);
-    $repository->flush();
+    $entityManager->flush();
 
     expect($repository->getById($accessRequest->getId()))->toBeNull();
 
@@ -76,7 +76,7 @@ it('searches access requests through Doctrine with total count', function (): vo
 
     $repository->save($olderRequest);
     $repository->save($newerRequest);
-    $repository->flush();
+    $entityManager->flush();
 
     $result = $repository->search('acme', 1, 10);
 

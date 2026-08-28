@@ -43,7 +43,7 @@ it('persists, loads and owner-filters tracked jobs through Doctrine', function (
     );
 
     $repository->save($trackedJob);
-    $repository->flush();
+    $entityManager->flush();
 
     expect($repository->getByIdForOwner($trackedJob->getId(), $trackedJob->ownerId()))->toBeInstanceOf(TrackedJob::class)
         ->and($repository->getByIdForOwner($trackedJob->getId(), UserId::fromString($otherOwner->getId()->toRfc4122())))
@@ -85,7 +85,7 @@ it('searches and suggests companies through Doctrine filters', function (): void
     ));
 
     $repository->save($trackedJob);
-    $repository->flush();
+    $entityManager->flush();
 
     $result = $repository->search($ownerId, ['company' => 'acme', 'contractType' => ContractType::CDD], 1, 10);
 

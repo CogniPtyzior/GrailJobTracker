@@ -21,7 +21,6 @@ final class InMemoryTrackedJobRepository implements TrackedJobRepositoryInterfac
 
     public int $saveCalls = 0;
     public int $removeCalls = 0;
-    public int $flushCalls = 0;
 
     /** @var array<string, mixed> */
     public array $lastSearch = [];
@@ -83,8 +82,4 @@ final class InMemoryTrackedJobRepository implements TrackedJobRepositoryInterfac
         ++$this->removeCalls;
     }
 
-    public function flush(): void
-    {
-        ++$this->flushCalls;
-    }
 }

@@ -12,6 +12,7 @@ use App\Security\Api\Security\AuthenticatedUserResolver;
 use App\Security\Domain\Entity\User;
 use App\Security\Infrastructure\Security\SecurityUser;
 use App\Shared\Application\Exception\ApplicationNotFound;
+use App\Shared\Application\Metrics\MetricsInterface;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\InMemoryTrackedJobRepository;
 use App\TrackedJob\Api\Mapper\TrackedJobApiMapper;
@@ -47,7 +48,7 @@ it('provides an owner-filtered tracked job collection from query parameters', fu
 
     $provider = new TrackedJobCollectionProvider(
         new AuthenticatedUserResolver($tokenStorage),
-        new SearchTrackedJobs($repository),
+        new SearchTrackedJobs($repository, $this->createStub(MetricsInterface::class)),
         new TrackedJobApiMapper(),
         $requestStack,
     );

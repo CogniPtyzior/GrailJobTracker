@@ -19,7 +19,6 @@ final class InMemoryUserRepository implements UserRepositoryInterface
     /** @var array<string, User> */
     private array $usersById = [];
     public int $saveCalls = 0;
-    public int $flushCalls = 0;
 
     public function add(User $user): void
     {
@@ -58,8 +57,4 @@ final class InMemoryUserRepository implements UserRepositoryInterface
         unset($this->usersById[$user->getId()->toRfc4122()]);
     }
 
-    public function flush(): void
-    {
-        $this->flushCalls++;
-    }
 }

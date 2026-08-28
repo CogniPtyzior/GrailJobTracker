@@ -20,11 +20,13 @@ use App\Shared\Application\Exception\ApplicationBadRequest;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PersonName;
 use App\Tests\Support\Fake\InMemoryUserRepository;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 
 it('creates an admin-managed user through the repository port', function (): void {
     $users = new InMemoryUserRepository();
+    $transactionManager = new InMemoryTransactionManager();
 
-    $user = (new CreateAdminUser($users, adminUserUseCasePasswordHasher()))->handle(new CreateAdminUserInput(
+    $user = (new CreateAdminUser($users, adminUserUseCasePasswordHasher(), $transactionManager))->handle(new CreateAdminUserInput(
         email: 'New.User@example.com',
         password: 'Password1!',
         firstName: PersonName::fromNullable('New'),
@@ -41,12 +43,13 @@ it('creates an admin-managed user through the repository port', function (): voi
         ->and($user->getPassword())->toBe('hashed::Password1!')
         ->and($users->getById($user->getId()))->toBe($user)
         ->and($users->saveCalls)->toBe(1)
-        ->and($users->flushCalls)->toBe(1);
+        ->and($transactionManager->transactionCalls)->toBe(1);
 });
 
 it('rejects duplicate admin user emails', function (): void {
     $users = adminUserUseCaseRepositoryWith(adminUserUseCaseFixture('existing@example.com'));
-    $useCase = new CreateAdminUser($users, adminUserUseCasePasswordHasher());
+    $transactionManager = new InMemoryTransactionManager();
+    $useCase = new CreateAdminUser($users, adminUserUseCasePasswordHasher(), $transactionManager);
 
     expect(fn () => $useCase->handle(new CreateAdminUserInput(
         email: 'EXISTING@example.com',
@@ -61,8 +64,9 @@ it('rejects duplicate admin user emails', function (): void {
 it('keeps bootstrap admin active and admin when a partial update tries to demote it', function (): void {
     $bootstrap = adminUserUseCaseFixture('bootstrap@example.com', true);
     $users = adminUserUseCaseRepositoryWith($bootstrap);
+    $transactionManager = new InMemoryTransactionManager();
 
-    $updated = (new UpdateAdminUser(adminUserUseCasePasswordHasher(), $users, 'bootstrap@example.com'))->handle(
+    $updated = (new UpdateAdminUser(adminUserUseCasePasswordHasher(), $users, 'bootstrap@example.com', $transactionManager))->handle(
         $bootstrap,
         $bootstrap,
         new UpdateAdminUserInput(
@@ -84,7 +88,8 @@ it('deletes non-bootstrap users and rejects bootstrap deletion', function (): vo
     $admin = adminUserUseCaseFixture('admin@example.com', true);
     $managed = adminUserUseCaseFixture('managed@example.com');
     $users = adminUserUseCaseRepositoryWith($admin, $managed);
-    $delete = new DeleteAdminUser($users, 'admin@example.com');
+    $transactionManager = new InMemoryTransactionManager();
+    $delete = new DeleteAdminUser($users, 'admin@example.com', $transactionManager);
 
     $delete->handle($managed, $admin);
 

@@ -16,14 +16,16 @@ use App\AccessRequest\Domain\ValueObject\AccessRequestCompanyName;
 use App\AccessRequest\Domain\ValueObject\AccessRequestReason;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PersonName;
+use App\Shared\Application\Metrics\MetricsInterface;
 use App\Tests\Support\Fake\FakeAccessRequestNotificationDispatcher;
 use App\Tests\Support\Fake\InMemoryAccessRequestRepository;
+use App\Tests\Support\Fake\InMemoryTransactionManager;
 
 it('creates an access request and dispatches a created notification', function (): void {
     $repository = new InMemoryAccessRequestRepository();
     $dispatcher = new FakeAccessRequestNotificationDispatcher();
 
-    $accessRequest = (new CreateAccessRequest($repository, $dispatcher))->handle(new CreateAccessRequestInput(
+    $accessRequest = (new CreateAccessRequest($repository, $dispatcher, new InMemoryTransactionManager(), $this->createStub(MetricsInterface::class)))->handle(new CreateAccessRequestInput(
         email: '  JOHN@example.com  ',
         companyName: AccessRequestCompanyName::fromString('  Acme  '),
         reason: AccessRequestReason::fromString('  I need access to manage jobs.  '),
@@ -39,7 +41,6 @@ it('creates an access request and dispatches a created notification', function (
         ->and($accessRequest->lastName())->toBeNull()
         ->and($repository->getById($accessRequest->getId()))->toBe($accessRequest)
         ->and($repository->saveCalls)->toBe(1)
-        ->and($repository->flushCalls)->toBe(1)
         ->and($dispatcher->createdNotifications)->toBe([$accessRequest]);
 });
 
